@@ -5,6 +5,10 @@ import { StatusChip } from "../components/StatusChip";
 import { useI18n } from "../i18n";
 import type { CommentIntent, LiveCommentEvent } from "../live/types";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
+import { getPrintService } from "../print/service";
+import { isConfigured, loadPrinter } from "../print/settings";
+import { tempSlip } from "../print/slip";
+import { usePrintStatus } from "../print/usePrint";
 import { ReplyCard } from "./ReplyCard";
 
 const FILTERS = ["all", "questions", "purchase", "product", "spam", "review"] as const;
@@ -27,6 +31,15 @@ const SOURCE_TONE: Record<LiveCommentEvent["source"], string> = {
   MANUAL: "tone-gray",
   UNOFFICIAL_CONNECTOR: "tone-orange",
 };
+
+const AVATAR_TONES = ["blue", "green", "orange", "pink", "purple", "indigo", "teal"] as const;
+
+/** A stable colour per buyer, so the same person is easy to spot in a fast feed. */
+export function avatarTone(name: string | undefined): (typeof AVATAR_TONES)[number] {
+  let h = 0;
+  for (const ch of name ?? "") h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return AVATAR_TONES[h % AVATAR_TONES.length] ?? "blue";
+}
 
 function useElapsed(startedAt?: string, endedAt?: string): string | undefined {
   const [now, setNow] = useState(() => Date.now());
@@ -51,6 +64,10 @@ export function ConsolePage() {
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [confirmClear, setConfirmClear] = useState(false);
   const elapsed = useElapsed(s.startedAt, s.endedAt);
+  const printer = getPrintService();
+  const printStatus = usePrintStatus(printer);
+  const printerReady = printer.available && isConfigured(loadPrinter());
+  const [printedIds, setPrintedIds] = useState<ReadonlySet<string>>(new Set());
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Cmd/Ctrl+F focuses the feed search (desktop keyboard standard).
@@ -106,6 +123,15 @@ export function ConsolePage() {
       }
     });
   }, [s.comments, filter, query, reviewIds]);
+  // Which comments already sit behind an order draft (made by the parser or by hand).
+  const draftByEvent = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const d of s.drafts) {
+      if (d.status === "CANCELLED") continue;
+      for (const e of d.evidence) m.set(e.eventId, d.id);
+    }
+    return m;
+  }, [s.drafts]);
   const unclassified = s.comments.filter((c) => !c.intent).length;
 
   // Newest first; only the latest VISIBLE_LIMIT rows are put in the DOM.
@@ -116,6 +142,14 @@ export function ConsolePage() {
   const noSource =
     s.comments.length === 0 && (s.status === "DISCONNECTED" || s.status === "UNAVAILABLE");
   const running = Boolean(s.startedAt && !s.endedAt);
+
+  // "Tạo đơn": make (or find) the draft for this comment; with `print`, send the temporary slip.
+  const createOrder = (c: LiveCommentEvent, print: boolean) => {
+    const draft = store.draftFromComment(c.eventId);
+    if (!draft || !print) return;
+    setPrintedIds((prev) => new Set(prev).add(c.eventId));
+    void printer.print(tempSlip(draft, s.comments, t.print.slip));
+  };
 
   const onRowKey = (e: KeyboardEvent<HTMLTableRowElement>, index: number) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -265,6 +299,11 @@ export function ConsolePage() {
           </div>
         </div>
 
+        {printStatus.error && (
+          <p className="banner banner--error" role="alert">
+            {t.print.errors[printStatus.error]}
+          </p>
+        )}
         {noSource ? (
           <EmptyState title={t.console.noSource} hint={t.console.noSourceHint} />
         ) : s.comments.length === 0 ? (
@@ -296,6 +335,9 @@ export function ConsolePage() {
                   <th role="columnheader" scope="col">
                     {t.console.columns.ai}
                   </th>
+                  <th role="columnheader" scope="col">
+                    {t.console.columns.actions}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -308,6 +350,11 @@ export function ConsolePage() {
                     onClick={() => setSelectedId(c.eventId)}
                     onKeyDown={(e) => onRowKey(e, i)}
                   >
+                    <td role="gridcell" className="cell-avatar" aria-hidden="true">
+                      <span className={`avatar tone-${avatarTone(c.username)}`}>
+                        {(c.username ?? "?").replace(/^@/, "").slice(0, 1).toUpperCase()}
+                      </span>
+                    </td>
                     <td role="gridcell" className="cell-time num nowrap">
                       {formatTime(c.commentTimestamp)}
                     </td>
@@ -332,6 +379,36 @@ export function ConsolePage() {
                         </span>
                       ) : (
                         <span className="muted">{t.console.unclassified}</span>
+                      )}
+                    </td>
+                    <td role="gridcell" className="cell-actions">
+                      {draftByEvent.has(c.eventId) && (
+                        <span className="chip tone-green">{t.console.hasOrder}</span>
+                      )}
+                      {!draftByEvent.has(c.eventId) && (
+                        <button
+                          type="button"
+                          className="btn btn--primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            createOrder(c, false);
+                          }}
+                        >
+                          {t.console.createOrder}
+                        </button>
+                      )}
+                      {printerReady && (
+                        <button
+                          type="button"
+                          className="btn"
+                          disabled={printStatus.printing}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            createOrder(c, true);
+                          }}
+                        >
+                          {printedIds.has(c.eventId) ? t.console.printAgain : t.console.printSlip}
+                        </button>
                       )}
                     </td>
                   </tr>

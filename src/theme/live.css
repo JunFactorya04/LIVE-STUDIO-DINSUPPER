@@ -320,56 +320,6 @@
   .actions .toolbar__spacer {
     display: none;
   }
-
-  /* Feed rows become cards: "user  time  source" over the comment text. */
-  .feed-table,
-  .feed-table tbody,
-  .feed-table tr,
-  .feed-table td {
-    display: block;
-  }
-  .feed-table thead {
-    display: none;
-  }
-  .feed-table tbody tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    grid-template-areas:
-      "user time source"
-      "comment comment comment";
-    gap: 2px 10px;
-    align-items: center;
-    padding: 8px 10px;
-    border-bottom: 0.5px solid var(--mac-border);
-  }
-  .feed-table td {
-    height: auto;
-    padding: 0;
-    border: 0;
-  }
-  .feed-table .cell-user {
-    grid-area: user;
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .feed-table .cell-time {
-    grid-area: time;
-    color: var(--mac-label-2);
-    font-size: var(--fs-callout);
-  }
-  .feed-table .cell-source {
-    grid-area: source;
-  }
-  .feed-table .cell-comment {
-    grid-area: comment;
-  }
-  .feed-table .cell-ai {
-    display: none;
-  }
-  .feed-table tbody tr[aria-selected="true"] .cell-time {
-    color: rgba(255, 255, 255, 0.8);
-  }
 }
 
 .banner--info {
@@ -742,5 +692,126 @@
   .ship .segmented button {
     min-height: 44px;
     padding-inline: 14px;
+  }
+}
+
+/* ---------- Comment cards (Live Console) ---------- */
+
+.feed-table,
+.feed-table tbody,
+.feed-table tr,
+.feed-table td {
+  display: block;
+}
+.feed-table thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.feed-table tbody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px;
+}
+.feed-table tbody tr {
+  display: grid;
+  grid-template-columns: 40px auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "avatar user user time"
+    "avatar comment comment comment"
+    "avatar source ai actions";
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: center;
+  padding: 12px;
+  border-radius: var(--box-radius);
+  background: var(--mac-box);
+  box-shadow: var(--shadow-box);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.feed-table tbody tr:nth-child(even) {
+  background: var(--mac-box);
+}
+.feed-table tbody tr:hover {
+  background: var(--mac-hover);
+}
+.feed-table tbody tr[aria-selected="true"] {
+  background: color-mix(in srgb, var(--sys-blue) 10%, var(--mac-box));
+  box-shadow:
+    0 0 0 1.5px var(--sys-blue),
+    var(--shadow-box);
+}
+.feed-table td {
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.feed-table .cell-avatar {
+  grid-area: avatar;
+  align-self: start;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: var(--fs-title3);
+}
+.feed-table .cell-user {
+  grid-area: user;
+  font-weight: 600;
+  font-size: var(--fs-title3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.feed-table .cell-time {
+  grid-area: time;
+  color: var(--mac-label-2);
+  font-size: var(--fs-callout);
+}
+.feed-table .cell-comment {
+  grid-area: comment;
+  font-size: var(--fs-title3);
+  line-height: 1.35;
+}
+.feed-table .cell-source {
+  grid-area: source;
+}
+.feed-table .cell-ai {
+  grid-area: ai;
+  color: var(--mac-label-2);
+  font-size: var(--fs-callout);
+}
+.feed-table .cell-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+@media (max-width: 760px) {
+  .feed-table tbody tr {
+    grid-template-columns: 40px auto minmax(0, 1fr);
+    grid-template-areas:
+      "avatar user user"
+      "avatar comment comment"
+      "avatar time time"
+      "avatar source ai"
+      "actions actions actions";
+  }
+  .feed-table .cell-actions {
+    justify-content: stretch;
+    margin-top: 6px;
+  }
+  .feed-table .cell-actions .btn {
+    flex: 1 1 0;
+    min-height: 44px;
   }
 }

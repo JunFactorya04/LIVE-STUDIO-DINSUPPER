@@ -150,3 +150,19 @@
   color: var(--mac-label-2);
   background: var(--mac-hover);
 }
+.tone-purple {
+  color: color-mix(in srgb, var(--sys-purple) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-purple) 15%, transparent);
+}
+.tone-pink {
+  color: color-mix(in srgb, var(--sys-pink) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-pink) 15%, transparent);
+}
+.tone-indigo {
+  color: color-mix(in srgb, var(--sys-indigo) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-indigo) 15%, transparent);
+}
+.tone-teal {
+  color: color-mix(in srgb, var(--sys-teal) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-teal) 15%, transparent);
+}

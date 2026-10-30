@@ -532,6 +532,39 @@ export class LiveSessionStore {
     return true;
   }
 
+  /**
+   * The seller turns one comment into an order draft by hand ("Tạo đơn" on the comment).
+   * If the parser already made a draft from it, that one is returned. Otherwise a draft with
+   * only the buyer and the comment is created: no product, name, phone or address is invented.
+   */
+  draftFromComment(eventId: string): OrderDraft | undefined {
+    const comment = this.snapshot.comments.find((c) => c.eventId === eventId);
+    if (!comment) return undefined;
+    const existing = this.snapshot.drafts.find(
+      (d) =>
+        d.sessionId === comment.sessionId &&
+        d.status !== "CANCELLED" &&
+        d.evidence.some((e) => e.eventId === eventId),
+    );
+    if (existing) return existing;
+    const stamp = comment.commentTimestamp;
+    const draft: OrderDraft = {
+      id: (this.deps.newDraftId ?? defaultDraftId)(),
+      sessionId: comment.sessionId,
+      platformUserId: comment.platformUserId,
+      username: comment.username,
+      confidence: 1,
+      status: "DRAFT",
+      reasons: [],
+      evidence: [{ eventId, field: "manual", text: comment.commentText }],
+      createdAt: stamp,
+      updatedAt: stamp,
+    };
+    this.set({ drafts: [...this.snapshot.drafts, draft] });
+    this.persist(() => this.orders.saveDraft(draft));
+    return draft;
+  }
+
   /** Delete the stored comments of the current session (spec section 10). */
   clearComments(): void {
     const { sessionId } = this.snapshot;

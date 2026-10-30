@@ -132,6 +132,10 @@ export const vi: Messages = {
     },
   },
   console: {
+    createOrder: "Tạo đơn",
+    hasOrder: "Đã có đơn",
+    printSlip: "In tem tạm",
+    printAgain: "In lại",
     session: "Phiên",
     runtime: "Thời gian chạy",
     totalComments: "Tổng bình luận",
@@ -155,6 +159,7 @@ export const vi: Messages = {
     },
     filterNeedsAi: "Chưa có bình luận thuộc nhóm này. Hãy bấm “Phân loại AI” trước.",
     columns: {
+      actions: "Thao tác",
       time: "Giờ",
       user: "Tài khoản",
       comment: "Bình luận",

@@ -19,7 +19,10 @@ export const zhTW = {
   },
   pages: {
     setup: { title: "直播設定", subtitle: "選擇留言來源並開始場次" },
-    console: { title: "直播主控台", subtitle: "即時留言與處理狀態" },
+    console: {
+      title: "直播主控台",
+      subtitle: "即時留言與處理狀態",
+    },
     orders: { title: "直播訂單", subtitle: "訂單草稿與待確認" },
     replies: { title: "回覆建議", subtitle: "由賣家審核後再發送" },
     overlay: { title: "商品浮層", subtitle: "供直播軟體的瀏覽器來源使用" },
@@ -123,6 +126,10 @@ export const zhTW = {
     },
   },
   console: {
+    createOrder: "建立訂單",
+    hasOrder: "已有訂單",
+    printSlip: "列印暫存單",
+    printAgain: "再印一次",
     session: "場次",
     runtime: "直播時長",
     totalComments: "留言總數",
@@ -145,7 +152,14 @@ export const zhTW = {
       review: "待確認",
     },
     filterNeedsAi: "目前沒有這個分類的留言。請先按「AI 分類」分析留言。",
-    columns: { time: "時間", user: "帳號", comment: "留言", source: "來源", ai: "AI 狀態" },
+    columns: {
+      actions: "操作",
+      time: "時間",
+      user: "帳號",
+      comment: "留言",
+      source: "來源",
+      ai: "AI 狀態",
+    },
     classify: "AI 分類（{n}）",
     classifying: "分類中…",
     classifyHint: "會把尚未分類的留言傳送給你在「設定」選擇的 AI 服務，費用由你的帳號負擔。",
