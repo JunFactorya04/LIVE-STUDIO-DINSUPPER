@@ -25,15 +25,15 @@ Kết luận: không có module nào để tái sử dụng cho Live Assistant, 
 
 Tài liệu gốc ghi "FastAPI nếu backend local đã được thiết lập". Repo chưa có, nên cần chọn. Các quyết định dưới đây là đề xuất, có thể đổi trước Phase 2.
 
-| Vấn đề             | Quyết định                                                          | Lý do                                                                                                                |
-| ------------------ | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Backend local      | Rust (Tauri), không dùng Python sidecar                             | Một tiến trình, đóng gói được cho Mac + Windows mà không kèm Python; hợp với yêu cầu coding chạy cả hai hệ điều hành |
-| Cơ sở dữ liệu      | SQLite qua Rust (Phase 2)                                           | Local-first; ghi sự kiện trước khi chạy AI                                                                           |
-| Kênh realtime      | Sự kiện Tauri (Rust → giao diện)                                    | Không cần WebSocket/SSE khi không có server riêng cho giao diện; tài liệu cũng dặn không dùng nhiều cơ chế cùng lúc  |
-| Overlay            | HTTP server cục bộ trong Rust (Phase 4)                             | Browser Source của phần mềm phát cần URL; chỉ phục vụ dữ liệu đã chọn, không có PII                                  |
-| AI                 | Gọi từ Rust, khóa lưu trong Keychain / Credential Manager (Phase 3) | Không để secret ở frontend (mục 0.9 của tài liệu gốc)                                                                |
-| Nguồn bình luận    | Interface `LiveCommentProvider`, thay được                          | Mục 3 của tài liệu gốc                                                                                               |
-| Ngôn ngữ giao diện | zh-TW mặc định, có tiếng Việt, mở rộng được                         | Mục "Ngôn ngữ giao diện" của tài liệu gốc                                                                            |
+| Vấn đề             | Quyết định                                                                  | Lý do                                                                                                                |
+| ------------------ | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Backend local      | Rust (Tauri), không dùng Python sidecar                                     | Một tiến trình, đóng gói được cho Mac + Windows mà không kèm Python; hợp với yêu cầu coding chạy cả hai hệ điều hành |
+| Cơ sở dữ liệu      | SQLite qua Rust (Phase 2)                                                   | Local-first; ghi sự kiện trước khi chạy AI                                                                           |
+| Kênh realtime      | Sự kiện Tauri (Rust → giao diện)                                            | Không cần WebSocket/SSE khi không có server riêng cho giao diện; tài liệu cũng dặn không dùng nhiều cơ chế cùng lúc  |
+| Overlay            | HTTP server cục bộ trong Rust (Phase 4)                                     | Browser Source của phần mềm phát cần URL; chỉ phục vụ dữ liệu đã chọn, không có PII                                  |
+| AI                 | Gọi từ Rust, khóa lưu trong Keychain / Credential Manager (Phase 3)         | Không để secret ở frontend (mục 0.9 của tài liệu gốc)                                                                |
+| Nguồn bình luận    | Interface `LiveCommentProvider`, thay được                                  | Mục 3 của tài liệu gốc                                                                                               |
+| Ngôn ngữ giao diện | tiếng Việt mặc định (người dùng yêu cầu 2026-10-30), có zh-TW, mở rộng được | Mục "Ngôn ngữ giao diện" của tài liệu gốc                                                                            |
 
 Điểm lệch so với tài liệu gốc: chưa dùng FastAPI và chưa dùng WebSocket/SSE, vì repo không có backend sẵn. Nếu bạn muốn giữ Python (ví dụ để dùng lại mã từ tool bán hàng cũ), cần quyết định trước Phase 2.
 

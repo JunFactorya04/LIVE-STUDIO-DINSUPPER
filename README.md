@@ -47,7 +47,7 @@ Manager; app không bao giờ đọc ngược hay hiển thị khóa, và kết 
 - **Vỏ ứng dụng:** Tauri 2 (Rust), dùng WebView gốc của từng hệ điều hành
 - **Giao diện:** React 18 + TypeScript + Vite
 - **Thiết kế:** chuẩn Apple (macOS/iOS), token ở `src/theme/tokens.css`
-- **Ngôn ngữ giao diện:** zh-TW (mặc định) và Tiếng Việt, chọn ở mục Cài đặt; chuỗi nằm ở `src/i18n/`
+- **Ngôn ngữ giao diện:** Tiếng Việt (mặc định) và zh-TW, chọn ở mục Cài đặt; chuỗi nằm ở `src/i18n/`
 - **Kiểm thử:** Vitest + Testing Library; **lint/format:** ESLint + Prettier
 
 ## Yêu cầu

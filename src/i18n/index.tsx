@@ -7,7 +7,7 @@ export type Messages = typeof zhTW;
 
 export const LOCALES = { "zh-TW": zhTW, vi } as const satisfies Record<string, Messages>;
 export type Locale = keyof typeof LOCALES;
-export const DEFAULT_LOCALE: Locale = "zh-TW";
+export const DEFAULT_LOCALE: Locale = "vi";
 const STORAGE_KEY = "live-studio.locale";
 
 function readStoredLocale(): Locale {
