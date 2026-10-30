@@ -1,9 +1,9 @@
 // Types for the TikTok LIVE Assistant (docs/TIKTOK_LIVE_ASSISTANT.md, section 3).
 
 export type LiveProviderStatus =
-  "DISCONNECTED" | "CONNECTING" | "CONNECTED" | "UNAVAILABLE" | "DEMO" | "ERROR";
+  "DISCONNECTED" | "CONNECTING" | "CONNECTED" | "UNAVAILABLE" | "DEMO" | "MANUAL" | "ERROR";
 
-export type LiveCommentSource = "OFFICIAL_API" | "APPROVED_CONNECTOR" | "OCR" | "DEMO";
+export type LiveCommentSource = "OFFICIAL_API" | "APPROVED_CONNECTOR" | "OCR" | "DEMO" | "MANUAL";
 
 export interface LiveSessionConfig {
   sessionId: string;

@@ -371,3 +371,41 @@
     color: rgba(255, 255, 255, 0.8);
   }
 }
+
+.banner--info {
+  color: color-mix(in srgb, var(--sys-blue) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-blue) 15%, transparent);
+}
+.banner--error {
+  color: color-mix(in srgb, var(--sys-red) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-red) 15%, transparent);
+}
+.field--group {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.field--group legend {
+  font-weight: 500;
+  padding: 0;
+  margin-bottom: 4px;
+}
+.input--area {
+  height: auto;
+  padding: 6px 8px;
+  resize: vertical;
+  line-height: 1.4;
+  font-family: inherit;
+}
+.paste {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+.paste__label {
+  font-weight: 500;
+}
+.chip--inline {
+  margin-left: 8px;
+}

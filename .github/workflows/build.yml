@@ -39,7 +39,13 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
-      - name: Type-check and build frontend
+      - name: Check (typecheck, lint, format, tests)
+        run: npm run check
+
+      - name: Rust tests (SQLite, secrets)
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build frontend
         run: npm run build
 
       - name: Build desktop app

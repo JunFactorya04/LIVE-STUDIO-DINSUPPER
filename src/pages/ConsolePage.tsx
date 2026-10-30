@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { EmptyState } from "../components/States";
 import { StatusChip } from "../components/StatusChip";
 import { useI18n } from "../i18n";
@@ -14,6 +14,7 @@ const SOURCE_TONE: Record<LiveCommentEvent["source"], string> = {
   OFFICIAL_API: "tone-blue",
   APPROVED_CONNECTOR: "tone-blue",
   OCR: "tone-gray",
+  MANUAL: "tone-gray",
 };
 
 function useElapsed(startedAt?: string, endedAt?: string): string | undefined {
@@ -159,6 +160,17 @@ export function ConsolePage() {
             {t.console.demoBanner}
           </p>
         )}
+        {s.restored && s.comments.length > 0 && (
+          <p className="banner banner--info" role="status">
+            {t.console.restoredBanner}
+          </p>
+        )}
+        {s.persistError && (
+          <p className="banner banner--error" role="alert">
+            {t.console.persistError}
+          </p>
+        )}
+        {s.status === "MANUAL" && <PasteBox running={running} />}
         <div className="feed-tools">
           <input
             ref={searchRef}
@@ -284,6 +296,55 @@ export function ConsolePage() {
         <h3 className="subhead">{t.insight.replyTitle}</h3>
         <p className="muted">{t.insight.replyOff}</p>
       </aside>
+    </div>
+  );
+}
+
+function PasteBox({ running }: { running: boolean }) {
+  const { t, fmt } = useI18n();
+  const store = useLiveStore();
+  const [text, setText] = useState("");
+  const [result, setResult] = useState<string>();
+  const id = useId();
+
+  const submit = () => {
+    const { added, duplicates } = store.submitManual(text);
+    setResult(fmt(t.console.pasteResult, { added, dup: duplicates }));
+    if (added + duplicates > 0) setText("");
+  };
+
+  return (
+    <div className="paste">
+      <label htmlFor={id} className="paste__label">
+        {t.console.pasteLabel}
+      </label>
+      <textarea
+        id={id}
+        className="input input--area"
+        rows={4}
+        spellCheck={false}
+        placeholder={t.console.pastePlaceholder}
+        value={text}
+        disabled={!running}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <div className="actions">
+        <span className="caption">{running ? t.console.pasteHelp : t.console.pasteNeedsStart}</span>
+        <span className="toolbar__spacer" />
+        <button
+          type="button"
+          className="btn btn--primary"
+          disabled={!running || text.trim() === ""}
+          onClick={submit}
+        >
+          {t.console.pasteSubmit}
+        </button>
+      </div>
+      {result && (
+        <p className="caption" role="status">
+          {result}
+        </p>
+      )}
     </div>
   );
 }

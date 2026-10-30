@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DemoLiveCommentProvider } from "./demoProvider";
+import { MemoryLiveRepository, type LiveRepository } from "./repository";
 import { LiveSessionStore, MAX_COMMENTS } from "./sessionStore";
 import type { LiveCommentEvent, LiveProviderStatus } from "./types";
 
@@ -29,6 +30,7 @@ function event(sessionId: string, id: string, text = "A12"): LiveCommentEvent {
 describe("LiveSessionStore", () => {
   it("rejects an empty or malformed config and does not create a session", async () => {
     const store = makeStore();
+    store.updateForm({ source: "live" });
     expect(await store.connectSource()).toBe(false);
     expect(store.getSnapshot().issues).toEqual(["NEED_URL_OR_USERNAME"]);
     store.updateForm({ liveUrl: "https://example.com/x" });
@@ -41,7 +43,11 @@ describe("LiveSessionStore", () => {
     const store = makeStore();
     const seen: LiveProviderStatus[] = [];
     store.subscribe(() => seen.push(store.getSnapshot().status));
-    store.updateForm({ liveUrl: "https://www.tiktok.com/@shop/live", acknowledged: true });
+    store.updateForm({
+      source: "live",
+      liveUrl: "https://www.tiktok.com/@shop/live",
+      acknowledged: true,
+    });
     await store.connectSource();
     expect(store.getSnapshot().status).toBe("UNAVAILABLE");
     expect(store.canStart()).toBe(false);
@@ -51,7 +57,7 @@ describe("LiveSessionStore", () => {
 
   it("demo mode runs with no URL, username or credentials", async () => {
     const store = makeStore();
-    store.updateForm({ demo: true });
+    store.updateForm({ source: "demo" });
     expect(await store.connectSource()).toBe(true);
     expect(store.getSnapshot().status).toBe("DEMO");
     expect(store.getSnapshot().providerType).toBe("demo");
@@ -63,7 +69,7 @@ describe("LiveSessionStore", () => {
 
   it("stores a repeated event once and counts the duplicate", async () => {
     const store = makeStore();
-    store.updateForm({ demo: true });
+    store.updateForm({ source: "demo" });
     await store.connectSource();
     const sid = store.getSnapshot().sessionId;
     expect(store.receive(event(sid, "e1"))).toBe(true);
@@ -75,7 +81,7 @@ describe("LiveSessionStore", () => {
 
   it("ignores events from another session, including after reconnecting", async () => {
     const store = makeStore();
-    store.updateForm({ demo: true });
+    store.updateForm({ source: "demo" });
     await store.connectSource();
     const first = store.getSnapshot().sessionId;
     store.receive(event(first, "e1"));
@@ -88,7 +94,7 @@ describe("LiveSessionStore", () => {
 
   it("keeps zh-TW, Vietnamese, emoji and special characters intact", async () => {
     const store = makeStore();
-    store.updateForm({ demo: true });
+    store.updateForm({ source: "demo" });
     await store.connectSource();
     const sid = store.getSnapshot().sessionId;
     const texts = ["黑色 M ×2", "Cho mình 2 cái nhé!!", "🔥😍", '<b>&amp;</b> "quote"'];
@@ -99,7 +105,7 @@ describe("LiveSessionStore", () => {
 
   it("caps stored comments and stays fast under a burst", async () => {
     const store = makeStore();
-    store.updateForm({ demo: true });
+    store.updateForm({ source: "demo" });
     await store.connectSource();
     const sid = store.getSnapshot().sessionId;
     const total = MAX_COMMENTS + 2000;
@@ -118,7 +124,7 @@ describe("LiveSessionStore", () => {
 
   it("clearComments deletes the stored feed", async () => {
     const store = makeStore();
-    store.updateForm({ demo: true });
+    store.updateForm({ source: "demo" });
     await store.connectSource();
     const sid = store.getSnapshot().sessionId;
     store.receive(event(sid, "e1"));
@@ -130,11 +136,96 @@ describe("LiveSessionStore", () => {
 
   it("endSession disconnects the provider and records the end time", async () => {
     const store = makeStore();
-    store.updateForm({ demo: true });
+    store.updateForm({ source: "demo" });
     await store.connectSource();
     store.startSession();
     await store.endSession();
     expect(store.getSnapshot().status).toBe("DISCONNECTED");
     expect(store.getSnapshot().endedAt).toBeDefined();
+  });
+});
+
+describe("LiveSessionStore persistence", () => {
+  const storeWith = (repository: LiveRepository, ids = ["sess-1", "sess-2", "sess-3"]) => {
+    let i = 0;
+    return new LiveSessionStore({ repository, newId: () => ids[i++] ?? `sess-x${i}` });
+  };
+
+  async function manualSession(store: LiveSessionStore) {
+    await store.connectSource();
+    store.startSession();
+  }
+
+  it("manual source is the default, needs no URL or acknowledgement, and status is MANUAL", async () => {
+    const store = storeWith(new MemoryLiveRepository());
+    expect(store.getSnapshot().form.source).toBe("manual");
+    expect(await store.connectSource()).toBe(true);
+    expect(store.getSnapshot().status).toBe("MANUAL");
+    expect(store.canStart()).toBe(true);
+  });
+
+  it("saves pasted comments and restores them (without dups) in a new store", async () => {
+    const repo = new MemoryLiveRepository();
+    const a = storeWith(repo);
+    await manualSession(a);
+    expect(a.submitManual("amy: 黑色 M\nbob: 要 2 件")).toEqual({ added: 2, duplicates: 0 });
+    expect(a.submitManual("amy: 黑色 M")).toEqual({ added: 0, duplicates: 1 });
+    await a.flush();
+
+    const b = storeWith(repo);
+    await b.restore();
+    await b.restore(); // idempotent
+    const snap = b.getSnapshot();
+    expect(snap.sessionId).toBe("sess-2");
+    expect(snap.comments.map((c) => c.commentText)).toEqual(["黑色 M", "要 2 件"]);
+    expect(snap.restored).toBe(true);
+    // A restored session has no live provider: never CONNECTED/MANUAL, and it is closed.
+    expect(snap.status).toBe("DISCONNECTED");
+    expect(snap.endedAt).toBeDefined();
+    // Re-delivering a stored event is still a duplicate.
+    expect(b.receive(snap.comments[0])).toBe(false);
+    await b.flush();
+    expect((await repo.latestSession())?.endedAt).toBeDefined();
+  });
+
+  it("restore with an empty database leaves a clean store", async () => {
+    const store = storeWith(new MemoryLiveRepository());
+    await store.restore();
+    expect(store.getSnapshot().restored).toBe(false);
+    expect(store.getSnapshot().comments).toEqual([]);
+  });
+
+  it("clearing comments deletes them from storage too", async () => {
+    const repo = new MemoryLiveRepository();
+    const a = storeWith(repo);
+    await manualSession(a);
+    a.submitManual("amy: hi");
+    await a.flush();
+    a.clearComments();
+    await a.flush();
+    expect(await repo.listComments("sess-2", 10)).toEqual([]);
+  });
+
+  it("a failing database sets persistError but keeps the comments on screen", async () => {
+    const repo = new MemoryLiveRepository();
+    repo.ingest = async () => {
+      throw new Error("disk full");
+    };
+    const store = storeWith(repo);
+    await manualSession(store);
+    store.submitManual("amy: hi");
+    await store.flush();
+    expect(store.getSnapshot().persistError).toBe(true);
+    expect(store.getSnapshot().comments).toHaveLength(1);
+  });
+
+  it("submitManual is ignored before the session starts and after it ends", async () => {
+    const store = storeWith(new MemoryLiveRepository());
+    await store.connectSource();
+    expect(store.submitManual("amy: hi").added).toBe(0);
+    store.startSession();
+    expect(store.submitManual("amy: hi").added).toBe(1);
+    await store.endSession();
+    expect(store.submitManual("bob: yo").added).toBe(0);
   });
 });

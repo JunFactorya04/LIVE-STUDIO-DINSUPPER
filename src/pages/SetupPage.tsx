@@ -1,7 +1,10 @@
 import { useId, useState } from "react";
 import { StatusChip } from "../components/StatusChip";
 import { useI18n } from "../i18n";
+import type { SourceMode } from "../live/sessionStore";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
+
+const SOURCES: readonly SourceMode[] = ["manual", "demo", "live"];
 
 export function SetupPage({ onStarted }: { onStarted: () => void }) {
   const { t } = useI18n();
@@ -9,7 +12,7 @@ export function SetupPage({ onStarted }: { onStarted: () => void }) {
   const s = useLiveSession();
   const [busy, setBusy] = useState(false);
   const [studioHint, setStudioHint] = useState(false);
-  const ids = { url: useId(), user: useId(), hint: useId() };
+  const ids = { url: useId(), user: useId(), hint: useId(), mode: useId() };
 
   const running = Boolean(s.startedAt && !s.endedAt);
   const canStart = store.canStart();
@@ -29,7 +32,9 @@ export function SetupPage({ onStarted }: { onStarted: () => void }) {
   };
 
   const providerKey =
-    s.providerType === "demo" || s.providerType === "none" ? s.providerType : "unset";
+    s.providerType === "manual" || s.providerType === "demo" || s.providerType === "none"
+      ? s.providerType
+      : "unset";
 
   return (
     <div className="page">
@@ -68,7 +73,7 @@ export function SetupPage({ onStarted }: { onStarted: () => void }) {
             disabled={running}
             onChange={(e) => store.updateForm({ username: e.target.value })}
           />
-          <span className="caption">{t.setup.atLeastOne}</span>
+          {s.form.source === "live" && <span className="caption">{t.setup.atLeastOne}</span>}
         </div>
 
         {s.issues.length > 0 && (
@@ -79,28 +84,36 @@ export function SetupPage({ onStarted }: { onStarted: () => void }) {
           </ul>
         )}
 
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={s.form.demo}
-            disabled={running}
-            onChange={(e) => store.updateForm({ demo: e.target.checked })}
-          />
-          <span>
-            {t.setup.demo}
-            <span className="caption block">{t.setup.demoHelp}</span>
-          </span>
-        </label>
+        <fieldset className="field field--group" disabled={running}>
+          <legend>{t.setup.sourceMode}</legend>
+          {SOURCES.map((mode) => (
+            <label className="check" key={mode}>
+              <input
+                type="radio"
+                name={ids.mode}
+                value={mode}
+                checked={s.form.source === mode}
+                onChange={() => store.updateForm({ source: mode })}
+              />
+              <span>
+                {t.setup.sources[mode]}
+                <span className="caption block">{t.setup.sources[`${mode}Help`]}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
 
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={s.form.acknowledged}
-            disabled={running || s.form.demo}
-            onChange={(e) => store.updateForm({ acknowledged: e.target.checked })}
-          />
-          <span>{t.setup.ack}</span>
-        </label>
+        {s.form.source === "live" && (
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={s.form.acknowledged}
+              disabled={running}
+              onChange={(e) => store.updateForm({ acknowledged: e.target.checked })}
+            />
+            <span>{t.setup.ack}</span>
+          </label>
+        )}
 
         <div className="actions">
           <button

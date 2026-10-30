@@ -8,6 +8,7 @@ const TONE: Record<LiveProviderStatus, string> = {
   CONNECTED: "tone-green",
   UNAVAILABLE: "tone-orange",
   DEMO: "tone-orange",
+  MANUAL: "tone-blue",
   ERROR: "tone-red",
 };
 

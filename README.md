@@ -8,18 +8,26 @@ Kế hoạch và quyết định kiến trúc: [`docs/IMPLEMENTATION_PLAN_TIKTOK
 
 ## Trạng thái
 
-| Phase | Nội dung                                     | Trạng thái                          |
-| ----- | -------------------------------------------- | ----------------------------------- |
-| 0     | Khảo sát repo, kế hoạch                      | Xong                                |
-| 1     | Giao diện Live Setup/Console + Demo provider | **Xong**                            |
-| 2     | SQLite + event bus                           | Chưa                                |
-| 3     | AI phân loại + đơn nháp                      | Chưa                                |
-| 4     | Gợi ý trả lời + overlay                      | Chưa                                |
-| 5     | Provider live thật                           | Chờ xác minh nguồn bình luận hợp lệ |
-| 6     | Hardening                                    | Chưa                                |
+| Phase | Nội dung                                       | Trạng thái                          |
+| ----- | ---------------------------------------------- | ----------------------------------- |
+| 0     | Khảo sát repo, kế hoạch                        | Xong                                |
+| 1     | Giao diện Live Setup/Console + Demo provider   | **Xong**                            |
+| 2a    | SQLite, dán chat thủ công, khôi phục, khóa API | **Xong**                            |
+| 2b    | Catalog SKU + đọc đơn bằng luật                | Chưa                                |
+| 3     | AI phân loại + đơn nháp                        | Chưa                                |
+| 4     | Gợi ý trả lời + overlay                        | Chưa                                |
+| 5     | Provider live thật                             | Chờ xác minh nguồn bình luận hợp lệ |
+| 6     | Hardening                                      | Chưa                                |
 
-**Chưa có nguồn bình luận TikTok thật.** App chỉ hiện `Connected` khi một provider thật xác nhận;
-hiện chỉ có `DemoLiveCommentProvider` (nhãn DEMO) và `NoSourceProvider` (luôn `UNAVAILABLE`).
+**Chưa có nguồn bình luận TikTok tự động.** Chưa tìm thấy API chính thức để đọc bình luận LIVE, nên
+app không cài sẵn một API nào. Hiện dùng được ngay: **Dán thủ công** (sao chép chat từ màn hình live
+của bạn, nhãn `MANUAL`). App chỉ hiện `Connected` khi một provider thật xác nhận; `Demo` (nhãn DEMO)
+và `NoSourceProvider` (luôn `UNAVAILABLE`) giữ nguyên. Nguồn tự động sẽ cắm vào qua `LiveCommentProvider`
+khi có nhà cung cấp hợp lệ (xem kế hoạch, mục 6).
+
+Dữ liệu được lưu trong SQLite trên máy (`live-studio.db` ở thư mục dữ liệu của app) và tự nạp lại khi mở app.
+Khóa API (Claude, OpenAI, Gemini, connector) do người dùng tự nhập ở **Cài đặt**, lưu trong Keychain / Credential
+Manager; app không bao giờ đọc ngược hay hiển thị khóa.
 
 ## Công nghệ
 
@@ -45,7 +53,9 @@ npm run tauri:dev      # mở cửa sổ ứng dụng với hot reload
 npm run dev            # chỉ giao diện, mở trong trình duyệt (cổng 1420)
 ```
 
-Thử nhanh không cần tài khoản: **Thiết lập Live** → bật **chế độ Demo** → **Kết nối** → **Bắt đầu**.
+Thử nhanh không cần tài khoản: **Thiết lập Live** → **Dán thủ công** → **Kết nối** → **Bắt đầu**, rồi dán chat vào
+ô ở **Bảng điều khiển** (mỗi dòng một bình luận, dạng `tên: nội dung`). Hoặc chọn **Demo** để xem dữ liệu giả.
+Dữ liệu và khóa API chỉ lưu được khi chạy bằng `npm run tauri:dev`; chạy `npm run dev` trên trình duyệt thì dữ liệu nằm trong bộ nhớ.
 
 ## Kiểm tra trước khi commit
 
@@ -53,6 +63,7 @@ Thử nhanh không cần tài khoản: **Thiết lập Live** → bật **chế 
 npm run check          # typecheck + lint + kiểm tra định dạng + test
 npm run format         # tự định dạng
 npm run build          # build giao diện
+cargo test --manifest-path src-tauri/Cargo.toml   # test Rust (SQLite, kho khóa)
 ```
 
 ## Đóng gói
@@ -68,12 +79,14 @@ Bản build chính thức do GitHub Actions tạo (`.github/workflows/build.yml`
 ```
 src/
   live/         lõi Live: types, LiveCommentProvider, Demo/NoSource provider,
-                kiểm tra URL/username, LiveSessionStore (chống trùng, giới hạn 1000 bình luận)
+                kiểm tra URL/username, ManualPasteProvider + paste.ts, LiveRepository (SQLite/bộ nhớ),
+                LiveSessionStore (chống trùng, giới hạn 1000 bình luận, lưu và khôi phục)
+  secrets/      client khóa API (chỉ ghi / kiểm tra có chưa / xóa, không đọc lại)
   pages/        Live Setup, Live Console, Cài đặt, trang giữ chỗ cho phase sau
   components/   vỏ ứng dụng, icon, StatusChip, trạng thái trống/tải/lỗi
   i18n/         zh-TW.ts (khóa gốc), vi.ts, bộ chọn ngôn ngữ
   theme/        tokens.css (token Apple), base.css (khung), live.css (màn Live)
-src-tauri/      backend Rust (thêm lệnh ở src/lib.rs)
+src-tauri/      backend Rust: db.rs (SQLite + migration), live.rs, secrets.rs (keyring), commands.rs
 docs/           yêu cầu, kế hoạch, hướng dẫn cài đặt đồng bộ Windows/Mac
 ```
 

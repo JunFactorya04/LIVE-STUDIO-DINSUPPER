@@ -50,6 +50,7 @@ export const vi: Messages = {
     CONNECTED: "Đã kết nối",
     UNAVAILABLE: "Không khả dụng",
     DEMO: "Chế độ Demo",
+    MANUAL: "Dán thủ công",
     ERROR: "Lỗi",
   },
   statusHelp: {
@@ -59,6 +60,8 @@ export const vi: Messages = {
     UNAVAILABLE:
       "Hiện chưa có nguồn bình luận nào được xác minh. Hãy dùng phương thức kết nối khác, hoặc bật chế độ Demo để thử giao diện.",
     DEMO: "Chế độ Demo: bình luận là dữ liệu giả, không phải bình luận TikTok LIVE thật.",
+    MANUAL:
+      "Chế độ thủ công: bình luận do bạn sao chép từ màn hình live của mình rồi dán vào, không phải kết nối tự động.",
     ERROR: "Nguồn bình luận gặp lỗi, hãy thử lại.",
   },
   setup: {
@@ -75,16 +78,31 @@ export const vi: Messages = {
       "Hãy tự mở TikTok LIVE Studio và bắt đầu phát. Phần cấu hình đường dẫn ứng dụng sẽ có ở Phase 6.",
     connect: "Kết nối nguồn bình luận",
     connecting: "Đang kết nối…",
-    demo: "Chế độ Demo (bình luận giả, chỉ để thử nghiệm)",
-    demoHelp: "Bình luận demo luôn gắn nhãn DEMO và không bao giờ được coi là dữ liệu live thật.",
+    sourceMode: "Cách lấy bình luận",
+    sources: {
+      manual: "Dán thủ công",
+      manualHelp:
+        "Sao chép bình luận từ màn hình live của bạn rồi dán vào. Không cần tài khoản hay cấp quyền, dùng được ngay.",
+      demo: "Chế độ Demo",
+      demoHelp:
+        "Bình luận giả, chỉ để thử giao diện; luôn gắn nhãn DEMO và không bao giờ được coi là dữ liệu thật.",
+      live: "Kết nối tự động",
+      liveHelp:
+        "Cần nguồn hợp lệ đã xác minh (API chính thức hoặc connector được duyệt). Hiện chưa có.",
+    },
     ack: "Tôi xác nhận có quyền dùng nguồn bình luận này và hiểu cách nó kết nối",
     start: "Bắt đầu phiên",
     endSession: "Kết thúc phiên",
     statusTitle: "Trạng thái nguồn",
     provider: "Loại nguồn",
-    providerValue: { demo: "Demo", none: "Không có (chưa cài nguồn)", unset: "Chưa chọn" },
+    providerValue: {
+      manual: "Dán thủ công",
+      demo: "Demo",
+      none: "Không có (chưa cài nguồn)",
+      unset: "Chưa chọn",
+    },
     session: "Mã phiên",
-    startHint: "Cần nguồn đã kết nối (hoặc chế độ Demo) và tick ô xác nhận.",
+    startHint: "Hãy bấm “Kết nối nguồn bình luận” trước. Kết nối tự động còn cần tick ô xác nhận.",
     issues: {
       NEED_URL_OR_USERNAME: "Hãy nhập ít nhất URL LIVE hoặc tên tài khoản TikTok.",
       URL_FORMAT: "URL sai định dạng, cần giống https://www.tiktok.com/@tên_tài_khoản/live.",
@@ -131,7 +149,26 @@ export const vi: Messages = {
     demoBanner: "Dữ liệu demo: các bình luận bên dưới không phải bình luận TikTok LIVE thật.",
     feedLabel: "Danh sách bình luận",
     showingLatest: "Chỉ hiện {n} bình luận mới nhất",
-    sources: { OFFICIAL_API: "API", APPROVED_CONNECTOR: "Connector", OCR: "OCR", DEMO: "DEMO" },
+    sources: {
+      OFFICIAL_API: "API",
+      APPROVED_CONNECTOR: "Connector",
+      OCR: "OCR",
+      DEMO: "DEMO",
+      MANUAL: "Thủ công",
+    },
+    pasteTitle: "Dán bình luận",
+    pasteLabel: "Dán bình luận đã sao chép từ màn hình live",
+    pastePlaceholder:
+      "Mỗi dòng một bình luận, ví dụ:\namy: đen size M lấy 2 cái\n@bob: còn hàng không",
+    pasteHelp:
+      "Mỗi dòng một bình luận; “tên: nội dung” sẽ tự tách tên tài khoản. Dán lại đoạn đã dán sẽ tự bỏ qua phần trùng.",
+    pasteSubmit: "Thêm bình luận",
+    pasteResult: "Thêm {added} bình luận, bỏ qua {dup} trùng.",
+    pasteNeedsStart: "Vào “Thiết lập Live”, kết nối “Dán thủ công” và bắt đầu phiên trước.",
+    restoredBanner:
+      "Đã nạp bình luận đã lưu từ phiên trước. Nguồn đã ngắt, hãy bắt đầu phiên mới khi cần.",
+    persistError:
+      "Không lưu được bình luận vào cơ sở dữ liệu trên máy; đóng app có thể mất dữ liệu.",
   },
   insight: {
     title: "Chi tiết bình luận",
@@ -152,5 +189,26 @@ export const vi: Messages = {
     languageTitle: "Ngôn ngữ giao diện",
     languageHelp: "Đổi có hiệu lực ngay và được nhớ trên máy này.",
     languages: { "zh-TW": "繁體中文", vi: "Tiếng Việt" },
+    apiTitle: "Khóa API",
+    apiHelp:
+      "Khóa chỉ nằm trong kho khóa của hệ điều hành trên máy này (Keychain macOS / Credential Manager Windows). App không hiển thị hay đọc ngược khóa, chỉ có thể thay hoặc xóa.",
+    apiBrowser: "Khóa chỉ lưu được trong app desktop; chế độ xem trên trình duyệt không hỗ trợ.",
+    apiSlots: {
+      claude: "Claude (Anthropic)",
+      openai: "OpenAI",
+      gemini: "Gemini (Google)",
+      connector: "Connector nguồn bình luận",
+    },
+    apiConnectorHelp:
+      "Khóa do nhà cung cấp nguồn bình luận được duyệt cấp. Hiện chưa có nhà cung cấp tích hợp sẵn; lưu khóa không tự bắt đầu nhận bình luận.",
+    apiKeyPlaceholder: "Dán khóa",
+    apiSet: "Đã cài",
+    apiUnset: "Chưa cài",
+    apiSave: "Lưu",
+    apiReplace: "Thay",
+    apiRemove: "Xóa",
+    apiSaved: "Đã lưu",
+    apiRemoved: "Đã xóa",
+    apiError: "Không truy cập được kho khóa của hệ điều hành.",
   },
 };

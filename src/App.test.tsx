@@ -9,6 +9,8 @@ import { DemoLiveCommentProvider } from "./live/demoProvider";
 import { LiveSessionStore } from "./live/sessionStore";
 import { LiveSessionProvider } from "./live/useLiveSession";
 import type { LiveCommentEvent } from "./live/types";
+import { ApiKeysSection } from "./pages/ApiKeysSection";
+import type { SecretsClient } from "./secrets/client";
 
 function setup(initialPage?: "setup" | "console" | "settings") {
   let n = 0;
@@ -54,6 +56,7 @@ describe("Live Assistant UI", () => {
 
   it("a valid URL with no verified provider ends UNAVAILABLE and cannot start", async () => {
     setup("setup");
+    fireEvent.click(screen.getByLabelText(new RegExp(`^${zhTW.setup.sources.live}`)));
     fireEvent.change(screen.getByLabelText(zhTW.setup.liveUrl), {
       target: { value: "https://www.tiktok.com/@shop/live" },
     });
@@ -74,7 +77,7 @@ describe("Live Assistant UI", () => {
 
   it("demo flow: DEMO status, DEMO banner, every row labelled DEMO, never CONNECTED", async () => {
     const store = setup("setup");
-    fireEvent.click(screen.getByLabelText(new RegExp(zhTW.setup.demo.slice(0, 6))));
+    fireEvent.click(screen.getByLabelText(new RegExp(`^${zhTW.setup.sources.demo}`)));
     fireEvent.click(screen.getByRole("button", { name: zhTW.setup.connect }));
     await waitFor(() => expect(statusChip().dataset.status).toBe("DEMO"));
     fireEvent.click(screen.getByRole("button", { name: zhTW.setup.start }));
@@ -102,6 +105,30 @@ describe("Live Assistant UI", () => {
     await act(async () => store.dispose());
   });
 
+  it("manual paste: MANUAL status, pasted lines become MANUAL rows, repeats are skipped", async () => {
+    const store = setup("setup");
+    fireEvent.click(screen.getByRole("button", { name: zhTW.setup.connect }));
+    await waitFor(() => expect(statusChip().dataset.status).toBe("MANUAL"));
+    fireEvent.click(screen.getByRole("button", { name: zhTW.setup.start }));
+
+    const box = await screen.findByLabelText(zhTW.console.pasteLabel);
+    fireEvent.change(box, { target: { value: "amy: 黑色 M ×2\n@bob: còn hàng không" } });
+    fireEvent.click(screen.getByRole("button", { name: zhTW.console.pasteSubmit }));
+    expect(await screen.findByText("新增 2 則，略過重複 0 則。")).toBeInTheDocument();
+
+    fireEvent.change(box, { target: { value: "amy: 黑色 M ×2" } });
+    fireEvent.click(screen.getByRole("button", { name: zhTW.console.pasteSubmit }));
+    expect(await screen.findByText("新增 0 則，略過重複 1 則。")).toBeInTheDocument();
+
+    const rows = within(screen.getByRole("grid")).getAllByRole("row").slice(1);
+    expect(rows).toHaveLength(2);
+    rows.forEach((row) =>
+      expect(within(row).getByText(zhTW.console.sources.MANUAL)).toBeInTheDocument(),
+    );
+    expect(document.querySelector('[data-status="CONNECTED"]')).toBeNull();
+    await act(async () => store.dispose());
+  });
+
   it("AI-only filters say they need Phase 3 instead of showing fake results", async () => {
     setup("console");
     fireEvent.click(screen.getByRole("button", { name: zhTW.console.filters.purchase }));
@@ -120,6 +147,42 @@ describe("Live Assistant UI", () => {
     fireEvent.click(screen.getByRole("button", { name: zhTW.settings.languages.vi }));
     expect(screen.getAllByText(viMessages.nav.setup).length).toBeGreaterThan(0);
     expect(localStorage.getItem("live-studio.locale")).toBe("vi");
+  });
+});
+
+describe("API keys", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("in a plain browser it says keys need the desktop app and offers no input", () => {
+    setup("settings");
+    expect(screen.getByText(zhTW.settings.apiBrowser)).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(zhTW.settings.apiKeyPlaceholder)).toBeNull();
+  });
+
+  it("with a client: save, show only 'set', replace, remove; the key is never rendered", async () => {
+    const vault = new Map<string, string>();
+    const client: SecretsClient = {
+      available: true,
+      exists: async (slot) => vault.has(slot),
+      set: async (slot, v) => void vault.set(slot, v),
+      remove: async (slot) => void vault.delete(slot),
+    };
+    render(
+      <I18nProvider initial="zh-TW">
+        <ApiKeysSection client={client} />
+      </I18nProvider>,
+    );
+    const input = screen.getAllByPlaceholderText(zhTW.settings.apiKeyPlaceholder)[0];
+    fireEvent.change(input, { target: { value: "sk-secret-123" } });
+    fireEvent.click(screen.getAllByRole("button", { name: zhTW.settings.apiSave })[0]);
+    expect(await screen.findByText(zhTW.settings.apiSaved)).toBeInTheDocument();
+    expect(vault.get("claude")).toBe("sk-secret-123");
+    expect(screen.getByText(zhTW.settings.apiSet)).toBeInTheDocument();
+    expect(document.body.innerHTML).not.toContain("sk-secret-123");
+    expect((input as HTMLInputElement).value).toBe("");
+
+    fireEvent.click(screen.getByRole("button", { name: zhTW.settings.apiRemove }));
+    await waitFor(() => expect(vault.has("claude")).toBe(false));
   });
 });
 

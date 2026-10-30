@@ -18,7 +18,10 @@ export function LiveSessionProvider({
   children: ReactNode;
 }) {
   const value = useMemo(() => store ?? new LiveSessionStore(), [store]);
-  useEffect(() => () => void value.dispose(), [value]);
+  useEffect(() => {
+    void value.restore();
+    return () => void value.dispose();
+  }, [value]);
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
 

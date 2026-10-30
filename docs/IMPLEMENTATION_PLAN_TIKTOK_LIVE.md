@@ -57,9 +57,11 @@ Sửa:
 
 Nghiệm thu: chạy app thấy feed Demo, mọi bình luận giả đều gắn nhãn DEMO; không có nguồn thật thì hiển thị "Chưa có nguồn bình luận được kết nối", không bao giờ hiện Connected.
 
-### Phase 2 — Lưu trữ + event bus
+### Phase 2 — Lưu trữ + nguồn chạy thật
 
-SQLite (bảng `live_sessions`, `live_comments`), chỉ mục unique `(session_id, provider_event_id)`, sự kiện Tauri, kết nối lại và lỗi provider.
+- **2a (xong):** SQLite, nguồn "Dán thủ công", khôi phục sau khi tắt app, khóa API do người dùng nhập.
+- **2b:** catalog SKU + bộ đọc đơn bằng luật (không AI).
+- Sự kiện Tauri (Rust → giao diện) chỉ cần khi có provider hoặc AI chạy phía Rust; hoãn tới đó.
 
 ### Phase 3 — AI + đơn nháp
 
@@ -101,3 +103,42 @@ Giới hạn còn lại:
 - Bộ lọc theo loại bình luận cần AI nên hiện chỉ ghi "cần Phase 3".
 - `LoadingState`/`ErrorState` đã có nhưng chưa dùng ở trang nào vì chưa có dữ liệu bất đồng bộ.
 - Chưa chạy `tauri dev` trên Mac và Windows thật; mới kiểm tra giao diện bằng trình duyệt và `cargo check` trên Linux.
+
+## 6. Phase 2a — logic thực hiện và kết quả
+
+### Lưu trữ
+
+- Một file SQLite duy nhất: `live-studio.db` trong `app_data_dir`. Mở bằng `rusqlite` (bundled), WAL, `foreign_keys=ON`, migration theo `PRAGMA user_version` (idempotent, chạy mỗi lần mở app).
+- Bảng `live_sessions` và `live_comments` theo spec. Chỉ mục unique `(session_id, source, provider_event_id)` nên cùng một sự kiện chỉ lưu một lần dù dán lại hay kết nối lại; `ON DELETE CASCADE` khi xóa phiên.
+- Ghi theo lô, mỗi lô một transaction (`INSERT OR IGNORE`); bỏ bình luận rỗng, cắt 1000 ký tự, tối đa 1000 bình luận mỗi lô.
+- Frontend ghi qua một hàng đợi tuần tự trong `LiveSessionStore`, nên dòng phiên luôn có trước bình luận. Ghi lỗi thì `persistError` bật và hiện cảnh báo; bình luận trên màn hình không bị mất.
+- Khôi phục: nạp phiên mới nhất và tối đa 1000 bình luận, nạp lại bộ chống trùng. Phiên đang dở được đóng lại (provider không sống qua lần khởi động) và trạng thái là `DISCONNECTED`, không bao giờ `CONNECTED` giả.
+
+### Nguồn "Dán thủ công"
+
+- `ManualPasteProvider` (trạng thái `MANUAL`) không cần tài khoản hay quyền. Người bán sao chép chat từ màn hình live của chính mình.
+- `parsePastedChat`: mỗi dòng một bình luận; `tên: nội dung` / `@tên：nội dung` tách tên tài khoản; tối đa 500 dòng, 500 ký tự. `eventId = paste-<fnv1a(tên|nội dung)>-<lần thứ n trong lần dán>`.
+- **Giới hạn đã biết:** dán lại đoạn chồng lấn thì trùng được bỏ qua, nhưng một bình luận lặp thật sự (cùng tên, cùng nội dung) ở lần dán sau có thể bị coi là trùng. Dấu thời gian là lúc dán, không phải lúc khách bình luận.
+
+### Khóa API do người dùng nhập (BYOK)
+
+- Ô: `claude`, `openai`, `gemini`, `connector`. Lưu trong Keychain (macOS) / Credential Manager (Windows) qua `keyring`; Linux chỉ để phát triển.
+- Lệnh Tauri chỉ có `secret_set`, `secret_exists`, `secret_remove`. **Không có lệnh đọc khóa** cho frontend; khi Phase 3 gọi AI thì Rust đọc khóa trực tiếp.
+- Trình duyệt thường (`npm run dev`) không lưu được khóa và nói rõ như vậy.
+- Lưu khóa `connector` **không** tự bắt đầu nhận bình luận: hiện không có nhà cung cấp tích hợp sẵn.
+
+### Về yêu cầu "cài sẵn API, chỉ nhập ID là đọc được bình luận"
+
+Chưa thể làm đúng như vậy một cách hợp lệ: chưa tìm thấy API chính thức của TikTok để đọc bình luận LIVE theo ID. Cách duy nhất để "chỉ nhập ID" hiện nay là thư viện không chính thức giả lập giao thức, vốn trái với quy tắc của spec (không scrape, không đảo ngược giao thức, không dùng làm mặc định) và có thể vi phạm điều khoản TikTok, dễ hỏng khi TikTok đổi. Hướng hợp lệ, theo thứ tự:
+
+1. Nhà cung cấp connector được duyệt (hoặc API chính thức khi có): cắm vào `LiveCommentProvider`, khóa ở ô `connector`, người dùng chỉ nhập username.
+2. OCR vùng chat của chính người bán (ý tưởng, chưa làm).
+3. Giữ "Dán thủ công" (đã chạy).
+
+Cần người quyết định: nhà cung cấp nào, và có chấp nhận thư viện không chính thức dưới dạng cờ thử nghiệm nội bộ tắt mặc định hay không.
+
+### Kết quả kiểm tra
+
+- `npm run check`: 39 test (trước đó 25), `npm run build` xong, `cargo test`: 10 test Rust (migration, chống trùng, cắt/rỗng, thứ tự, cascade, khóa ngoại, kho khóa).
+- Ảnh chụp 1440×900 và 390×844, sáng/tối: không tràn ngang, không lỗi console.
+- **Chưa kiểm chứng:** `tauri dev` trên Mac và Windows thật (đặc biệt đường dẫn dữ liệu và Keychain / Credential Manager); phần Rust mới chạy được test và `cargo check` trên Linux.
