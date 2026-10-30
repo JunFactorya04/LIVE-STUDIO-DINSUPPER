@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { isRemote } from "../platform/backend";
 import { LiveSessionStore, type LiveSessionSnapshot } from "./sessionStore";
 
 const StoreContext = createContext<LiveSessionStore | null>(null);
@@ -19,7 +20,8 @@ export function LiveSessionProvider({
 }) {
   const value = useMemo(() => store ?? new LiveSessionStore(), [store]);
   useEffect(() => {
-    void value.restore();
+    // A phone follows the computer (ShareSync); restoring here would close the computer's live session.
+    if (!isRemote()) void value.restore();
     return () => void value.dispose();
   }, [value]);
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

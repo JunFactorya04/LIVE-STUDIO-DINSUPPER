@@ -5,6 +5,7 @@ import { testSlip } from "../print/slip";
 import { getPrintService, type PrintService } from "../print/service";
 import { usePrintStatus } from "../print/usePrint";
 import type { PrintErrorCode } from "../print/client";
+import { createShareClient } from "../share/client";
 
 // Where the receipt printer is on the network, plus a connection check and a test print.
 
@@ -23,6 +24,9 @@ export function PrinterSection({ service }: { service?: PrintService }) {
   const update = (next: PrinterSettings) => {
     setCfg(next);
     savePrinter(next);
+    void createShareClient()
+      .syncPrinter()
+      .catch(() => undefined);
     setNote(undefined);
   };
   const fail = (code: PrintErrorCode) => setNote({ text: p.errors[code], error: true });

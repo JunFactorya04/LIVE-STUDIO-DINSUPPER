@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { NAV_ITEMS, type PageId } from "../navigation";
+import { isRemote } from "../platform/backend";
+import { visibleNav, type PageId } from "../navigation";
 import { NavIcon } from "./Icons";
 import { useI18n } from "../i18n";
 import { useLiveSession } from "../live/useLiveSession";
@@ -28,23 +29,25 @@ export function Sidebar({ current, onSelect }: NavProps) {
       {sections.map((section) => (
         <div key={section.key}>
           <div className="sidebar__section">{section.title}</div>
-          {NAV_ITEMS.filter((i) => i.section === section.key).map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className="sidebar__item"
-              aria-current={current === item.id ? "page" : undefined}
-              onClick={() => onSelect(item.id)}
-            >
-              <NavIcon id={item.id} />
-              {t.nav[item.id]}
-              {(counts[item.id] ?? 0) > 0 && (
-                <span className="sidebar__count" aria-hidden="true">
-                  {counts[item.id]}
-                </span>
-              )}
-            </button>
-          ))}
+          {visibleNav(isRemote())
+            .filter((i) => i.section === section.key)
+            .map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="sidebar__item"
+                aria-current={current === item.id ? "page" : undefined}
+                onClick={() => onSelect(item.id)}
+              >
+                <NavIcon id={item.id} />
+                {t.nav[item.id]}
+                {(counts[item.id] ?? 0) > 0 && (
+                  <span className="sidebar__count" aria-hidden="true">
+                    {counts[item.id]}
+                  </span>
+                )}
+              </button>
+            ))}
         </div>
       ))}
     </aside>
@@ -73,8 +76,9 @@ export function Toolbar({ title, subtitle, actions }: ToolbarProps) {
 export function TabBar({ current, onSelect }: NavProps) {
   const { t } = useI18n();
   const [moreOpen, setMoreOpen] = useState(false);
-  const tabs = NAV_ITEMS.filter((i) => i.tab);
-  const rest = NAV_ITEMS.filter((i) => !i.tab);
+  const nav = visibleNav(isRemote());
+  const tabs = nav.filter((i) => i.tab);
+  const rest = nav.filter((i) => !i.tab);
   const moreActive = rest.some((i) => i.id === current);
 
   useEffect(() => {

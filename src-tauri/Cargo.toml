@@ -19,12 +19,14 @@ serde_json = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
 # WebSocket client for Euler Stream. native-tls = SChannel (Windows) / Secure Transport (macOS):
 # no extra build tools needed on either OS.
-tokio = { version = "1", features = ["rt", "macros", "time", "net", "io-util"] }
+tokio = { version = "1", features = ["rt", "macros", "time", "net", "io-util", "sync"] }
 # HTTPS client for the AI providers (same native-tls choice as above).
 reqwest = { version = "0.12", default-features = false, features = ["native-tls"] }
 tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 futures-util = "0.3"
 url = "2"
+# Random secret for the phone-sharing link.
+getrandom = "0.2"
 # Reads/writes the 7-ELEVEN order-import template (an .xlsx is a zip of XML files).
 zip = { version = "2", default-features = false, features = ["deflate"] }
 

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { isRemote } from "./platform/backend";
+import { ShareSync } from "./share/ShareSync";
 import { Sidebar, TabBar, Toolbar } from "./components/Shell";
 import { StatusChip } from "./components/StatusChip";
 import { useI18n } from "./i18n";
@@ -17,7 +19,7 @@ import { WorkflowPage } from "./pages/WorkflowPage";
 import { ShipPage } from "./pages/ShipPage";
 import { SetupPage } from "./pages/SetupPage";
 
-export function App({ initialPage = "setup" }: { initialPage?: PageId }) {
+export function App({ initialPage = isRemote() ? "console" : "setup" }: { initialPage?: PageId }) {
   const [page, setPage] = useState<PageId>(initialPage);
   const { t } = useI18n();
   const { status } = useLiveSession();
@@ -37,7 +39,8 @@ export function App({ initialPage = "setup" }: { initialPage?: PageId }) {
         </div>
       </main>
       <TabBar current={page} onSelect={setPage} />
-      <AutoPrint />
+      <ShareSync />
+      {!isRemote() && <AutoPrint />}
     </div>
   );
 }

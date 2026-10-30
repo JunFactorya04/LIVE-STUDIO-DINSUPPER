@@ -291,3 +291,10 @@ Học theo taodonnhanh.com, làm đúng theo file mẫu `訂單匯入` v1.5 củ
 - **Không tự gửi tin nhắn**: app chỉ soạn sẵn và copy; người bán tự dán vào TikTok (spec: không lưu mật khẩu/cookie TikTok, không tự gửi).
 - **Báo cáo công việc** (Tổng quan): số đơn đã chốt, tem tạm đã in, đã xin/nhận thông tin, đơn ship tạo/xuất hôm nay, đơn chưa xuất và COD; nút Copy báo cáo.
 - **Khóa zoom** trên điện thoại: viewport `user-scalable=no`, chặn gesture pinch / double-tap, `overscroll-behavior`.
+
+## 18. Chia sẻ cho điện thoại cùng Wi-Fi
+
+- **Cách hoạt động:** Cài đặt → "Chia sẻ cho điện thoại" bật máy chủ HTTP nhúng (`src-tauri/src/share.rs`). Điện thoại mở link/QR, tải đúng giao diện của app và gọi cùng các lệnh Rust qua `POST /api/invoke`. Dữ liệu luôn nằm trên máy tính.
+- **An toàn:** mặc định tắt, tắt khi đóng app; chỉ nhận máy trong mạng nội bộ (10/8, 172.16/12, 192.168/16, link-local); Host phải là IP/localhost (chống DNS rebinding); mã 48 hex ngẫu nhiên mỗi lần bật, gửi qua header `X-Token`, so sánh hằng thời gian, khóa sau 30 lần sai; danh sách lệnh cho phép đóng (không có khóa API, xóa dữ liệu, ghi file, cấu hình AI/nguồn bình luận). In từ điện thoại luôn dùng máy in đã cài trên máy tính (không nhận host từ điện thoại). HTTP thuần trong LAN, nên cảnh báo trong UI.
+- **Frontend:** `platform/backend.ts` (Tauri invoke hoặc fetch), `live/sessionStore` có `refreshFromDb` (điện thoại đọc theo máy tính mỗi 2,5 s) và `mergeFromDb` (máy tính nhận đơn/tin nhắn do điện thoại lưu, bản `updatedAt` mới hơn thắng). Điện thoại không khôi phục/đóng phiên, không chạy dọn dữ liệu, chỉ có các trang: Console, Báo cáo công việc, Đơn, Quy trình, Đơn ship, Tin nhắn, Báo cáo.
+- **Chưa làm:** AI gọi từ điện thoại; máy in BLE; HTTPS cho LAN; thử trên mạng thật (cần Windows Firewall cho mạng riêng).

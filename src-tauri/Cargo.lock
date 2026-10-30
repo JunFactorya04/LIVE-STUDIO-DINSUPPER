@@ -1887,6 +1887,7 @@ name = "live-studio"
 version = "0.1.0"
 dependencies = [
  "futures-util",
+ "getrandom 0.2.17",
  "keyring",
  "reqwest 0.12.28",
  "rusqlite",

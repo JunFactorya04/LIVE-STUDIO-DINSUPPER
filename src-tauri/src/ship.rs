@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 // except the COD minimum, which uses the stricter 58 that taodonnhanh.com also enforces.
 pub const MIN_TOTAL: i64 = 58; // order amount + shipping fee (COD minimum)
 pub const MAX_TOTAL: i64 = 20_000;
-pub const DEFAULT_FEE: i64 = 38;
 pub const MAX_AMOUNT: i64 = 20_000;
 pub const MAX_FEE: i64 = 100;
 pub const MAX_ROWS: usize = 500;
@@ -455,8 +454,6 @@ pub fn order_delete(conn: &Connection, id: &str) -> Result<usize> {
 }
 
 // ---------- buyer flow (which steps of the A-Z routine are done for a buyer) ----------
-
-pub const FLOW_STEPS: &[&str] = &["SLIP_PRINTED", "ASK_COPIED"];
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]

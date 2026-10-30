@@ -129,3 +129,7 @@ Hướng dẫn cài công cụ, đồng bộ giữa Windows và Mac, và dùng G
 ## Đơn ship 7-ELEVEN
 
 Mục **Đơn ship**: danh sách khách (tự thêm TikTok ID khi chốt đơn), form tạo đơn, tra mã cửa hàng 7-ELEVEN, in phiếu ship, xuất Excel theo mẫu 賣貨便 v1.5. Chi tiết: `docs/IMPLEMENTATION_PLAN_TIKTOK_LIVE.md` §16.
+
+## Chia sẻ cho điện thoại
+
+Cài đặt → **Chia sẻ cho điện thoại** → Bật chia sẻ → quét QR bằng điện thoại cùng Wi-Fi. Điện thoại thao tác thật trên dữ liệu của máy tính (đơn, tin nhắn, đơn ship) và in qua máy in cài trên máy tính; chặn zoom và cuộn trang. Chỉ bật trên Wi-Fi riêng; link có mã bí mật đổi mỗi lần bật. Chi tiết: `docs/IMPLEMENTATION_PLAN_TIKTOK_LIVE.md` §18.

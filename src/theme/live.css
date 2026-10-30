@@ -815,3 +815,51 @@
     min-height: 44px;
   }
 }
+
+/* Sharing with a phone */
+.share-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+}
+.share-link {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.qr {
+  width: 168px;
+  height: 168px;
+  background: #fff;
+  border-radius: var(--ctl-radius);
+  padding: 6px;
+  box-shadow: var(--shadow-box);
+}
+.qr svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.share-link__text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  min-width: 0;
+  flex: 1;
+}
+.share-url {
+  font-family: var(--font-mono);
+  font-size: var(--fs-callout);
+  word-break: break-all;
+  user-select: all;
+}
+.share-warnings {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+}

@@ -12,6 +12,7 @@ mod overlay;
 mod printer;
 mod replies;
 mod secrets;
+mod share;
 mod ship;
 
 use std::sync::Mutex;
@@ -44,6 +45,7 @@ pub fn run() {
                 tauri::async_runtime::spawn(overlay::serve(listener, overlay.shared.clone()));
             }
             app.manage(overlay);
+            app.manage(share::ShareState::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -82,6 +84,10 @@ pub fn run() {
             commands::data_backup,
             commands::data_purge_older,
             commands::data_delete_all,
+            commands::share_start,
+            commands::share_stop,
+            commands::share_status,
+            commands::share_set_printer,
             commands::ship_orders,
             commands::flow_list,
             commands::flow_mark,

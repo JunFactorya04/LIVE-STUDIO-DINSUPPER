@@ -24,11 +24,11 @@ export interface OverlayClient {
 export const tauriOverlay: OverlayClient = {
   available: true,
   async set(overlay) {
-    const { invoke } = await import("@tauri-apps/api/core");
+    const { invoke } = await import("../platform/backend");
     await invoke("overlay_set", { overlay });
   },
   async url() {
-    const { invoke } = await import("@tauri-apps/api/core");
+    const { invoke } = await import("../platform/backend");
     const info = await invoke<{ url?: string | null }>("overlay_info");
     return info.url ?? undefined;
   },

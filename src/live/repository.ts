@@ -1,3 +1,4 @@
+import { hasBackend } from "../platform/backend";
 import type { CommentIntent, LiveCommentEvent, LiveCommentSource } from "./types";
 
 // Persistence boundary. In the desktop app it is SQLite behind Tauri commands; in a plain
@@ -124,7 +125,7 @@ const opt = <T>(v: T | null | undefined): T | undefined => v ?? undefined;
 
 export class TauriLiveRepository implements LiveRepository {
   private async call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
-    const { invoke } = await import("@tauri-apps/api/core");
+    const { invoke } = await import("../platform/backend");
     return invoke<T>(cmd, args);
   }
 
@@ -191,8 +192,8 @@ export class TauriLiveRepository implements LiveRepository {
   }
 }
 
-export const isTauri = (): boolean =>
-  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+/** True when commands can run: in the desktop app, or on a phone opened from the sharing link. */
+export const isTauri = (): boolean => hasBackend();
 
 export function createRepository(): LiveRepository {
   return isTauri() ? new TauriLiveRepository() : new MemoryLiveRepository();

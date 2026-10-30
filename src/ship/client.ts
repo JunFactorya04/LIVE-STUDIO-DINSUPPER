@@ -77,7 +77,7 @@ export interface ShipClient {
 class TauriShipClient implements ShipClient {
   readonly available = true;
   private async call<T>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
-    const { invoke } = await import("@tauri-apps/api/core");
+    const { invoke } = await import("../platform/backend");
     return invoke<T>(cmd, args);
   }
   private now = () => new Date().toISOString();

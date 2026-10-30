@@ -717,3 +717,48 @@ pub fn flow_mark(
 ) -> Result<(), String> {
     ship::flow_mark(&*db(&state)?, &tiktok_id, &step, &now).map_err(err)
 }
+
+// ---- phone sharing (only the desktop window can switch it on or off) ----
+
+use crate::share::{self, PrinterCfg, ShareInfo, ShareState};
+
+#[tauri::command]
+pub fn share_start(app: AppHandle, state: State<'_, ShareState>) -> Result<ShareInfo, String> {
+    let info = share::start(&app, &state)?;
+    log(&app.state::<DbState>(), "SHARE_START", "");
+    Ok(info)
+}
+
+#[tauri::command]
+pub fn share_stop(app: AppHandle, state: State<'_, ShareState>) -> Result<ShareInfo, String> {
+    let info = share::stop(&state)?;
+    log(&app.state::<DbState>(), "SHARE_STOP", "");
+    Ok(info)
+}
+
+#[tauri::command]
+pub fn share_status(state: State<'_, ShareState>) -> Result<ShareInfo, String> {
+    share::status(&state)
+}
+
+/// The printer chosen on this computer, so a phone can print to it without knowing its address.
+#[tauri::command]
+pub fn share_set_printer(
+    state: State<'_, ShareState>,
+    host: String,
+    port: u16,
+    width_dots: usize,
+) -> Result<(), String> {
+    let cfg = if host.trim().is_empty() {
+        None
+    } else {
+        // Same address rules as printing itself.
+        crate::printer::parse_target(host.trim(), port).map_err(|e| e.code().to_string())?;
+        Some(PrinterCfg {
+            host: host.trim().to_string(),
+            port,
+            width_dots,
+        })
+    };
+    share::set_printer(&state, cfg)
+}

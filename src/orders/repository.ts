@@ -61,7 +61,7 @@ const opt = <T>(v: T | null | undefined): T | undefined => v ?? undefined;
 
 export class TauriOrderRepository implements OrderRepository {
   private async call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
-    const { invoke } = await import("@tauri-apps/api/core");
+    const { invoke } = await import("../platform/backend");
     return invoke<T>(cmd, args);
   }
 

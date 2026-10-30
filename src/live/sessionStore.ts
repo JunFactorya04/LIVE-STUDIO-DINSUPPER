@@ -190,6 +190,80 @@ export class LiveSessionStore {
     }
   }
 
+  /**
+   * Phone opened from the sharing link: show whatever the computer has stored right now. Replaces
+   * the lists with the stored ones (the computer is the source of truth) and never starts a
+   * provider here. Called on a timer by the phone.
+   */
+  async refreshFromDb(): Promise<void> {
+    try {
+      const stored = await this.repo.latestSession();
+      const catalog = await this.orders.listCatalog();
+      if (!stored) {
+        this.set({ catalog });
+        return;
+      }
+      const comments = await this.repo.listComments(stored.id, MAX_COMMENTS);
+      const drafts = await this.orders.listDrafts(stored.id);
+      const replies = await this.replyRepo.list(stored.id);
+      this.seen = new Set(comments.map((c) => `${c.sessionId}|${c.source}|${c.eventId}`));
+      // The status is the one the computer's provider wrote; an ended session is never "live".
+      const shown = ["CONNECTED", "DEMO", "MANUAL"].includes(stored.status) && !stored.endedAt;
+      this.set({
+        sessionId: stored.id,
+        status: shown ? (stored.status as LiveProviderStatus) : "DISCONNECTED",
+        startedAt: stored.startedAt,
+        endedAt: stored.endedAt,
+        comments,
+        drafts,
+        replies,
+        catalog,
+        restored: comments.length > 0,
+        persistError: false,
+      });
+    } catch {
+      // the computer is asleep or the Wi-Fi dropped: keep showing the last data
+    }
+  }
+
+  /**
+   * Computer is sharing: pick up orders and replies the phone saved, keeping the newer copy of
+   * each. Comments are never taken from the database here (the provider is their source).
+   */
+  async mergeFromDb(): Promise<void> {
+    const sessionId = this.snapshot.sessionId;
+    if (!sessionId) return;
+    try {
+      const drafts = await this.orders.listDrafts(sessionId);
+      const replies = await this.replyRepo.list(sessionId);
+      const newer = <T extends { id: string; updatedAt: string }>(
+        mine: readonly T[],
+        theirs: readonly T[],
+      ): T[] | undefined => {
+        const map = new Map(mine.map((x) => [x.id, x]));
+        let changed = false;
+        for (const x of theirs) {
+          const have = map.get(x.id);
+          if (!have || x.updatedAt > have.updatedAt) {
+            map.set(x.id, x);
+            changed = true;
+          }
+        }
+        return changed ? [...map.values()] : undefined;
+      };
+      const d = newer(this.snapshot.drafts, drafts);
+      const r = newer(this.snapshot.replies, replies);
+      if (d || r) {
+        this.set({
+          ...(d ? { drafts: d } : {}),
+          ...(r ? { replies: r } : {}),
+        });
+      }
+    } catch {
+      // best effort; the next tick tries again
+    }
+  }
+
   private nowIso(): string {
     return (this.deps.now ?? (() => new Date()))().toISOString();
   }

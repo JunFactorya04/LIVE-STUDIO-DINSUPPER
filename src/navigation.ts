@@ -34,3 +34,18 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "report", section: "manage", tab: false },
   { id: "settings", section: "manage", tab: false },
 ];
+
+/** A phone opened from the sharing link works the orders; setup, overlay and settings stay on the computer. */
+const REMOTE_PAGES: ReadonlySet<PageId> = new Set([
+  "console",
+  "dashboard",
+  "orders",
+  "flow",
+  "ship",
+  "replies",
+  "report",
+]);
+
+export function visibleNav(remote: boolean): NavItem[] {
+  return remote ? NAV_ITEMS.filter((i) => REMOTE_PAGES.has(i.id)) : NAV_ITEMS;
+}

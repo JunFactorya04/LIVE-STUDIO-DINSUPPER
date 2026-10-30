@@ -12,7 +12,6 @@ use tokio::io::AsyncWriteExt;
 use tokio::net::TcpStream;
 use tokio::time::timeout;
 
-pub const DEFAULT_PORT: u16 = 9100;
 pub const MAX_WIDTH_DOTS: usize = 832; // 104 mm at 8 dots/mm
 pub const MAX_HEIGHT_DOTS: usize = 6000;
 const BAND_ROWS: usize = 128;

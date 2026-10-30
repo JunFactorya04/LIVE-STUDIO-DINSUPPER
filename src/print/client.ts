@@ -48,7 +48,7 @@ function toError(e: unknown): PrintError {
 class TauriPrintClient implements PrintClient {
   readonly available = true;
   async print(s: PrinterSettings, page: Bitmap): Promise<void> {
-    const { invoke } = await import("@tauri-apps/api/core");
+    const { invoke } = await import("../platform/backend");
     try {
       await invoke("printer_print", {
         host: s.host.trim(),
@@ -62,7 +62,7 @@ class TauriPrintClient implements PrintClient {
     }
   }
   async probe(s: PrinterSettings): Promise<void> {
-    const { invoke } = await import("@tauri-apps/api/core");
+    const { invoke } = await import("../platform/backend");
     try {
       await invoke("printer_probe", { host: s.host.trim(), port: s.port });
     } catch (e) {

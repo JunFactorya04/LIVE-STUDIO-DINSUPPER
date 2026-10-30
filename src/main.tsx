@@ -7,7 +7,9 @@ import { App } from "./App";
 import { I18nProvider } from "./i18n";
 import { LiveSessionProvider } from "./live/useLiveSession";
 import { createReportClient } from "./report/client";
+import { isRemote } from "./platform/backend";
 import { runRetention } from "./report/retention";
+import { adoptComputerPrinter } from "./share/client";
 
 // iOS Safari ignores user-scalable=no: stop the pinch gesture and the double-tap zoom explicitly.
 for (const type of ["gesturestart", "gesturechange", "gestureend"]) {
@@ -25,7 +27,9 @@ document.addEventListener(
 );
 
 // Old sessions are removed before the last one is loaded, so the app never restores a deleted one.
-void runRetention(createReportClient()).finally(() => {
+// A phone never deletes old sessions (the computer does that); it only picks up the printer.
+const boot = isRemote() ? adoptComputerPrinter() : runRetention(createReportClient());
+void boot.finally(() => {
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
       <I18nProvider>

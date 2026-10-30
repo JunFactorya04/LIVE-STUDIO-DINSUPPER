@@ -45,7 +45,7 @@ const toCode = (e: unknown): AiErrorCode => AI_ERROR_CODES.find((c) => c === e) 
 export const tauriAi: AiClient = {
   available: true,
   async complete({ provider, model, system, prompt, maxTokens }) {
-    const { invoke } = await import("@tauri-apps/api/core");
+    const { invoke } = await import("../platform/backend");
     try {
       return await invoke<string>("ai_complete", { provider, model, system, prompt, maxTokens });
     } catch (e) {

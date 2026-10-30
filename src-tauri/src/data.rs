@@ -35,6 +35,8 @@ pub const AUDIT_ACTIONS: &[&str] = &[
     "SHIP_DELETED",
     "SHIP_EXPORTED",
     "SHIP_STORES_IMPORT",
+    "SHARE_START",
+    "SHARE_STOP",
 ];
 
 fn bad(msg: &str) -> rusqlite::Error {

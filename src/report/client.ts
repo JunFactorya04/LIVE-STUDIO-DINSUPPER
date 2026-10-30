@@ -43,7 +43,7 @@ export interface ReportClient {
 class TauriReportClient implements ReportClient {
   readonly available = true;
   private async call<T>(cmd: string, args: Record<string, unknown> = {}): Promise<T> {
-    const { invoke } = await import("@tauri-apps/api/core");
+    const { invoke } = await import("../platform/backend");
     return invoke<T>(cmd, args);
   }
   sessions() {
