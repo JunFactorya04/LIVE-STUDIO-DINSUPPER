@@ -722,3 +722,25 @@
     min-height: 44px;
   }
 }
+.ship,
+.ship > .box {
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .ship .orders-table td.cell-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ship .orders-table td.cell-actions .btn {
+    min-height: 44px;
+  }
+  .ship__form {
+    padding: 12px;
+  }
+}
+@media (max-width: 760px) {
+  .ship .segmented button {
+    min-height: 44px;
+    padding-inline: 14px;
+  }
+}

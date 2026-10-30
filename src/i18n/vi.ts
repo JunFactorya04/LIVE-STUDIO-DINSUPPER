@@ -379,7 +379,7 @@ export const vi: Messages = {
       normal: "Thường",
       frozen: "Đông lạnh",
       storeCode: "Mã cửa hàng 7-ELEVEN nhận hàng",
-      storeCodeHint: "Mã cửa hàng gồm 6 chữ số. Dùng ô tìm bên dưới để tra.",
+      storeCodeHint: "Mã cửa hàng gồm 6 chữ số. Dùng ô tìm phía trên để tra.",
       storeSearch: "Tìm cửa hàng (mã, tên hoặc địa chỉ)",
       storeSearchBtn: "Tìm",
       storeSearching: "Đang tìm…",

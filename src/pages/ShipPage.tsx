@@ -290,7 +290,7 @@ function OrdersTab({
         <EmptyState title={t.ship.emptyTitle} hint={t.ship.emptyHint} />
       ) : (
         <div className="feed-scroll">
-          <table className="table" aria-label={t.ship.tabs.orders}>
+          <table className="table orders-table" aria-label={t.ship.tabs.orders}>
             <thead>
               <tr>
                 <th scope="col">{t.ship.columns.time}</th>
@@ -766,7 +766,7 @@ function CustomersTab({
   if (customers.length === 0) return <EmptyState title={c.emptyTitle} hint={c.emptyHint} />;
   return (
     <div className="feed-scroll">
-      <table className="table" aria-label={t.ship.tabs.customers}>
+      <table className="table orders-table" aria-label={t.ship.tabs.customers}>
         <thead>
           <tr>
             <th scope="col">{c.id}</th>

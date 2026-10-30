@@ -351,7 +351,7 @@ export const zhTW = {
       normal: "常溫",
       frozen: "冷凍",
       storeCode: "7-ELEVEN 門市店號",
-      storeCodeHint: "店號為 6 位數字。可用下方搜尋找門市。",
+      storeCodeHint: "店號為 6 位數字。可用上方搜尋找門市。",
       storeSearch: "搜尋門市（店號、店名或地址）",
       storeSearchBtn: "搜尋",
       storeSearching: "搜尋中…",
