@@ -2087,13 +2087,33 @@
 }
 
 /* Warehouse on a phone: the tab strip scrolls instead of widening the page. */
-.wh { min-width: 0; }
-.wh > .segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; }
-.wh > .segmented::-webkit-scrollbar { display: none; }
-.wh > .segmented button { flex: 0 0 auto; white-space: nowrap; }
-.lbl-opts { min-width: 0; }
-.lbl-opts .segmented { max-width: 100%; }
+.wh {
+  min-width: 0;
+}
+.wh > .segmented {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  justify-content: flex-start;
+}
+.wh > .segmented::-webkit-scrollbar {
+  display: none;
+}
+.wh > .segmented button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.lbl-opts {
+  min-width: 0;
+}
+.lbl-opts .segmented {
+  max-width: 100%;
+}
 @media (max-width: 760px) {
-  .lbl-opts__name { min-width: 100%; }
-  .lbl-opts .segmented { flex: 1; }
+  .lbl-opts__name {
+    min-width: 100%;
+  }
+  .lbl-opts .segmented {
+    flex: 1;
+  }
 }
