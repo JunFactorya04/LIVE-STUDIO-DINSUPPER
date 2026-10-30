@@ -83,6 +83,21 @@ describe("Live Assistant UI", () => {
     expect(statusChip().dataset.status).toBe("DISCONNECTED");
   });
 
+  it("Setup tab's embedded live viewer shows incoming comments and opens a reply draft (never a send)", async () => {
+    const store = setup("setup");
+    // The viewer is store-driven, same as the console feed; feed it a comment directly.
+    const sid = store.getSnapshot().sessionId;
+    await act(async () => {
+      store.receive(demoEvent(sid, "v1", "Giá bao nhiêu shop ơi?"));
+    });
+    const row = screen.getByText("Giá bao nhiêu shop ơi?");
+    expect(row).toBeInTheDocument();
+    fireEvent.click(row);
+    // Opens the reply card; there is no send button anywhere, by design.
+    expect(screen.getByRole("button", { name: zhTW.replies.suggest })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /送出|gửi|send/i })).not.toBeInTheDocument();
+  });
+
   it("demo flow: DEMO status, DEMO banner, every row labelled DEMO, never CONNECTED", async () => {
     // The Setup tab only exposes Euler Stream now; demo mode is still a store-level source
     // (used elsewhere, e.g. the phone preview), so it's driven here directly on the console page.

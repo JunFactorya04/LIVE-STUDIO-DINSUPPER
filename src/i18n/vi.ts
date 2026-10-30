@@ -131,6 +131,7 @@ export const vi: Messages = {
       unset: "Chưa chọn",
     },
     session: "Mã phiên",
+    viewerTitle: "Bình luận live",
     startHint: "Hãy bấm “Kết nối nguồn bình luận” trước. Kết nối tự động còn cần tick ô xác nhận.",
     issues: {
       NEED_URL_OR_USERNAME: "Hãy nhập TikTok ID.",

@@ -1,12 +1,16 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { EmptyState } from "../components/States";
 import { StatusChip } from "../components/StatusChip";
 import { useI18n } from "../i18n";
 import type { LiveSessionStore } from "../live/sessionStore";
 import type { LiveProviderStatus } from "../live/types";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
+import { avatarTone } from "./ConsolePage";
+import { ReplyCard } from "./ReplyCard";
 
 const READY: readonly LiveProviderStatus[] = ["CONNECTED", "DEMO", "MANUAL"];
 const FAILED: readonly LiveProviderStatus[] = ["UNAVAILABLE", "ERROR", "DISCONNECTED"];
+const VIEWER_LIMIT = 60;
 
 /** Resolves once the provider reaches a terminal status (ready to start, or failed/closed). */
 function waitForOutcome(store: LiveSessionStore): Promise<boolean> {
@@ -27,14 +31,20 @@ function waitForOutcome(store: LiveSessionStore): Promise<boolean> {
 }
 
 export function SetupPage({ onStarted }: { onStarted: () => void }) {
-  const { t } = useI18n();
+  const { t, formatTime } = useI18n();
   const store = useLiveStore();
   const s = useLiveSession();
   const [busy, setBusy] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | undefined>();
   const ids = { title: useId(), user: useId() };
 
   const running = Boolean(s.startedAt && !s.endedAt);
   const connecting = busy || s.status === "CONNECTING";
+  const noSource =
+    s.comments.length === 0 && (s.status === "DISCONNECTED" || s.status === "UNAVAILABLE");
+  // Newest first; only the latest VIEWER_LIMIT rows are put in the DOM.
+  const rows = useMemo(() => s.comments.slice(-VIEWER_LIMIT).reverse(), [s.comments]);
+  const selected = rows.find((c) => c.eventId === selectedId);
 
   useEffect(() => {
     if (s.form.source !== "live") store.updateForm({ source: "live" });
@@ -124,6 +134,47 @@ export function SetupPage({ onStarted }: { onStarted: () => void }) {
           <dd className="mono">{s.providerType ? s.sessionId : t.common.none}</dd>
         </dl>
       </aside>
+
+      <section className="box setup-chat" aria-label={t.setup.viewerTitle}>
+        <h2 className="section-title">{t.setup.viewerTitle}</h2>
+        {noSource ? (
+          <EmptyState title={t.console.noSource} hint={t.console.noSourceHint} />
+        ) : s.comments.length === 0 ? (
+          <EmptyState title={t.console.emptyFeed} hint={t.console.emptyFeedHint} />
+        ) : (
+          <div className="setup-chat__body">
+            <ul className="setup-chat__list" role="list">
+              {rows.map((c) => (
+                <li key={`${c.source}-${c.eventId}`}>
+                  <button
+                    type="button"
+                    className={`setup-chat__row${c.eventId === selectedId ? " setup-chat__row--selected" : ""}`}
+                    onClick={() => setSelectedId(c.eventId)}
+                  >
+                    <span className={`avatar tone-${avatarTone(c.username)}`} aria-hidden="true">
+                      {(c.username ?? "?").replace(/^@/, "").slice(0, 1).toUpperCase()}
+                    </span>
+                    <span className="setup-chat__text">
+                      <span className="setup-chat__user">{c.username ?? t.common.none}</span>
+                      <span className="setup-chat__comment">{c.commentText}</span>
+                    </span>
+                    <span className="setup-chat__time num nowrap">
+                      {formatTime(c.commentTimestamp)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="setup-chat__reply">
+              {selected ? (
+                <ReplyCard comment={selected} />
+              ) : (
+                <p className="muted">{t.insight.replyOff}</p>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

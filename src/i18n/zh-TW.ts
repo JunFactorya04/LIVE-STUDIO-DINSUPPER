@@ -126,6 +126,7 @@ export const zhTW = {
       unset: "尚未選擇",
     },
     session: "場次編號",
+    viewerTitle: "直播留言",
     startHint: "請先按「連接留言來源」。自動連線另需勾選確認項目。",
     issues: {
       NEED_URL_OR_USERNAME: "請輸入 TikTok ID。",
