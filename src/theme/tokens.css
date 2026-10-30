@@ -1,0 +1,127 @@
+/* Design tokens — Apple (macOS/iOS) UI standard.
+   Source: apple-ui-standard skill, section 2. Change values here only. */
+
+:root {
+  --sys-blue: #007aff;
+  --sys-green: #28cd41;
+  --sys-orange: #ff9500;
+  --sys-red: #ff3b30;
+  --sys-pink: #ff2d55;
+  --sys-purple: #af52de;
+  --sys-indigo: #5856d6;
+  --sys-teal: #59adc4;
+  --sys-yellow: #ffcc00;
+  --sys-gray: #8e8e93;
+
+  --mac-window: #fff;
+  --mac-under: #f5f5f7;
+  --mac-box: #fff;
+  --mac-sidebar: rgba(236, 236, 238, 0.86);
+  --mac-toolbar: rgba(255, 255, 255, 0.82);
+  --mac-row-alt: #f7f7f9;
+  --mac-hover: rgba(0, 0, 0, 0.045);
+  --mac-selected: rgba(0, 0, 0, 0.075);
+  --mac-control: #fff;
+  --mac-control-border: rgba(0, 0, 0, 0.14);
+  --mac-label: rgba(0, 0, 0, 0.88);
+  --mac-label-2: rgba(0, 0, 0, 0.55);
+  --mac-label-3: rgba(0, 0, 0, 0.3);
+  --mac-separator: rgba(0, 0, 0, 0.1);
+  --mac-border: rgba(0, 0, 0, 0.08);
+
+  --fs-large-title: 26px;
+  --fs-title1: 22px;
+  --fs-title2: 17px;
+  --fs-title3: 15px;
+  --fs-headline: 13px;
+  --fs-body: 13px;
+  --fs-callout: 12px;
+  --fs-subhead: 11px;
+  --fs-caption: 10px;
+
+  --ctl-h: 26px;
+  --ctl-h-lg: 30px;
+  --ctl-radius: 7px;
+  --box-radius: 12px;
+  --row-h: 30px;
+  --sidebar-w: 224px;
+  --toolbar-h: 52px;
+  --focus-ring: 0 0 0 3px rgba(0, 122, 255, 0.3);
+
+  --shadow-box: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-pop: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.18);
+
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text",
+    "Segoe UI", system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "Segoe UI Variable Display", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sys-blue: #0a84ff;
+    --sys-green: #32d74b;
+    --sys-orange: #ff9f0a;
+    --sys-red: #ff453a;
+    --sys-pink: #ff375f;
+    --sys-purple: #bf5af2;
+    --sys-indigo: #5e5ce6;
+    --sys-teal: #6ac4dc;
+    --sys-yellow: #ffd60a;
+    --sys-gray: #98989d;
+
+    --mac-window: #1e1e1e;
+    --mac-under: #161616;
+    --mac-box: #262628;
+    --mac-sidebar: rgba(44, 44, 46, 0.86);
+    --mac-toolbar: rgba(30, 30, 30, 0.82);
+    --mac-row-alt: #232325;
+    --mac-hover: rgba(255, 255, 255, 0.06);
+    --mac-selected: rgba(255, 255, 255, 0.1);
+    --mac-control: #3a3a3c;
+    --mac-control-border: rgba(255, 255, 255, 0.12);
+    --mac-label: rgba(255, 255, 255, 0.88);
+    --mac-label-2: rgba(255, 255, 255, 0.55);
+    --mac-label-3: rgba(255, 255, 255, 0.28);
+    --mac-separator: rgba(255, 255, 255, 0.1);
+    --mac-border: rgba(255, 255, 255, 0.08);
+
+    --shadow-box: 0 0 0 0.5px rgba(255, 255, 255, 0.06);
+    --shadow-pop: 0 0 0 0.5px rgba(255, 255, 255, 0.12), 0 12px 36px rgba(0, 0, 0, 0.5);
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --sys-blue: #0a84ff;
+  --sys-green: #32d74b;
+  --sys-orange: #ff9f0a;
+  --sys-red: #ff453a;
+  --mac-window: #1e1e1e;
+  --mac-under: #161616;
+  --mac-box: #262628;
+  --mac-sidebar: rgba(44, 44, 46, 0.86);
+  --mac-toolbar: rgba(30, 30, 30, 0.82);
+  --mac-row-alt: #232325;
+  --mac-hover: rgba(255, 255, 255, 0.06);
+  --mac-selected: rgba(255, 255, 255, 0.1);
+  --mac-control: #3a3a3c;
+  --mac-control-border: rgba(255, 255, 255, 0.12);
+  --mac-label: rgba(255, 255, 255, 0.88);
+  --mac-label-2: rgba(255, 255, 255, 0.55);
+  --mac-label-3: rgba(255, 255, 255, 0.28);
+  --mac-separator: rgba(255, 255, 255, 0.1);
+  --mac-border: rgba(255, 255, 255, 0.08);
+  color-scheme: dark;
+}
+
+/* Tinted chips: readable in light and dark. */
+.tone-blue { color: color-mix(in srgb, var(--sys-blue) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-blue) 15%, transparent); }
+.tone-green { color: color-mix(in srgb, var(--sys-green) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-green) 15%, transparent); }
+.tone-orange { color: color-mix(in srgb, var(--sys-orange) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-orange) 15%, transparent); }
+.tone-red { color: color-mix(in srgb, var(--sys-red) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-red) 15%, transparent); }
+.tone-gray { color: var(--mac-label-2); background: var(--mac-hover); }
