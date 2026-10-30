@@ -67,7 +67,27 @@
     sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
+  /* Motion (emilkowalski/skills — "animate"): strong curves, UI stays under 300ms. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease: ease;
+  --dur-press: 120ms;
+  --dur-fast: 160ms;
+  --dur-base: 200ms;
+
   color-scheme: light;
+}
+
+/* One-stop reduced-motion switch: every transition/animation collapses to near-zero,
+   so a future transition never needs its own prefers-reduced-motion clause to be safe. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
 
 @media (prefers-color-scheme: dark) {

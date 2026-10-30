@@ -6,6 +6,7 @@ import { AiError, type AiClient } from "../ai/client";
 import { MemoryOrderRepository } from "../orders/repository";
 import { MemoryLiveRepository, type LiveRepository } from "./repository";
 import { LiveSessionStore, MAX_COMMENTS } from "./sessionStore";
+import type { LiveCommentProvider } from "./provider";
 import type { LiveCommentEvent, LiveProviderStatus } from "./types";
 
 function makeStore() {
@@ -340,6 +341,65 @@ describe("LiveSessionStore persistence", () => {
       await a.classifyPending();
       expect(a.getSnapshot().comments[0].intent).toBeUndefined();
       expect(a.getSnapshot().aiError).toBeUndefined();
+    });
+
+    // Phase 6 hardening: AI timeout and rate limit surface as readable codes, nothing is
+    // half-saved, and the seller can simply retry once the service recovers.
+    it.each(["TIMEOUT", "RATE_LIMIT", "NETWORK"] as const)(
+      "an AI %s is shown as a code and a later retry succeeds",
+      async (code) => {
+        let fail = true;
+        const a = withAi(async () => {
+          if (fail) throw new AiError(code);
+          return '[{"i":0,"intent":"PURCHASE","confidence":0.9}]';
+        });
+        await manualSession(a);
+        a.submitManual("amy: hi");
+        await a.classifyPending();
+        expect(a.getSnapshot().aiError).toBe(code);
+        expect(a.getSnapshot().comments[0].intent).toBeUndefined();
+        expect(a.getSnapshot().classifying).toBe(false);
+
+        fail = false;
+        await a.classifyPending();
+        expect(a.getSnapshot().aiError).toBeUndefined();
+        expect(a.getSnapshot().comments[0].intent).toBe("PURCHASE");
+      },
+    );
+  });
+
+  describe("provider disconnect / network loss (Phase 6 hardening)", () => {
+    it("a provider that drops mid-session reports DISCONNECTED, not a fake CONNECTED", async () => {
+      let statusHandler: ((status: LiveProviderStatus, reason?: string) => void) | undefined;
+      const provider: LiveCommentProvider = {
+        type: "live",
+        async getStatus() {
+          return "CONNECTED";
+        },
+        async connect() {
+          statusHandler?.("CONNECTED");
+        },
+        async disconnect() {
+          statusHandler?.("DISCONNECTED");
+        },
+        onComment: () => () => {},
+        onStatusChange(handler) {
+          statusHandler = handler;
+          return () => (statusHandler = undefined);
+        },
+      };
+      const a = new LiveSessionStore({ newId: () => "s", createLiveProvider: () => provider });
+      a.updateForm({ source: "live", username: "shop", acknowledged: true });
+      await a.connectSource();
+      expect(a.getSnapshot().status).toBe("CONNECTED");
+      expect(a.startSession()).toBe(true);
+
+      // The network drops: the provider reports it lost the connection on its own, mid-session.
+      statusHandler?.("DISCONNECTED", "NETWORK");
+      expect(a.getSnapshot().status).toBe("DISCONNECTED");
+      expect(a.getSnapshot().statusReason).toBe("NETWORK");
+      // A seller can't be shown "still live" once the source itself says otherwise.
+      expect(a.getSnapshot().status).not.toBe("CONNECTED");
     });
   });
 

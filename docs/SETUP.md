@@ -71,6 +71,11 @@ Có hai cách để có file chạy luôn, không cần mở terminal:
 | Không thấy file xuất | Nằm trong thư mục Tải xuống (đường dẫn hiện ngay sau khi xuất). Nếu không có thư mục này app dùng thư mục dữ liệu của app. |
 | In thử báo UNREACHABLE / TIMEOUT | Máy in và máy tính phải cùng mạng; kiểm tra IP trên tem hoặc trang tự in của máy in, cổng thường là 9100. Máy in chỉ dùng ZPL/TSPL (tem vận chuyển) có thể không nhận ESC/POS. |
 | Windows SmartScreen cảnh báo | File chưa ký số: More info → Run anyway. |
+| Mac: "LIVE STUDIO is not supported on this Mac" | Bản build không phải universal (chỉ có một kiến trúc). Tải lại bản `.dmg` mới nhất trên Releases (CI build bằng `--target universal-apple-darwin`, chạy được cả Apple Silicon và Intel). |
+| Mac: "Apple could not verify ... is free of malware" | App chưa có chứng chỉ ký số của Apple (bình thường, không phải lỗi). Hệ thống → Settings → Privacy & Security, cuộn xuống phần cảnh báo gần đây, bấm "Open Anyway", xác nhận lại lần nữa khi mở app. |
+| Trạng thái nguồn báo UNAVAILABLE, lý do BROWSER | Đang mở bằng trình duyệt thường (`npm run dev`), Euler Stream cần giữ khóa API trong keychain của app desktop. Dùng `npm run tauri:dev` hoặc file .exe/.app/.dmg. |
+| Trạng thái nguồn báo UNAVAILABLE, lý do NO_KEY | Chưa nhập khóa API Euler Stream ở Cài đặt → AI & khóa. |
+| Điện thoại không quét được camera / trình duyệt báo không an toàn | Camera cần HTTPS. Vào Cài đặt → Chia sẻ cho điện thoại, lấy mã QR chứng chỉ, cài profile `.mobileconfig` trên điện thoại (Settings → đã tải Profile → Install), sau đó bật tin tưởng ở Settings → General → About → Certificate Trust Settings (iOS) trước khi dùng camera. |
 
 ## 3. Quy trình làm việc hằng ngày
 

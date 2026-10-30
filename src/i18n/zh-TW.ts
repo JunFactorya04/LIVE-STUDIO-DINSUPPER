@@ -93,11 +93,11 @@ export const zhTW = {
     OTHER: "連線中斷（未知原因）。",
   },
   setup: {
-    sourceTitle: "留言來源",
+    sourceTitle: "直播場次",
     liveUrl: "LIVE 網址（選填）",
     liveUrlPlaceholder: "https://www.tiktok.com/@帳號/live",
     liveUrlHelp: "網址只用來標示場次，不是存取憑證；貼上網址不代表能取得留言。",
-    username: "TikTok 帳號（選填）",
+    username: "TikTok ID",
     usernamePlaceholder: "@帳號",
     atLeastOne: "網址與帳號至少填一項。",
     openStudio: "開啟 TikTok LIVE Studio",
@@ -114,9 +114,9 @@ export const zhTW = {
       liveHelp:
         "透過第三方服務 Euler Stream 接收留言，需要你自己的 API 金鑰（於「設定」輸入）。這不是 TikTok 官方 API，可能隨時失效，並可能違反 TikTok 條款，請自行評估風險。",
     },
-    ack: "我確認有權使用此留言來源，並了解其連接方式",
+    ack: "確認使用 Euler Stream（非官方）",
     start: "開始場次",
-    endSession: "結束場次",
+    endSession: "關閉場次",
     statusTitle: "來源狀態",
     provider: "來源類型",
     providerValue: {
@@ -128,7 +128,7 @@ export const zhTW = {
     session: "場次編號",
     startHint: "請先按「連接留言來源」。自動連線另需勾選確認項目。",
     issues: {
-      NEED_URL_OR_USERNAME: "請至少輸入 LIVE 網址或 TikTok 帳號。",
+      NEED_URL_OR_USERNAME: "請輸入 TikTok ID。",
       URL_FORMAT: "網址格式不正確，應類似 https://www.tiktok.com/@帳號/live。",
       USERNAME_FORMAT: "帳號格式不正確（2–24 字元，僅限英數、點與底線）。",
     },

@@ -293,10 +293,19 @@ button {
   font-size: var(--fs-body);
   font-weight: 500;
   white-space: nowrap;
+  transition:
+    filter var(--dur-fast) var(--ease),
+    transform var(--dur-press) var(--ease);
 }
 
-.btn:hover {
-  filter: brightness(0.98);
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover {
+    filter: brightness(0.98);
+  }
+}
+
+.btn:active {
+  transform: scale(0.97);
 }
 
 .btn--primary {
@@ -326,10 +335,19 @@ button {
   align-items: center;
   justify-content: center;
   color: var(--mac-label);
+  transition:
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-press) var(--ease);
 }
 
-.icon-btn:hover {
-  background: var(--mac-hover);
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover {
+    background: var(--mac-hover);
+  }
+}
+
+.icon-btn:active {
+  transform: scale(0.94);
 }
 
 .chip {

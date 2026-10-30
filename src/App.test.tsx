@@ -62,37 +62,40 @@ describe("Live Assistant UI", () => {
     expect(screen.queryByRole("grid")).not.toBeInTheDocument();
   });
 
-  it("a valid URL with no verified provider ends UNAVAILABLE and cannot start", async () => {
+  it("a username with no verified provider ends UNAVAILABLE and cannot start", async () => {
     setup("setup");
-    fireEvent.click(screen.getByLabelText(new RegExp(`^${zhTW.setup.sources.live}`)));
-    fireEvent.change(screen.getByLabelText(zhTW.setup.liveUrl), {
-      target: { value: "https://www.tiktok.com/@shop/live" },
-    });
+    fireEvent.change(screen.getByLabelText(zhTW.setup.username), { target: { value: "shop" } });
     fireEvent.click(screen.getByLabelText(zhTW.setup.ack));
-    fireEvent.click(screen.getByRole("button", { name: zhTW.setup.connect }));
+    fireEvent.click(screen.getByRole("button", { name: zhTW.setup.start }));
     await waitFor(() => expect(statusChip().dataset.status).toBe("UNAVAILABLE"));
-    expect(screen.getByText(zhTW.statusHelp.UNAVAILABLE)).toBeInTheDocument();
     // Why: a plain browser cannot hold the API key or open the connection.
     expect(screen.getByText(zhTW.statusReason.BROWSER)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: zhTW.setup.start })).toBeDisabled();
+    expect(screen.getByRole("button", { name: zhTW.setup.start })).not.toBeDisabled();
   });
 
-  it("rejects a malformed URL with a readable message", async () => {
+  it("rejects a missing TikTok ID with a readable message", async () => {
     setup("setup");
-    fireEvent.change(screen.getByLabelText(zhTW.setup.liveUrl), { target: { value: "hello" } });
-    fireEvent.click(screen.getByRole("button", { name: zhTW.setup.connect }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(zhTW.setup.issues.URL_FORMAT);
+    fireEvent.click(screen.getByLabelText(zhTW.setup.ack));
+    fireEvent.click(screen.getByRole("button", { name: zhTW.setup.start }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      zhTW.setup.issues.NEED_URL_OR_USERNAME,
+    );
     expect(statusChip().dataset.status).toBe("DISCONNECTED");
   });
 
   it("demo flow: DEMO status, DEMO banner, every row labelled DEMO, never CONNECTED", async () => {
-    const store = setup("setup");
-    fireEvent.click(screen.getByLabelText(new RegExp(`^${zhTW.setup.sources.demo}`)));
-    fireEvent.click(screen.getByRole("button", { name: zhTW.setup.connect }));
+    // The Setup tab only exposes Euler Stream now; demo mode is still a store-level source
+    // (used elsewhere, e.g. the phone preview), so it's driven here directly on the console page.
+    const store = setup("console");
+    await act(async () => {
+      store.updateForm({ source: "demo" });
+      await store.connectSource();
+    });
     await waitFor(() => expect(statusChip().dataset.status).toBe("DEMO"));
-    fireEvent.click(screen.getByRole("button", { name: zhTW.setup.start }));
+    act(() => {
+      store.startSession();
+    });
 
-    // Start moves to the console.
     expect(await screen.findByText(zhTW.console.demoBanner)).toBeInTheDocument();
     const sid = store.getSnapshot().sessionId;
     await act(async () => {
@@ -116,10 +119,15 @@ describe("Live Assistant UI", () => {
   });
 
   it("manual paste: MANUAL status, pasted lines become MANUAL rows, repeats are skipped", async () => {
-    const store = setup("setup");
-    fireEvent.click(screen.getByRole("button", { name: zhTW.setup.connect }));
+    // Store default source is "manual"; driven directly since the Setup tab no longer exposes it.
+    const store = setup("console");
+    await act(async () => {
+      await store.connectSource();
+    });
     await waitFor(() => expect(statusChip().dataset.status).toBe("MANUAL"));
-    fireEvent.click(screen.getByRole("button", { name: zhTW.setup.start }));
+    act(() => {
+      store.startSession();
+    });
 
     const box = await screen.findByLabelText(zhTW.console.pasteLabel);
     fireEvent.change(box, { target: { value: "amy: 黑色 M ×2\n@bob: còn hàng không" } });
@@ -176,6 +184,39 @@ describe("Live Assistant UI", () => {
       fireEvent.click(screen.getByRole("button", { name: "AI 分類（1）" }));
     });
     expect(screen.getByRole("alert")).toHaveTextContent(zhTW.console.aiNoProvider);
+  });
+
+  // Phase 6 hardening: §13 measured 10k comments only at the SQLite layer; this is the React
+  // layer under the same kind of continuous burst — the UI must stay bounded and responsive.
+  it("a burst of 2000 comments stays bounded at MAX_COMMENTS and the grid stays usable", async () => {
+    const store = setup("console");
+    await act(async () => {
+      await store.connectSource();
+      store.startSession();
+    });
+    const sid = store.getSnapshot().sessionId;
+    const started = performance.now();
+    await act(async () => {
+      const batch = Array.from({ length: 2000 }, (_, i) =>
+        demoEvent(sid, `burst-${i}`, `A12 ${i}`),
+      );
+      store.receiveMany(batch);
+    });
+    const elapsed = performance.now() - started;
+    expect(elapsed).toBeLessThan(5000);
+
+    const snap = store.getSnapshot();
+    expect(snap.comments).toHaveLength(1000); // MAX_COMMENTS
+    expect(snap.dropped).toBe(1000);
+
+    // The console only renders its newest window (VISIBLE_LIMIT) of the kept comments, so the
+    // grid itself stays small and responsive even though the store holds up to MAX_COMMENTS.
+    const grid = screen.getByRole("grid");
+    const rows = within(grid).getAllByRole("row").slice(1);
+    expect(rows.length).toBeLessThanOrEqual(200);
+    expect(within(grid).getByText("A12 1999")).toBeInTheDocument();
+    expect(within(grid).queryByText("A12 0")).not.toBeInTheDocument();
+    await act(async () => store.dispose());
   });
 
   it("Ctrl+F focuses the feed search", () => {

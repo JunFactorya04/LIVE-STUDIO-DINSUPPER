@@ -94,12 +94,12 @@ export const vi: Messages = {
     OTHER: "Kết nối bị ngắt (không rõ lý do).",
   },
   setup: {
-    sourceTitle: "Nguồn bình luận",
+    sourceTitle: "Phiên Live",
     liveUrl: "URL LIVE (không bắt buộc)",
     liveUrlPlaceholder: "https://www.tiktok.com/@tên_tài_khoản/live",
     liveUrlHelp:
       "URL chỉ để tham chiếu phiên, không phải thông tin truy cập; dán URL không có nghĩa là nhận được bình luận.",
-    username: "Tên tài khoản TikTok (không bắt buộc)",
+    username: "TikTok ID",
     usernamePlaceholder: "@tên_tài_khoản",
     atLeastOne: "Điền ít nhất URL hoặc tên tài khoản.",
     openStudio: "Mở TikTok LIVE Studio",
@@ -119,9 +119,9 @@ export const vi: Messages = {
       liveHelp:
         "Nhận bình luận qua dịch vụ bên thứ ba Euler Stream, cần khóa API của chính bạn (nhập ở “Cài đặt”). Đây không phải API chính thức của TikTok, có thể ngừng hoạt động bất cứ lúc nào và có thể vi phạm điều khoản TikTok; bạn tự cân nhắc rủi ro.",
     },
-    ack: "Tôi xác nhận có quyền dùng nguồn bình luận này và hiểu cách nó kết nối",
+    ack: "Xác nhận dùng Euler Stream (không chính thức)",
     start: "Bắt đầu phiên",
-    endSession: "Kết thúc phiên",
+    endSession: "Tắt phiên",
     statusTitle: "Trạng thái nguồn",
     provider: "Loại nguồn",
     providerValue: {
@@ -133,7 +133,7 @@ export const vi: Messages = {
     session: "Mã phiên",
     startHint: "Hãy bấm “Kết nối nguồn bình luận” trước. Kết nối tự động còn cần tick ô xác nhận.",
     issues: {
-      NEED_URL_OR_USERNAME: "Hãy nhập ít nhất URL LIVE hoặc tên tài khoản TikTok.",
+      NEED_URL_OR_USERNAME: "Hãy nhập TikTok ID.",
       URL_FORMAT: "URL sai định dạng, cần giống https://www.tiktok.com/@tên_tài_khoản/live.",
       USERNAME_FORMAT:
         "Tên tài khoản sai định dạng (2–24 ký tự, chỉ chữ, số, dấu chấm và gạch dưới).",

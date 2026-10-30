@@ -65,6 +65,7 @@
   padding: 0 8px;
   font-size: var(--fs-body);
   width: 100%;
+  transition: border-color var(--dur-fast) var(--ease);
 }
 .input::placeholder {
   color: var(--mac-label-3);
