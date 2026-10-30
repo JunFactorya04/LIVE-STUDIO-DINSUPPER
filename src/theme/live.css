@@ -2383,3 +2383,115 @@
     padding-top: 12px;
   }
 }
+
+/* Workflow ("Quy Trình") tab: per-buyer progress cards. */
+.flow__search {
+  width: 280px;
+  margin-bottom: 12px;
+}
+.flow__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.flow__card {
+  background: var(--mac-box);
+  border-radius: var(--box-radius);
+  box-shadow: var(--shadow-box);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+@media (hover: hover) and (pointer: fine) {
+  .flow__card:hover {
+    box-shadow: var(--shadow-pop);
+  }
+}
+.flow__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.flow__who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.flow__who strong {
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--mac-label);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.flow__who .muted {
+  font-size: var(--fs-caption);
+  color: var(--mac-label-2);
+}
+.flow__context {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.flow__context .chip {
+  align-self: flex-start;
+}
+.flow__quote {
+  font-size: var(--fs-caption);
+  color: var(--mac-label-2);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.flow__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.flow__step {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--fs-subhead);
+  color: var(--mac-label-3);
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--mac-under);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.flow__step.is-done {
+  color: color-mix(in srgb, var(--sys-green) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-green) 14%, transparent);
+}
+.flow__step.is-next {
+  color: color-mix(in srgb, var(--sys-blue) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-blue) 14%, transparent);
+  font-weight: 600;
+}
+.flow__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  font-size: 9px;
+  line-height: 1;
+}
+.flow__step.is-done .flow__dot {
+  background: var(--sys-green);
+  color: #fff;
+}

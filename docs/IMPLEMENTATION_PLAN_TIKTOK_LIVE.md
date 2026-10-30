@@ -388,3 +388,29 @@ phân biệt tải file nào. Bỏ job `macos-15-intel` (vốn không chạy tr�
 - **Trình xem live ngay trong tab Thiết lập:** `setup-chat` (`pages/SetupPage.tsx`) — danh sách tối đa `VIEWER_LIMIT=60` bình luận mới nhất (tái dùng `avatarTone` của Console), bấm vào một dòng mở `ReplyCard` (component gợi ý trả lời AI đã có sẵn, dùng lại nguyên khối từ Console) ngay bên cạnh, không cần chuyển qua tab Bảng điều khiển. Chỉ hiện khi đã có bình luận hoặc khi chưa có nguồn (hai trạng thái rỗng giống Console). Giao diện danh sách + panel chi tiết kiểu nguồn (macOS Messages/Mail: danh sách cuộn bên trái, chi tiết cố định bên phải, hàng chọn dùng `--mac-selected`), dùng token chuyển động vừa thêm ở trên.
 - **Không có nút gửi tin nhắn qua API (từ chối có chủ đích):** người dùng yêu cầu bấm vào ID chat để gửi tin nhắn thẳng cho người đó qua Euler Stream. Từ chối vì hai lý do: (1) Euler Stream chỉ là WebSocket đọc chat công khai của phòng live, không có endpoint ghi/gửi tin nào cả; (2) giả sử có, muốn gửi tin bằng chính tài khoản người bán thì app phải giữ phiên đăng nhập TikTok (cookie/session) của họ — đúng thứ spec dự án cấm từ đầu (không lưu mật khẩu/cookie TikTok, không tự gửi bình luận/trả lời) và dễ khiến TikTok khóa tài khoản vì hành vi gửi tự động. Giữ nguyên luồng hiện có: AI soạn sẵn, người bán bấm "Sao chép" rồi tự dán vào TikTok — không có đường tắt nào khác được thêm cho việc này.
 - **Chưa làm/chưa kiểm chứng:** vẫn chưa thử mất mạng/rate-limit/timeout với dịch vụ Euler Stream và AI thật (chỉ test được bằng mock); đóng gói/test trên máy Mac/Windows thật cho các thay đổi trong mục này chưa thực hiện lại (sẽ làm ở bước phát hành kế tiếp).
+
+## 29. Làm lại tab Quy Trình: thanh KPI, tìm kiếm, bối cảnh sản phẩm/bình luận, và CSS còn thiếu
+
+Người dùng phản hồi tab Quy Trình (Workflow) "quá đơn điệu". Kiểm tra `theme/live.css` phát hiện
+toàn bộ nhóm class `.flow`/`.flow__*` dùng trong `WorkflowPage.tsx` **chưa từng có CSS** — trang
+chạy bằng giao diện mặc định của trình duyệt, đây chính là nguyên nhân gốc, không chỉ thiếu tính
+năng.
+
+- **Thanh KPI** ở đầu trang: tái dùng `workReport()` (`src/ship/flow.ts`, đã có sẵn, vốn chỉ dùng ở
+  Dashboard) với dữ liệu live hiện tại (`s.comments`, `s.drafts`) cộng dữ liệu ship/flow đã tải,
+  hiện 6 số trong ngày — đơn đã chốt, tem tạm đã in, đã xin thông tin, đã nhận thông tin, đơn ship
+  đã tạo, đơn ship đã xuất — dùng đúng class `.kpi`/`.kpi-grid` và khoá dịch `t.dashboard.work.*`
+  đã có sẵn, không thêm khoá i18n mới.
+- **Tìm kiếm:** một ô nhập lọc danh sách theo TikTok ID hoặc tên (so khớp chuỗi con, không phân
+  biệt hoa thường), dùng khoá `t.common.search` đã có.
+- **Bối cảnh mỗi thẻ khách:** mỗi `.flow__card` giờ hiện thêm (khi có) một chip tên sản phẩm/màu/
+  size/số lượng rút từ `OrderDraft` (hàm `productLine()`) và một trích dẫn ngắn bình luận gốc
+  (`draft.evidence[0].text`) — giúp người bán nhớ lại khách này đặt gì mà không phải mở lại tab
+  Bảng điều khiển.
+- **CSS cho `.flow__*`** (lần đầu tiên, trong `theme/live.css`): thẻ khách dạng lưới co giãn, nền
+  `--mac-box`, bo góc `--box-radius`, bóng `--shadow-box` theo chuẩn apple-ui-standard; các bước
+  (`order`/`slip`/`ask`/`info`/`ship`) hiện dạng pill màu xanh lá khi đã xong (`is-done`), xanh
+  dương khi là bước kế tiếp (`is-next`), dùng token chuyển động đã thêm ở mục 28 cho hover/focus.
+- **Chưa làm:** các ý tưởng tầm trung/lớn khác đã đề xuất với người dùng (bộ lọc theo bước, hành
+  động "sao chép lời nhắc" theo lô, bố cục Kanban, nhắc khách bị treo lâu) chưa được chọn, chưa
+  triển khai.
