@@ -92,3 +92,99 @@ pub fn secret_exists(state: State<'_, SecretState>, slot: String) -> Result<bool
 pub fn secret_remove(state: State<'_, SecretState>, slot: String) -> Result<(), String> {
     secrets::remove_secret(state.0.as_ref(), &slot)
 }
+
+// ---- Euler Stream comment source (unofficial third-party service) ----
+
+use crate::euler::{self, EulerOut};
+use tauri::{AppHandle, Emitter};
+
+/// The running connection, if any. Starting a new one stops the old one.
+#[derive(Default)]
+pub struct EulerState(pub Mutex<Option<tauri::async_runtime::JoinHandle<()>>>);
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EulerEnvelope {
+    session_id: String,
+    #[serde(flatten)]
+    out: EulerOut,
+}
+
+fn emit_euler(app: &AppHandle, session_id: &str, out: EulerOut) {
+    let _ = app.emit(
+        "euler-event",
+        EulerEnvelope {
+            session_id: session_id.to_string(),
+            out,
+        },
+    );
+}
+
+fn stop_euler(state: &EulerState) {
+    if let Ok(mut slot) = state.0.lock() {
+        if let Some(handle) = slot.take() {
+            handle.abort();
+        }
+    }
+}
+
+/// Start receiving comments for `unique_id`. The key is read from the OS keychain here and
+/// never leaves Rust. Progress is reported through `euler-event` events, not the return value.
+#[tauri::command]
+pub fn euler_connect(
+    app: AppHandle,
+    secrets: State<'_, SecretState>,
+    euler: State<'_, EulerState>,
+    session_id: String,
+    unique_id: String,
+) -> Result<(), String> {
+    stop_euler(&euler);
+
+    let Some(unique_id) = euler::normalize_unique_id(&unique_id) else {
+        emit_euler(
+            &app,
+            &session_id,
+            EulerOut::Status {
+                status: "ERROR",
+                code: None,
+                reason: Some("INVALID_OPTIONS"),
+            },
+        );
+        return Ok(());
+    };
+    let key = secrets
+        .0
+        .get("connector")
+        .map_err(|_| "keychain unavailable".to_string())?;
+    let Some(key) = key else {
+        emit_euler(
+            &app,
+            &session_id,
+            EulerOut::Status {
+                status: "UNAVAILABLE",
+                code: None,
+                reason: Some("NO_KEY"),
+            },
+        );
+        return Ok(());
+    };
+
+    let base = std::env::var("EULER_WS_URL").unwrap_or_else(|_| euler::DEFAULT_WS_URL.to_string());
+    let handle = tauri::async_runtime::spawn(async move {
+        let app2 = app.clone();
+        let sid = session_id.clone();
+        euler::run_connection(&base, &unique_id, &key, &move |out| {
+            emit_euler(&app2, &sid, out)
+        })
+        .await;
+    });
+    if let Ok(mut slot) = euler.0.lock() {
+        *slot = Some(handle);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn euler_disconnect(euler: State<'_, EulerState>) {
+    stop_euler(&euler);
+}

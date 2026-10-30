@@ -15,6 +15,7 @@ const SOURCE_TONE: Record<LiveCommentEvent["source"], string> = {
   APPROVED_CONNECTOR: "tone-blue",
   OCR: "tone-gray",
   MANUAL: "tone-gray",
+  UNOFFICIAL_CONNECTOR: "tone-orange",
 };
 
 function useElapsed(startedAt?: string, endedAt?: string): string | undefined {
@@ -168,6 +169,16 @@ export function ConsolePage() {
         {s.persistError && (
           <p className="banner banner--error" role="alert">
             {t.console.persistError}
+          </p>
+        )}
+        {s.providerType === "euler" && (
+          <p className="banner" role="status">
+            {t.console.unofficialBanner}
+          </p>
+        )}
+        {s.providerType === "euler" && s.statusReason && (
+          <p className="banner banner--error" role="alert">
+            {t.statusReason[s.statusReason as keyof typeof t.statusReason] ?? t.statusReason.OTHER}
           </p>
         )}
         {s.status === "MANUAL" && <PasteBox running={running} />}

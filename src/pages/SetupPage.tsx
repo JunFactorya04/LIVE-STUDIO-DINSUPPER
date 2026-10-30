@@ -32,7 +32,7 @@ export function SetupPage({ onStarted }: { onStarted: () => void }) {
   };
 
   const providerKey =
-    s.providerType === "manual" || s.providerType === "demo" || s.providerType === "none"
+    s.providerType === "manual" || s.providerType === "demo" || s.providerType === "euler"
       ? s.providerType
       : "unset";
 
@@ -140,6 +140,11 @@ export function SetupPage({ onStarted }: { onStarted: () => void }) {
         <h2 className="section-title">{t.setup.statusTitle}</h2>
         <StatusChip status={s.status} />
         <p className="status-help">{t.statusHelp[s.status]}</p>
+        {s.statusReason && (
+          <p className="status-help" role="status">
+            {t.statusReason[s.statusReason as keyof typeof t.statusReason] ?? t.statusReason.OTHER}
+          </p>
+        )}
         <dl className="kv">
           <dt>{t.setup.provider}</dt>
           <dd>{t.setup.providerValue[providerKey]}</dd>

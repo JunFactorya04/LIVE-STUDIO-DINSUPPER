@@ -3,7 +3,14 @@
 export type LiveProviderStatus =
   "DISCONNECTED" | "CONNECTING" | "CONNECTED" | "UNAVAILABLE" | "DEMO" | "MANUAL" | "ERROR";
 
-export type LiveCommentSource = "OFFICIAL_API" | "APPROVED_CONNECTOR" | "OCR" | "DEMO" | "MANUAL";
+export type LiveCommentSource =
+  | "OFFICIAL_API"
+  | "APPROVED_CONNECTOR"
+  | "OCR"
+  | "DEMO"
+  | "MANUAL"
+  /** Third-party service that is not TikTok (currently Euler Stream). */
+  | "UNOFFICIAL_CONNECTOR";
 
 export interface LiveSessionConfig {
   sessionId: string;

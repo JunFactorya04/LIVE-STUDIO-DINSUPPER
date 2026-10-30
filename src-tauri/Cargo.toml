@@ -17,6 +17,12 @@ tauri = { version = "2", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
+# WebSocket client for Euler Stream. native-tls = SChannel (Windows) / Secure Transport (macOS):
+# no extra build tools needed on either OS.
+tokio = { version = "1", features = ["rt", "macros", "time"] }
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+futures-util = "0.3"
+url = "2"
 
 # OS secret stores (Keychain on macOS, Credential Manager on Windows). Linux is for development only.
 [target.'cfg(target_os = "macos")'.dependencies]

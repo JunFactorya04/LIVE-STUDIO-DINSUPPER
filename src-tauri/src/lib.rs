@@ -3,6 +3,7 @@
 
 mod commands;
 mod db;
+mod euler;
 mod live;
 mod secrets;
 
@@ -26,6 +27,7 @@ pub fn run() {
             let conn = db::open(&dir.join("live-studio.db"))?;
             app.manage(commands::DbState(Mutex::new(conn)));
             app.manage(commands::SecretState::default());
+            app.manage(commands::EulerState::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -40,6 +42,8 @@ pub fn run() {
             commands::secret_set,
             commands::secret_exists,
             commands::secret_remove,
+            commands::euler_connect,
+            commands::euler_disconnect,
         ])
         .run(tauri::generate_context!())
         .expect("error while running LIVE STUDIO");

@@ -19,15 +19,21 @@ Kế hoạch và quyết định kiến trúc: [`docs/IMPLEMENTATION_PLAN_TIKTOK
 | 5     | Provider live thật                             | Chờ xác minh nguồn bình luận hợp lệ |
 | 6     | Hardening                                      | Chưa                                |
 
-**Chưa có nguồn bình luận TikTok tự động.** Chưa tìm thấy API chính thức để đọc bình luận LIVE, nên
-app không cài sẵn một API nào. Hiện dùng được ngay: **Dán thủ công** (sao chép chat từ màn hình live
-của bạn, nhãn `MANUAL`). App chỉ hiện `Connected` khi một provider thật xác nhận; `Demo` (nhãn DEMO)
-và `NoSourceProvider` (luôn `UNAVAILABLE`) giữ nguyên. Nguồn tự động sẽ cắm vào qua `LiveCommentProvider`
-khi có nhà cung cấp hợp lệ (xem kế hoạch, mục 6).
+**TikTok không có API chính thức để đọc bình luận LIVE.** App có ba cách lấy bình luận:
+
+| Cách                         | Nhãn                   | Ghi chú                                                                                                                 |
+| ---------------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Dán thủ công                 | `MANUAL`               | Sao chép chat từ màn hình live của bạn. Không cần tài khoản.                                                            |
+| Demo                         | `DEMO`                 | Bình luận giả để thử giao diện.                                                                                         |
+| Tự động qua **Euler Stream** | `UNOFFICIAL_CONNECTOR` | Dịch vụ bên thứ ba, **không phải TikTok**; cần khóa API của bạn; có thể ngừng hoạt động hoặc vi phạm điều khoản TikTok. |
+
+App chỉ hiện `Connected` khi dịch vụ xác nhận (tin `tiktok.connect`, `room.status: connected` hoặc có bình luận thật);
+không có khóa, ở trình duyệt thường, hoặc khi mất kết nối thì hiện lý do cụ thể. Chưa kiểm thử với Euler Stream thật
+(môi trường phát triển không gọi được dịch vụ này), xem `docs/IMPLEMENTATION_PLAN_TIKTOK_LIVE.md`, mục 7.
 
 Dữ liệu được lưu trong SQLite trên máy (`live-studio.db` ở thư mục dữ liệu của app) và tự nạp lại khi mở app.
-Khóa API (Claude, OpenAI, Gemini, connector) do người dùng tự nhập ở **Cài đặt**, lưu trong Keychain / Credential
-Manager; app không bao giờ đọc ngược hay hiển thị khóa.
+Khóa API (Claude, OpenAI, Gemini, Euler Stream) do người dùng tự nhập ở **Cài đặt**, lưu trong Keychain / Credential
+Manager; app không bao giờ đọc ngược hay hiển thị khóa, và kết nối Euler Stream chạy ở Rust nên khóa không rời Rust.
 
 ## Công nghệ
 
@@ -78,7 +84,7 @@ Bản build chính thức do GitHub Actions tạo (`.github/workflows/build.yml`
 
 ```
 src/
-  live/         lõi Live: types, LiveCommentProvider, Demo/NoSource provider,
+  live/         lõi Live: types, LiveCommentProvider, Demo / Manual / Euler provider,
                 kiểm tra URL/username, ManualPasteProvider + paste.ts, LiveRepository (SQLite/bộ nhớ),
                 LiveSessionStore (chống trùng, giới hạn 1000 bình luận, lưu và khôi phục)
   secrets/      client khóa API (chỉ ghi / kiểm tra có chưa / xóa, không đọc lại)
@@ -86,7 +92,7 @@ src/
   components/   vỏ ứng dụng, icon, StatusChip, trạng thái trống/tải/lỗi
   i18n/         zh-TW.ts (khóa gốc), vi.ts, bộ chọn ngôn ngữ
   theme/        tokens.css (token Apple), base.css (khung), live.css (màn Live)
-src-tauri/      backend Rust: db.rs (SQLite + migration), live.rs, secrets.rs (keyring), commands.rs
+src-tauri/      backend Rust: db.rs (SQLite + migration), live.rs, secrets.rs (keyring), euler.rs (WebSocket Euler Stream), commands.rs
 docs/           yêu cầu, kế hoạch, hướng dẫn cài đặt đồng bộ Windows/Mac
 ```
 

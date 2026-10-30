@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DemoLiveCommentProvider } from "./demoProvider";
+import { EulerProvider, type EulerBackend, type EulerEnvelope } from "./eulerProvider";
 import { MemoryLiveRepository, type LiveRepository } from "./repository";
 import { LiveSessionStore, MAX_COMMENTS } from "./sessionStore";
 import type { LiveCommentEvent, LiveProviderStatus } from "./types";
@@ -227,5 +228,64 @@ describe("LiveSessionStore persistence", () => {
     expect(store.submitManual("amy: hi").added).toBe(1);
     await store.endSession();
     expect(store.submitManual("bob: yo").added).toBe(0);
+  });
+});
+
+describe("LiveSessionStore with the Euler provider", () => {
+  function fakeBackend() {
+    let handler: ((e: EulerEnvelope) => void) | undefined;
+    const backend: EulerBackend = {
+      connect: async () => undefined,
+      disconnect: async () => undefined,
+      subscribe: async (h) => {
+        handler = h;
+        return () => undefined;
+      },
+    };
+    return { backend, push: (e: EulerEnvelope) => handler?.(e) };
+  }
+
+  it("is CONNECTING until proof, then CONNECTED; comments are stored once and saved", async () => {
+    const { backend, push } = fakeBackend();
+    const repo = new MemoryLiveRepository();
+    const store = new LiveSessionStore({
+      repository: repo,
+      newId: () => "s",
+      createLiveProvider: () => new EulerProvider(backend),
+    });
+    store.updateForm({ source: "live", username: "shop_tw", acknowledged: true });
+    await store.connectSource();
+    expect(store.getSnapshot().status).toBe("CONNECTING");
+    expect(store.canStart()).toBe(false);
+
+    push({ sessionId: "s", kind: "status", status: "CONNECTED" });
+    expect(store.getSnapshot().status).toBe("CONNECTED");
+    expect(store.startSession()).toBe(true);
+
+    const c = { eventId: "euler-1", username: "amy", commentText: "要 2 件" };
+    push({ sessionId: "s", kind: "comments", comments: [c, c] });
+    expect(store.getSnapshot().comments).toHaveLength(1);
+    expect(store.getSnapshot().duplicates).toBe(1);
+    await store.flush();
+    expect(await repo.listComments("s", 10)).toHaveLength(1);
+
+    push({ sessionId: "s", kind: "status", status: "DISCONNECTED", reason: "NOT_LIVE" });
+    expect(store.getSnapshot().status).toBe("DISCONNECTED");
+    expect(store.getSnapshot().statusReason).toBe("NOT_LIVE");
+  });
+
+  it("the live source still requires the acknowledgement", async () => {
+    const { backend, push } = fakeBackend();
+    const store = new LiveSessionStore({
+      repository: new MemoryLiveRepository(),
+      newId: () => "s",
+      createLiveProvider: () => new EulerProvider(backend),
+    });
+    store.updateForm({ source: "live", username: "shop_tw" });
+    await store.connectSource();
+    push({ sessionId: "s", kind: "status", status: "CONNECTED" });
+    expect(store.canStart()).toBe(false);
+    store.updateForm({ acknowledged: true });
+    expect(store.canStart()).toBe(true);
   });
 });

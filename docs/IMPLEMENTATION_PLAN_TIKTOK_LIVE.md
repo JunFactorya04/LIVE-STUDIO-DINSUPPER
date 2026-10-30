@@ -122,16 +122,16 @@ Giới hạn còn lại:
 
 ### Khóa API do người dùng nhập (BYOK)
 
-- Ô: `claude`, `openai`, `gemini`, `connector`. Lưu trong Keychain (macOS) / Credential Manager (Windows) qua `keyring`; Linux chỉ để phát triển.
+- Ô: `claude`, `openai`, `gemini`, `connector` (khóa Euler Stream). Lưu trong Keychain (macOS) / Credential Manager (Windows) qua `keyring`; Linux chỉ để phát triển.
 - Lệnh Tauri chỉ có `secret_set`, `secret_exists`, `secret_remove`. **Không có lệnh đọc khóa** cho frontend; khi Phase 3 gọi AI thì Rust đọc khóa trực tiếp.
 - Trình duyệt thường (`npm run dev`) không lưu được khóa và nói rõ như vậy.
-- Lưu khóa `connector` **không** tự bắt đầu nhận bình luận: hiện không có nhà cung cấp tích hợp sẵn.
+- Khóa `connector` được Rust đọc trực tiếp để nối Euler Stream (mục 7); frontend không bao giờ nhận lại khóa.
 
 ### Về yêu cầu "cài sẵn API, chỉ nhập ID là đọc được bình luận"
 
 Chưa thể làm đúng như vậy một cách hợp lệ: chưa tìm thấy API chính thức của TikTok để đọc bình luận LIVE theo ID. Cách duy nhất để "chỉ nhập ID" hiện nay là thư viện không chính thức giả lập giao thức, vốn trái với quy tắc của spec (không scrape, không đảo ngược giao thức, không dùng làm mặc định) và có thể vi phạm điều khoản TikTok, dễ hỏng khi TikTok đổi. Hướng hợp lệ, theo thứ tự:
 
-1. Nhà cung cấp connector được duyệt (hoặc API chính thức khi có): cắm vào `LiveCommentProvider`, khóa ở ô `connector`, người dùng chỉ nhập username.
+1. Nhà cung cấp bên thứ ba: đã chọn **Euler Stream** (mục 7). Vẫn là nguồn không chính thức.
 2. OCR vùng chat của chính người bán (ý tưởng, chưa làm).
 3. Giữ "Dán thủ công" (đã chạy).
 
@@ -139,6 +139,35 @@ Cần người quyết định: nhà cung cấp nào, và có chấp nhận thư
 
 ### Kết quả kiểm tra
 
-- `npm run check`: 39 test (trước đó 25), `npm run build` xong, `cargo test`: 10 test Rust (migration, chống trùng, cắt/rỗng, thứ tự, cascade, khóa ngoại, kho khóa).
+- `npm run check`: 39 test (trước đó 25), `npm run build` xong, `cargo test`: 10 test Rust (trước khi thêm Euler) (migration, chống trùng, cắt/rỗng, thứ tự, cascade, khóa ngoại, kho khóa).
 - Ảnh chụp 1440×900 và 390×844, sáng/tối: không tràn ngang, không lỗi console.
 - **Chưa kiểm chứng:** `tauri dev` trên Mac và Windows thật (đặc biệt đường dẫn dữ liệu và Keychain / Credential Manager); phần Rust mới chạy được test và `cargo check` trên Linux.
+
+## 7. Nguồn Euler Stream (không chính thức)
+
+Người dùng chọn Euler Stream. Đây là dịch vụ bên thứ ba, **không liên kết với TikTok**; tài liệu của chính họ ghi TikTok không có API LIVE chính thức. Rủi ro: có thể ngừng hoạt động, có thể vi phạm điều khoản TikTok (chưa xác minh điều khoản của Euler Stream), phụ thuộc một nhà cung cấp.
+
+### Giao thức (lấy từ tài liệu và SDK mã nguồn mở của Euler Stream)
+
+- Địa chỉ: `wss://ws.eulerstream.com/?uniqueId=<handle>&apiKey=<khóa>`.
+- Khung tin là JSON dạng gói `{ "timestamp": n, "messages": [ { "type", "data" } ] }`.
+- Bình luận: `type = "WebcastChatMessage"`; dùng `data.comment`, `data.user.uniqueId`, `data.user.nickname`, `data.common.msgId`, `data.common.createTime`.
+- Trạng thái: `tiktok.connect`, `room.status` (`state: connected | offline | ended ...`).
+- Mã đóng: 4404 chưa live, 4401 khóa sai, 4403 không có quyền, 4429 quá số kết nối/quá nhanh, 4005 live kết thúc, 4555 quá 8 giờ, 4006/4408 hết thời gian chờ, 4500 TikTok ngắt, 4400 tham số sai, 1011/4556/4557 lỗi dịch vụ.
+
+### Thiết kế
+
+- `src-tauri/src/euler.rs`: phân tích khung tin, ánh xạ mã đóng sang trạng thái + lý do, `run_connection`. Lệnh `euler_connect` / `euler_disconnect` đọc khóa từ Keychain ở Rust rồi phát sự kiện `euler-event` lên giao diện. URL và khóa không bao giờ được ghi log hoặc gửi lên giao diện.
+- `src/live/eulerProvider.ts`: biến sự kiện thành `LiveCommentEvent` (nguồn `UNOFFICIAL_CONNECTOR`, id `euler-<msgId>`).
+- `CONNECTED` chỉ khi có bằng chứng từ dịch vụ. Không tự kết nối lại: người bán thấy lý do rồi tự bấm kết nối lại.
+- Lỗi hiển thị bằng lý do dịch được (`statusReason`): chưa có khóa, không phải app desktop, chưa live, khóa sai, quá giới hạn...
+
+### Gói và giới hạn (từ trang giá của Euler Stream)
+
+Community miễn phí: 2.500 yêu cầu/ngày, 25 WebSocket đám mây. Business $50/tháng: 10.000 yêu cầu/ngày, 100 WebSocket. Mỗi phiên theo dõi chiếm một kết nối. Mỗi người dùng tự nhập khóa của họ nên không dùng chung hạn mức. **Chưa xác nhận:** gói miễn phí có dùng được kết nối theo `uniqueId` hay không (trang giá không nói rõ).
+
+### Kiểm tra
+
+- Test Rust (19): phân tích khung tin, mã đóng, URL, và chạy thật với máy chủ WebSocket cục bộ giả lập giao thức (nhận đúng `uniqueId` và `apiKey`, phát gói bình luận, đóng bằng 4404 / 4401, mạng lỗi không lộ khóa).
+- Test giao diện (47): `EulerProvider`, store với nguồn `live` (CONNECTING cho tới khi có bằng chứng, chống trùng, lưu, cần xác nhận).
+- **Chưa kiểm chứng với Euler Stream thật.** Môi trường phát triển không gọi được `ws.eulerstream.com`; hình dạng tin nhắn lấy từ SDK, không phải từ một phiên chạy thật. Cần thử trên máy có khóa thật: nếu bình luận không hiện, xem `docs` Euler Stream "Event Types" và chỉnh `parse_chat` trong `euler.rs`.

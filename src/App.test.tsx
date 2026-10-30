@@ -64,6 +64,8 @@ describe("Live Assistant UI", () => {
     fireEvent.click(screen.getByRole("button", { name: zhTW.setup.connect }));
     await waitFor(() => expect(statusChip().dataset.status).toBe("UNAVAILABLE"));
     expect(screen.getByText(zhTW.statusHelp.UNAVAILABLE)).toBeInTheDocument();
+    // Why: a plain browser cannot hold the API key or open the connection.
+    expect(screen.getByText(zhTW.statusReason.BROWSER)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: zhTW.setup.start })).toBeDisabled();
   });
 

@@ -1,7 +1,7 @@
 import { validateLiveConfig, type ConfigIssue } from "./config";
 import { DemoLiveCommentProvider } from "./demoProvider";
 import { ManualPasteProvider } from "./manualProvider";
-import { NoSourceProvider } from "./noSourceProvider";
+import { EulerProvider, createEulerBackend } from "./eulerProvider";
 import type { LiveCommentProvider } from "./provider";
 import { createRepository, type LiveRepository } from "./repository";
 import type { LiveCommentEvent, LiveProviderStatus } from "./types";
@@ -34,6 +34,8 @@ export interface LiveSessionSnapshot {
   form: LiveForm;
   issues: readonly ConfigIssue[];
   status: LiveProviderStatus;
+  /** Translatable key explaining the status (e.g. NOT_LIVE, INVALID_AUTH), if any. */
+  statusReason: string | undefined;
   providerType: string | undefined;
   startedAt: string | undefined;
   endedAt: string | undefined;
@@ -49,7 +51,7 @@ export interface LiveSessionSnapshot {
 export interface StoreDeps {
   repository?: LiveRepository;
   createDemoProvider?: () => LiveCommentProvider;
-  createNoSourceProvider?: () => LiveCommentProvider;
+  createLiveProvider?: () => LiveCommentProvider;
   newId?: () => string;
   now?: () => Date;
 }
@@ -179,12 +181,12 @@ export class LiveSessionStore {
     } else if (form.source === "demo") {
       provider = this.deps.createDemoProvider?.() ?? new DemoLiveCommentProvider();
     } else {
-      provider = this.deps.createNoSourceProvider?.() ?? new NoSourceProvider();
+      provider = this.deps.createLiveProvider?.() ?? new EulerProvider(createEulerBackend());
     }
     this.provider = provider;
     this.providerUnsubs = [
-      provider.onStatusChange((status) => {
-        this.set({ status });
+      provider.onStatusChange((status, reason) => {
+        this.set({ status, statusReason: reason });
         this.persist(() => this.repo.updateSession(sessionId, { status }));
       }),
       provider.onComment((event) => this.receive(event)),
@@ -208,6 +210,7 @@ export class LiveSessionStore {
       endedAt: undefined,
       providerType: provider.type,
       status: "CONNECTING",
+      statusReason: undefined,
       restored: false,
       persistError: false,
     });
@@ -319,6 +322,7 @@ export class LiveSessionStore {
       form: { ...EMPTY_FORM },
       issues: [],
       status: "DISCONNECTED",
+      statusReason: undefined,
       providerType: undefined,
       startedAt: undefined,
       endedAt: undefined,
