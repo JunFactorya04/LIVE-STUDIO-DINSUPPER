@@ -7,6 +7,7 @@ mod db;
 mod euler;
 mod live;
 mod orders;
+mod overlay;
 mod replies;
 mod secrets;
 
@@ -31,6 +32,15 @@ pub fn run() {
             app.manage(commands::DbState(Mutex::new(conn)));
             app.manage(commands::SecretState::default());
             app.manage(commands::EulerState::default());
+            // Local overlay server (127.0.0.1 only). If no port is free the overlay is simply off.
+            let overlay = commands::OverlayState::default();
+            if let Ok(listener) = overlay::bind(overlay::FIRST_PORT) {
+                if let Ok(addr) = listener.local_addr() {
+                    *overlay.port.lock().unwrap() = Some(addr.port());
+                }
+                tauri::async_runtime::spawn(overlay::serve(listener, overlay.shared.clone()));
+            }
+            app.manage(overlay);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -57,6 +67,8 @@ pub fn run() {
             commands::reply_create,
             commands::reply_list,
             commands::reply_update,
+            commands::overlay_set,
+            commands::overlay_info,
             commands::euler_connect,
             commands::euler_disconnect,
         ])

@@ -307,3 +307,38 @@ pub fn reply_update(
 ) -> Result<bool, String> {
     replies::reply_update(&*db(&state)?, &id, text.as_deref(), status.as_deref(), &now).map_err(err)
 }
+
+// ---- Overlay (local Browser Source page; shows only what the seller pushes here) ----
+
+#[derive(Default)]
+pub struct OverlayState {
+    pub shared: crate::overlay::SharedOverlay,
+    pub port: Mutex<Option<u16>>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OverlayInfo {
+    pub url: Option<String>,
+}
+
+#[tauri::command]
+pub fn overlay_set(
+    state: State<'_, OverlayState>,
+    overlay: crate::overlay::OverlayState,
+) -> Result<(), String> {
+    let clean = crate::overlay::sanitize(&overlay);
+    *state
+        .shared
+        .lock()
+        .map_err(|_| "overlay lock poisoned".to_string())? = clean;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn overlay_info(state: State<'_, OverlayState>) -> OverlayInfo {
+    let port = state.port.lock().ok().and_then(|p| *p);
+    OverlayInfo {
+        url: port.map(|p| format!("http://127.0.0.1:{p}/overlay/live-product")),
+    }
+}

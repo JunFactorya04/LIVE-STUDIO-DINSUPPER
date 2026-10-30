@@ -104,7 +104,7 @@ src/
   components/   vỏ ứng dụng, icon, StatusChip, trạng thái trống/tải/lỗi
   i18n/         zh-TW.ts (khóa gốc), vi.ts, bộ chọn ngôn ngữ
   theme/        tokens.css (token Apple), base.css (khung), live.css (màn Live)
-src-tauri/      backend Rust: db.rs (SQLite + migration), live.rs, orders.rs (danh mục + đơn nháp), ai.rs (gọi AI nhiều hãng), secrets.rs (keyring), euler.rs (WebSocket Euler Stream), commands.rs
+src-tauri/      backend Rust: db.rs (SQLite + migration), live.rs, orders.rs (danh mục + đơn nháp), replies.rs, overlay.rs (máy chủ overlay 127.0.0.1), ai.rs (gọi AI nhiều hãng), secrets.rs (keyring), euler.rs (WebSocket Euler Stream), commands.rs
 docs/           yêu cầu, kế hoạch, hướng dẫn cài đặt đồng bộ Windows/Mac
 ```
 

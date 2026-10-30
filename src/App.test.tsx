@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { App } from "./App";
 import { I18nProvider } from "./i18n";
@@ -11,11 +11,13 @@ import { LiveSessionProvider } from "./live/useLiveSession";
 import type { LiveCommentEvent } from "./live/types";
 import { AiError, unavailableAi, type AiClient } from "./ai/client";
 import { AiSection } from "./pages/AiSection";
+import { OverlayPage } from "./pages/OverlayPage";
+import type { OverlayClient, OverlayPayload } from "./overlay/controller";
 import { ApiKeysSection } from "./pages/ApiKeysSection";
 import type { SecretsClient } from "./secrets/client";
 
 function setup(
-  initialPage?: "setup" | "console" | "orders" | "replies" | "settings",
+  initialPage?: "setup" | "console" | "orders" | "replies" | "overlay" | "settings",
   deps: Partial<StoreDeps> = {},
 ) {
   let n = 0;
@@ -379,5 +381,76 @@ describe("AI settings", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "OpenAI" }));
     expect(screen.getByRole("button", { name: zhTW.settings.ai.test })).toBeDisabled();
+  });
+});
+
+describe("Overlay page", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("pushes only the chosen product fields and can hide it again", async () => {
+    const sent: OverlayPayload[] = [];
+    const client: OverlayClient = {
+      available: true,
+      set: async (p) => void sent.push(p),
+      url: async () => "http://127.0.0.1:17891/overlay/live-product",
+    };
+    const store = setup();
+    store.saveCatalogItem({
+      sku: "A12",
+      name: "連帽衫",
+      price: 790,
+      colors: ["黑色|黑", "白色"],
+      sizes: ["M"],
+      aliases: [],
+    });
+    cleanup();
+    render(
+      <I18nProvider initial="zh-TW">
+        <LiveSessionProvider store={store}>
+          <OverlayPage client={client} />
+        </LiveSessionProvider>
+      </I18nProvider>,
+    );
+    expect(
+      await screen.findByText("http://127.0.0.1:17891/overlay/live-product"),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(zhTW.overlay.product), { target: { value: "A12" } });
+    expect(screen.getByLabelText(zhTW.overlay.priceText)).toHaveValue("NT$790");
+    fireEvent.change(screen.getByLabelText(zhTW.overlay.promo), {
+      target: { value: "第二件 9 折" },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: zhTW.overlay.show }));
+    });
+    expect(sent[0]).toEqual({
+      visible: true,
+      name: "連帽衫",
+      sku: "A12",
+      priceText: "NT$790",
+      colors: ["黑色", "白色"],
+      sizes: ["M"],
+      promo: "第二件 9 折",
+    });
+    // The payload type has no field that could carry a comment or a username.
+    expect(Object.keys(sent[0]).sort()).toEqual([
+      "colors",
+      "name",
+      "priceText",
+      "promo",
+      "sizes",
+      "sku",
+      "visible",
+    ]);
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: zhTW.overlay.hide }));
+    });
+    expect(sent[1].visible).toBe(false);
+    expect(sent[1].name).toBe("");
+  });
+
+  it("in a plain browser it previews but cannot publish", () => {
+    setup("overlay");
+    expect(screen.getByText(zhTW.overlay.emptyTitle)).toBeInTheDocument();
+    expect(screen.getByText(zhTW.overlay.desktopOnly)).toBeInTheDocument();
   });
 });

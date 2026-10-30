@@ -6,6 +6,7 @@ import { useLiveSession } from "./live/useLiveSession";
 import { NAV_ITEMS, type PageId } from "./navigation";
 import { ConsolePage } from "./pages/ConsolePage";
 import { OrdersPage } from "./pages/OrdersPage";
+import { OverlayPage } from "./pages/OverlayPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -43,6 +44,8 @@ function PageBody({ id, onStarted }: { id: PageId; onStarted: () => void }) {
       return <ConsolePage />;
     case "replies":
       return <RepliesPage />;
+    case "overlay":
+      return <OverlayPage />;
     case "orders":
       return <OrdersPage />;
     case "settings":

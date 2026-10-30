@@ -17,7 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "console", section: "main", tab: true },
   { id: "orders", section: "manage", tab: true },
   { id: "replies", section: "manage", tab: true },
-  { id: "overlay", section: "manage", tab: false, phase: 4 },
+  { id: "overlay", section: "manage", tab: false },
   { id: "report", section: "manage", tab: false, phase: 6 },
   { id: "settings", section: "manage", tab: false },
 ];

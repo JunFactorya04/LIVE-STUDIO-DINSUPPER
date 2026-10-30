@@ -509,3 +509,41 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+
+/* ---------- Overlay preview (same look as the served page) ---------- */
+
+.overlay-preview {
+  max-width: 420px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: #1c1c1e;
+  color: #fff;
+  display: grid;
+  gap: 6px;
+}
+.overlay-preview__name {
+  font-size: var(--fs-title1);
+  font-weight: 700;
+}
+.overlay-preview__sku {
+  opacity: 0.75;
+}
+.overlay-preview__price {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffd60a;
+}
+.overlay-preview__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.overlay-preview__tags span {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+.overlay-preview__promo {
+  font-weight: 600;
+  color: #30d158;
+}

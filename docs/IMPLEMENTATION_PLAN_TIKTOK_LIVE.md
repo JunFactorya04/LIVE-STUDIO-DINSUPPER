@@ -236,3 +236,11 @@ Người dùng tự nhập khóa cho ChatGPT (OpenAI), Claude, Gemini, DeepSeek 
 - **AI soạn nháp:** lời nhắc dùng danh mục sản phẩm + "quy định shop" do người bán nhập (lưu localStorage) và bình luận khách ở dạng chuỗi JSON (dữ liệu không tin cậy). Dặn: chỉ dùng thông tin đã cho, không biết thì nói người bán sẽ xác nhận, tối đa 2 câu, không xin số điện thoại/địa chỉ/thanh toán ở chat công khai, không link. Bộ lọc sau cùng loại bỏ câu trả lời có link hoặc dãy số dài (số điện thoại/tài khoản) và cắt 300 ký tự.
 - **Giao diện:** thẻ trả lời ở panel chi tiết của Console và trang "回覆建議" (danh sách + ô quy định shop): Gợi ý, Sửa, Sao chép, Không dùng, Gợi ý lại.
 - **Kiểm tra:** 5 test Rust mới, test prompt/bộ lọc/repository, test store (sửa-sao chép-khôi phục, câu trả lời không an toàn bị loại), test giao diện (sao chép không thành "đã gửi", không có nút gửi).
+
+## 12. Phase 4b — overlay cục bộ (không có thông tin cá nhân)
+
+- **Máy chủ (`overlay.rs`):** HTTP nhỏ chỉ lắng nghe `127.0.0.1` (cổng 17891, thử 10 cổng kế tiếp nếu bận). Chỉ có hai đường: `/overlay/live-product` (trang HTML trong suốt cho Browser Source, chỉ dùng `textContent`) và `/overlay/data.json`. Kiểm tra `Host` (chặn DNS rebinding), chỉ `GET/HEAD`, header `no-store`, `nosniff`, CSP chặt, giới hạn kích thước yêu cầu, timeout đọc 5 giây.
+- **Không thể lộ PII theo cấu trúc:** trạng thái overlay chỉ có `visible, name, sku, priceText, colors, sizes, promo`; không có trường nào chứa bình luận hay tài khoản. Lệnh `overlay_set` làm sạch (bỏ ký tự điều khiển, cắt độ dài, tối đa 12 màu/size). Khi ẩn, `data.json` chỉ trả `{"visible":false}`.
+- **Người bán kiểm soát:** chọn sản phẩm từ danh mục, sửa chữ giá và chữ khuyến mại, xem trước, rồi bấm "Hiện trên overlay" / "Cập nhật" / "Ẩn". Mỗi lần mở app overlay bắt đầu ở trạng thái ẩn. App không tự điều khiển phần mềm livestream; người bán tự dán địa chỉ vào Browser Source.
+- **Kiểm tra:** 5 test Rust (làm sạch, định tuyến + Host, `data.json` chỉ có đúng 7 khóa, trang không dùng `innerHTML`, máy chủ thật qua socket loopback) và 2 test giao diện (payload đúng 7 khóa, ẩn lại, trình duyệt thường chỉ xem trước).
+- **Chưa kiểm chứng:** chưa thử trong OBS hay TikTok LIVE Studio thật; chưa biết TikTok LIVE Studio có hỗ trợ Browser Source hay không (người bán cần tự xác nhận).
