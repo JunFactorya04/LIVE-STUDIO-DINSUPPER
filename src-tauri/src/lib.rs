@@ -1,6 +1,7 @@
 // Backend entry. Keep platform-specific code behind #[cfg(target_os = "...")]
 // so the same source builds on macOS and Windows.
 
+mod ai;
 mod commands;
 mod db;
 mod euler;
@@ -49,6 +50,8 @@ pub fn run() {
             commands::order_save,
             commands::order_list,
             commands::order_set_status,
+            commands::ai_complete,
+            commands::ai_providers,
             commands::euler_connect,
             commands::euler_disconnect,
         ])

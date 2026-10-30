@@ -19,7 +19,9 @@ serde_json = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
 # WebSocket client for Euler Stream. native-tls = SChannel (Windows) / Secure Transport (macOS):
 # no extra build tools needed on either OS.
-tokio = { version = "1", features = ["rt", "macros", "time"] }
+tokio = { version = "1", features = ["rt", "macros", "time", "net", "io-util"] }
+# HTTPS client for the AI providers (same native-tls choice as above).
+reqwest = { version = "0.12", default-features = false, features = ["native-tls"] }
 tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 futures-util = "0.3"
 url = "2"

@@ -9,8 +9,9 @@ use std::sync::Mutex;
 
 const SERVICE: &str = "vn.livestudio.app";
 
-/// Slots the user may fill. `connector` is the key of an approved comment-source provider.
-pub const SLOTS: &[&str] = &["claude", "openai", "gemini", "connector"];
+/// Slots the user may fill. The AI slots are named like the provider ids in `ai.rs`;
+/// `connector` is the key of the comment-source provider.
+pub const SLOTS: &[&str] = &["claude", "openai", "gemini", "deepseek", "connector"];
 
 pub fn valid_slot(slot: &str) -> bool {
     SLOTS.contains(&slot)

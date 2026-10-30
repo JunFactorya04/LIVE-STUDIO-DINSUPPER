@@ -9,6 +9,8 @@ import { DemoLiveCommentProvider } from "./live/demoProvider";
 import { LiveSessionStore } from "./live/sessionStore";
 import { LiveSessionProvider } from "./live/useLiveSession";
 import type { LiveCommentEvent } from "./live/types";
+import { AiError, unavailableAi, type AiClient } from "./ai/client";
+import { AiSection } from "./pages/AiSection";
 import { ApiKeysSection } from "./pages/ApiKeysSection";
 import type { SecretsClient } from "./secrets/client";
 
@@ -253,5 +255,48 @@ describe("i18n catalogue", () => {
         typeof v === "object" && v !== null ? keys(v, `${p}${k}.`) : [`${p}${k}`],
       );
     expect(keys(viMessages).sort()).toEqual(keys(zhTW).sort());
+  });
+});
+
+describe("AI settings", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("lists the four services, remembers the choice and reports test failures by code", async () => {
+    const calls: Array<{ provider: string; model?: string }> = [];
+    const client: AiClient = {
+      available: true,
+      complete: async (req) => {
+        calls.push({ provider: req.provider, model: req.model });
+        throw new AiError("AUTH");
+      },
+    };
+    render(
+      <I18nProvider initial="zh-TW">
+        <AiSection client={client} />
+      </I18nProvider>,
+    );
+    for (const name of ["OpenAI", "Claude（Anthropic）", "Gemini（Google）", "DeepSeek"]) {
+      expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole("button", { name: "DeepSeek" }));
+    fireEvent.change(screen.getByLabelText(zhTW.settings.ai.model), {
+      target: { value: "deepseek-reasoner" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: zhTW.settings.ai.test }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(zhTW.settings.ai.errors.AUTH);
+    expect(calls).toEqual([{ provider: "deepseek", model: "deepseek-reasoner" }]);
+    expect(JSON.parse(localStorage.getItem("live-studio.ai") ?? "{}")).toMatchObject({
+      provider: "deepseek",
+    });
+  });
+
+  it("in a plain browser the test button is disabled", () => {
+    render(
+      <I18nProvider initial="zh-TW">
+        <AiSection client={unavailableAi} />
+      </I18nProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "OpenAI" }));
+    expect(screen.getByRole("button", { name: zhTW.settings.ai.test })).toBeDisabled();
   });
 });

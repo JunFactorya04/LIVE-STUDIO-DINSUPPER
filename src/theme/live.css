@@ -478,3 +478,7 @@
     padding-top: 8px;
   }
 }
+
+.box .segmented + .field {
+  margin-top: 12px;
+}

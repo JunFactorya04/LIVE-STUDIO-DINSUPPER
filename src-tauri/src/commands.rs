@@ -230,3 +230,46 @@ pub fn order_set_status(
 ) -> Result<bool, String> {
     orders::order_set_status(&*db(&state)?, &id, &status, &now).map_err(err)
 }
+
+// ---- AI providers (the seller's own key, read from the keychain here in Rust) ----
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiProviderInfo {
+    pub id: &'static str,
+    pub default_model: &'static str,
+}
+
+#[tauri::command]
+pub fn ai_providers() -> Vec<AiProviderInfo> {
+    crate::ai::PROVIDERS
+        .iter()
+        .map(|p| AiProviderInfo {
+            id: p.id,
+            default_model: p.default_model,
+        })
+        .collect()
+}
+
+/// Returns the answer text, or one of the short codes of `ai::AiError` (never the key or a body).
+#[tauri::command]
+pub async fn ai_complete(
+    state: State<'_, SecretState>,
+    provider: String,
+    model: Option<String>,
+    system: String,
+    prompt: String,
+    max_tokens: Option<u32>,
+) -> Result<String, String> {
+    crate::ai::complete(
+        &*state.0,
+        &provider,
+        model.as_deref(),
+        &system,
+        &prompt,
+        max_tokens.unwrap_or(256),
+        None,
+    )
+    .await
+    .map_err(|e| e.code().to_string())
+}

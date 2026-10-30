@@ -1,4 +1,5 @@
 import { LOCALES, useI18n, type Locale } from "../i18n";
+import { AiSection } from "./AiSection";
 import { ApiKeysSection } from "./ApiKeysSection";
 
 export function SettingsPage() {
@@ -24,6 +25,7 @@ export function SettingsPage() {
         <p className="caption">{t.settings.languageHelp}</p>
       </section>
       <ApiKeysSection />
+      <AiSection />
     </div>
   );
 }

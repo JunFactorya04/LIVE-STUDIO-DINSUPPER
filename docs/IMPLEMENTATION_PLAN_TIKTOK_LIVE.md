@@ -65,6 +65,8 @@ Nghiệm thu: chạy app thấy feed Demo, mọi bình luận giả đều gắn
 
 ### Phase 3 — AI + đơn nháp
 
+- **3a (xong):** lớp AI provider nhiều hãng với khóa người dùng tự nhập, xem mục 9. 3b (phân loại ý định) và 3c (màn Needs Review nâng cao) chưa làm.
+
 Lớp AI provider (BYOK / AI Credits), phân loại ý định, catalog SKU, `live_order_drafts` + bằng chứng, màn Needs Review. Không gọi API vận chuyển.
 
 ### Phase 4 — Gợi ý trả lời + overlay
@@ -207,3 +209,14 @@ Trang "直播訂單": bảng đơn nháp (bình luận gốc, lý do, nút Xác 
 ### Kiểm tra
 
 `cargo test`: 24 test Rust (thêm 5 cho danh mục/đơn). `npm run check`: test giao diện + parser/engine (27 test cho các ca spec: SKU không có, thiếu màu/size/số lượng, một khách nhiều bình luận, hai khách xen kẽ), store (đơn nháp, khôi phục, danh mục), trang Đơn hàng. Ảnh chụp 1440×900 và 390×844 sáng/tối: không tràn ngang.
+
+## 9. Phase 3a — lớp AI provider (BYOK, nhiều hãng)
+
+Người dùng tự nhập khóa cho ChatGPT (OpenAI), Claude, Gemini, DeepSeek ở **Cài đặt**; chọn hãng đang dùng và tên model ở mục "AI 服務". Thêm hãng mới tương thích kiểu OpenAI chỉ cần một dòng trong `PROVIDERS` (`src-tauri/src/ai.rs`), một ô khóa trong `secrets.rs` và nhãn i18n.
+
+- **Rust (`ai.rs`):** dựng yêu cầu và đọc phản hồi cho ba kiểu API (OpenAI-compatible `/chat/completions` cho OpenAI và DeepSeek, Claude `/v1/messages`, Gemini `generateContent`). Lệnh `ai_complete` đọc khóa từ Keychain ngay trong Rust, nên khóa không bao giờ ra giao diện hay log. Lỗi trả về là mã ngắn (`NO_KEY`, `AUTH`, `QUOTA`, `RATE_LIMIT`, `BAD_REQUEST`, `TIMEOUT`, `NETWORK`...), không kèm nội dung phản hồi của hãng.
+- **An toàn:** tên model chỉ cho ký tự an toàn (nằm trong URL của Gemini); giới hạn độ dài lời nhắc (20.000 ký tự) và token trả về (1.024); timeout 30 giây; không tự thử lại.
+- **Giao diện:** chọn hãng + model (lưu trong localStorage, không phải bí mật) và nút "測試連線" gửi một tin rất ngắn.
+- **Quyền riêng tư:** khi phân loại (3b) và gợi ý trả lời (Phase 4) được bật, bình luận liên quan sẽ được gửi tới hãng AI mà người bán chọn, bằng khóa của họ; trang Cài đặt nói rõ điều này.
+- **Kiểm tra:** 7 test Rust mới (dựng yêu cầu và đọc phản hồi từng hãng, mã lỗi, tên model, và chạy thật với máy chủ HTTP cục bộ: khóa được gửi đúng header, lỗi không lộ khóa); 2 test giao diện.
+- **Chưa kiểm chứng:** chưa gọi thử hãng thật nào (môi trường phát triển không gọi được các dịch vụ này). Tên model mặc định (`gpt-4o-mini`, `claude-haiku-5-5`, `gemini-2.5-flash`, `deepseek-chat`) chưa được xác minh với danh sách model hiện hành; nếu nút kiểm tra báo "服務拒絕請求" hãy sửa tên model trong Cài đặt.

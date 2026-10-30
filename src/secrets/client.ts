@@ -3,7 +3,7 @@ import { isTauri } from "../live/repository";
 // API keys the seller registers (BYOK). The keys live in the OS Keychain / Credential Manager,
 // written by Rust. This client can set, remove and ask "is it set"; there is no way to read one.
 
-export const SECRET_SLOTS = ["claude", "openai", "gemini", "connector"] as const;
+export const SECRET_SLOTS = ["claude", "openai", "gemini", "deepseek", "connector"] as const;
 export type SecretSlot = (typeof SECRET_SLOTS)[number];
 
 export interface SecretsClient {
