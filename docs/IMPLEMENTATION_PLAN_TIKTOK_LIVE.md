@@ -305,3 +305,7 @@ Học theo taodonnhanh.com, làm đúng theo file mẫu `訂單匯入` v1.5 củ
 - **Tìm cửa hàng (`ship/storeQuery.ts`, `pages/StoreSearch.tsx`):** nhập mã, tiếng Trung, tiếng Anh hoặc pinyin (bỏ dấu thanh, Wade-Giles); từ điển tỉnh/quận/đường/địa danh đổi sang tiếng Trung trước khi hỏi bản đồ 7-ELEVEN; gợi ý sổ xuống khi gõ (debounce 350 ms, ↑↓ Enter), tô đậm phần khớp, xếp theo mức khớp, cửa hàng tạm ngưng để mờ.
 - **Cài đặt:** chia 4 nhóm: Chung, Máy in & tem, Điện thoại, AI & khóa.
 - **Chưa làm:** kết nối hãng vận chuyển khác (FamilyMart, Shopee, T-Cat, Hsinchu, Chunghwa Post; cần hợp đồng/API key của người bán).
+
+## 20. Giao diện sáng / tối
+
+Cài đặt → Chung: Theo hệ thống (mặc định) / Sáng / Tối, nhớ trên thiết bị (`theme/theme.ts`, thuộc tính `data-theme` trên `<html>`, áp dụng trước khi vẽ giao diện nên không nháy). Trên điện thoại chế độ tối dùng nền đen thật với thẻ `#1c1c1e` như app hệ thống iOS; trên máy tính dùng bảng màu xám macOS.

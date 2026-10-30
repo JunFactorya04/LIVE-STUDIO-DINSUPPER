@@ -691,6 +691,9 @@ export const zhTW = {
     ai: "AI 與金鑰",
   },
   settings: {
+    themeTitle: "淺色／深色外觀",
+    themes: { auto: "跟隨系統", light: "淺色", dark: "深色" },
+    themeHelp: "跟隨系統會隨裝置的淺色／深色模式自動切換。選擇會記在這個裝置上。",
     languageTitle: "介面語言",
     languageHelp: "更改後立即生效，並記住在這台電腦上。",
     languages: { "zh-TW": "繁體中文", vi: "Tiếng Việt" },

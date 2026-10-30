@@ -166,3 +166,21 @@
   color: color-mix(in srgb, var(--sys-teal) 85%, var(--mac-label));
   background: color-mix(in srgb, var(--sys-teal) 15%, transparent);
 }
+
+/* iOS dark: true black canvas with raised grey cards, like the system apps. */
+@media (max-width: 760px) {
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --mac-window: #000;
+      --mac-under: #000;
+      --mac-box: #1c1c1e;
+      --mac-row-alt: #1c1c1e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --mac-window: #000;
+    --mac-under: #000;
+    --mac-box: #1c1c1e;
+    --mac-row-alt: #1c1c1e;
+  }
+}

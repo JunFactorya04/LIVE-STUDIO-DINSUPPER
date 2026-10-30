@@ -4,12 +4,15 @@ import "./theme/tokens.css";
 import "./theme/base.css";
 import "./theme/live.css";
 import { App } from "./App";
+import { applyTheme, loadTheme } from "./theme/theme";
 import { I18nProvider } from "./i18n";
 import { LiveSessionProvider } from "./live/useLiveSession";
 import { createReportClient } from "./report/client";
 import { isRemote } from "./platform/backend";
 import { runRetention } from "./report/retention";
 import { adoptComputerPrinter } from "./share/client";
+
+applyTheme(loadTheme());
 
 // iOS Safari ignores user-scalable=no: stop the pinch gesture and the double-tap zoom explicitly.
 for (const type of ["gesturestart", "gesturechange", "gestureend"]) {

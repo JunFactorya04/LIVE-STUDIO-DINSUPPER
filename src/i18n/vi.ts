@@ -724,6 +724,10 @@ export const vi: Messages = {
     ai: "AI & khóa",
   },
   settings: {
+    themeTitle: "Giao diện sáng / tối",
+    themes: { auto: "Theo hệ thống", light: "Sáng", dark: "Tối" },
+    themeHelp:
+      "Theo hệ thống sẽ tự đổi cùng chế độ sáng/tối của máy. Lựa chọn được nhớ trên thiết bị này.",
     languageTitle: "Ngôn ngữ giao diện",
     languageHelp: "Đổi có hiệu lực ngay và được nhớ trên máy này.",
     languages: { "zh-TW": "繁體中文", vi: "Tiếng Việt" },
