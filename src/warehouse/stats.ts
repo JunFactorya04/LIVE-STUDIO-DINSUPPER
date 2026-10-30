@@ -58,3 +58,17 @@ export function addScan(
 
 /** A code this app prints on a label: `<SKU>-<6 digits>`. Other barcodes in view are ignored. */
 export const isUnitCode = (code: string): boolean => /^[A-Za-z0-9._-]{1,30}-\d{6}$/.test(code);
+
+/**
+ * The next free product code: `SP0001`, `SP0002`, ... after the highest number already used with
+ * this prefix (any case). Codes that do not follow the pattern are left alone.
+ */
+export function nextSku(existing: Iterable<string>, prefix = "SP"): string {
+  const re = new RegExp(`^${prefix}(\\d+)$`, "i");
+  let max = 0;
+  for (const s of existing) {
+    const m = re.exec(s.trim());
+    if (m) max = Math.max(max, Number(m[1]));
+  }
+  return `${prefix}${String(max + 1).padStart(4, "0")}`;
+}

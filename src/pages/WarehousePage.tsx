@@ -21,14 +21,18 @@ import {
 import { shipReceipt } from "../warehouse/receipt";
 import { createScanRelay, type ScanRelay } from "../warehouse/relay";
 import { ScanBox } from "../warehouse/ScanBox";
-import { addScan, bySku, expectedMissing } from "../warehouse/stats";
+import { addScan, bySku, expectedMissing, nextSku } from "../warehouse/stats";
+import { createBizClient } from "../biz/client";
 
 // Warehouse with a barcode on every unit: see what is on the shelf, receive stock and print the
 // labels, scan units out to ship (the total comes from their prices), and count the shelves.
 
 type Tab = "stock" | "receive" | "ship" | "count" | "history" | "analysis" | "guide" | "send";
 const money = (n: number) => `NT$ ${Math.round(n).toLocaleString("en-US")}`;
-const today = () => new Date().toISOString().slice(0, 10);
+const pad = (n: number) => String(n).padStart(2, "0");
+/** Local date and time for a datetime-local field: 2026-10-30T18:40. */
+const localStamp = (d = new Date()) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const newId = () => `wh-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 const whenOf = (iso: string, locale: string) =>
   new Date(iso).toLocaleString(locale === "vi" ? "vi-VN" : "zh-TW", {
@@ -392,10 +396,24 @@ function ReceiveTab({ api, labelSvc, say, explain }: Common & { labelSvc: PrintS
   const [cost, setCost] = useState("");
   const [location, setLocation] = useState("");
   const [supplier, setSupplier] = useState("");
+  const [when, setWhen] = useState(() => localStamp());
   const [made, setMade] = useState<Unit[]>([]);
   const [busy, setBusy] = useState(false);
   const labelReady = labelSvc.available && isConfigured(loadLabelPrinter());
   const [labelOpts, setLabelOpts] = useLabelOptions();
+
+  // Codes already used (books, live catalog, shelf), so a new product gets the next free SP0001...
+  const [used, setUsed] = useState<string[]>([]);
+  const loadUsed = useCallback(async () => {
+    const biz = createBizClient();
+    const fromBooks = biz.available ? await biz.stock().catch(() => []) : [];
+    const shelf = await api.units("IN_STOCK").catch(() => [] as Unit[]);
+    setUsed([...fromBooks.map((x) => x.sku), ...shelf.map((u) => u.sku)]);
+  }, [api]);
+  useEffect(() => {
+    void loadUsed();
+  }, [loadUsed]);
+  const suggest = useMemo(() => nextSku([...used, ...catalog.map((c) => c.sku)]), [used, catalog]);
 
   const pickSku = (value: string) => {
     setSku(value);
@@ -420,24 +438,33 @@ function ReceiveTab({ api, labelSvc, say, explain }: Common & { labelSvc: PrintS
     const n = Number(qty);
     const p = Number(price);
     const c = Number(cost);
-    if (!canEncode(sku) || !/^[A-Za-z0-9._-]{1,30}$/.test(sku)) return say(w.errors.BAD_SKU, true);
+    const code = sku.trim() || suggest; // left empty: the next free code
+    if (!canEncode(code) || !/^[A-Za-z0-9._-]{1,30}$/.test(code))
+      return say(w.errors.BAD_SKU, true);
     if (!Number.isInteger(n) || n < 1 || n > 500) return say(w.errors.BAD_QTY, true);
     if (!Number.isInteger(p) || p < 0 || !Number.isInteger(c) || c < 0)
       return say(w.errors.BAD_PRICE, true);
+    const at = new Date(when);
+    if (Number.isNaN(at.getTime()) || at.getTime() > Date.now() + 5 * 60_000)
+      return say(w.errors.BAD_DATE, true);
     setBusy(true);
     try {
       const units = await api.receive({
         purchaseId: newId(),
-        sku,
+        sku: code,
         qty: n,
         price: p,
         unitCost: c,
         location: location.trim(),
         supplier: supplier.trim(),
-        at: today(),
+        at: when.slice(0, 10),
+        receivedAt: at.toISOString(),
       });
       setMade(units);
-      say(w.received.replace("{n}", String(units.length)));
+      setSku("");
+      setWhen(localStamp());
+      void loadUsed();
+      say(`${w.received.replace("{n}", String(units.length))} · ${code}`);
       if (labelReady) await printAll(units);
     } catch (err) {
       say(explain(err), true);
@@ -458,9 +485,11 @@ function ReceiveTab({ api, labelSvc, say, explain }: Common & { labelSvc: PrintS
               className="input"
               list="wh-skus"
               value={sku}
+              placeholder={suggest}
               onChange={(e) => pickSku(e.target.value.trim())}
               autoCapitalize="off"
             />
+            <span className="caption">{w.autoSku.replace("{sku}", suggest)}</span>
             <datalist id="wh-skus">
               {catalog.map((c) => (
                 <option key={c.sku} value={c.sku}>
@@ -503,6 +532,16 @@ function ReceiveTab({ api, labelSvc, say, explain }: Common & { labelSvc: PrintS
               placeholder="A1"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
+            />
+          </label>
+          <label className="field">
+            {w.receivedAt}
+            <input
+              className="input"
+              type="datetime-local"
+              value={when}
+              max={localStamp()}
+              onChange={(e) => setWhen(e.target.value)}
             />
           </label>
           <label className="field">

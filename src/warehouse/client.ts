@@ -27,6 +27,8 @@ export interface ReceiveReq {
   supplier: string;
   /** yyyy-mm-dd */
   at: string;
+  /** When the goods came in (ISO). Defaults to now; the shelf-age analysis counts from it. */
+  receivedAt?: string;
 }
 
 export interface ShipResult {
@@ -69,7 +71,8 @@ class TauriWarehouseClient implements WarehouseClient {
   readonly available = true;
   units = (status: UnitStatus) => invoke<Unit[]>("wh_units_list", { status, limit: 20000 });
   unit = async (code: string) => (await invoke<Unit | null>("wh_unit_get", { code })) ?? undefined;
-  receive = (req: ReceiveReq) => invoke<Unit[]>("wh_receive", { req, now: now() });
+  receive = (req: ReceiveReq) =>
+    invoke<Unit[]>("wh_receive", { req, now: req.receivedAt ?? now() });
   ship = (codes: string[], orderId: string, stockHandled: boolean) =>
     invoke<ShipResult>("wh_ship", { codes, orderId, stockHandled, now: now() });
   move = (code: string, location: string) =>

@@ -669,6 +669,7 @@ export const vi: Messages = {
       guide: "Quy trình",
     },
     errors: {
+      BAD_DATE: "Ngày giờ nhập không hợp lệ (không được ở tương lai).",
       GENERIC: "Không thực hiện được, hãy thử lại.",
       UNKNOWN: "Mã này chưa có trong kho",
       NOT_IN_STOCK: "Món này không còn trong kho (đã xuất, hỏng hoặc mất)",
@@ -719,6 +720,8 @@ export const vi: Messages = {
     printFail: "Không in được tem: kiểm tra máy in mã vạch trong Cài đặt.",
     printedMany: "Đã in {n} tem.",
     receiveTitle: "Nhập hàng và in tem",
+    autoSku: "Để trống: tự tạo mã {sku}. Hoặc chọn mã đã có để nhập thêm.",
+    receivedAt: "Ngày giờ nhập",
     receiveHelp:
       "Mỗi món nhận một mã riêng (SKU-000001…), tem in giá bán và mã vạch. Việc nhập cũng ghi vào sổ nhập hàng và tính lại giá vốn trung bình.",
     qty: "Số lượng",

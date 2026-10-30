@@ -647,6 +647,7 @@ export const zhTW = {
       guide: "作業流程",
     },
     errors: {
+      BAD_DATE: "進貨日期時間不正確（不可為未來）。",
       GENERIC: "無法完成，請再試一次。",
       UNKNOWN: "倉庫中沒有此條碼",
       NOT_IN_STOCK: "此商品已不在庫（已出庫、損壞或遺失）",
@@ -697,6 +698,8 @@ export const zhTW = {
     printFail: "無法列印標籤：請檢查設定中的條碼標籤機。",
     printedMany: "已列印 {n} 張標籤。",
     receiveTitle: "進貨並列印標籤",
+    autoSku: "留空：自動產生編號 {sku}。也可選擇既有編號再進貨。",
+    receivedAt: "進貨日期時間",
     receiveHelp:
       "每件商品有獨立條碼（SKU-000001…），標籤印有售價與條碼。進貨同時記入進貨帳並重算平均成本。",
     qty: "數量",

@@ -95,3 +95,12 @@ describe("label options", () => {
     expect(normalise({ copies: 7, barHeight: 999 as 48 }).barHeight).toBe(64);
   });
 });
+
+describe("nextSku", () => {
+  it("continues after the highest used number and ignores other codes", async () => {
+    const { nextSku } = await import("./stats");
+    expect(nextSku([])).toBe("SP0001");
+    expect(nextSku(["SP0001", "sp0007", "A12", "SP-3"])).toBe("SP0008");
+    expect(nextSku(["SP9999"])).toBe("SP10000");
+  });
+});
