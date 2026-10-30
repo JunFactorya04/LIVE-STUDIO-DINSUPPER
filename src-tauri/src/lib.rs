@@ -3,6 +3,7 @@
 
 mod ai;
 mod commands;
+mod data;
 mod db;
 mod euler;
 mod live;
@@ -71,6 +72,12 @@ pub fn run() {
             commands::overlay_info,
             commands::euler_connect,
             commands::euler_disconnect,
+            commands::report_sessions,
+            commands::audit_list,
+            commands::data_export,
+            commands::data_backup,
+            commands::data_purge_older,
+            commands::data_delete_all,
         ])
         .run(tauri::generate_context!())
         .expect("error while running LIVE STUDIO");

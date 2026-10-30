@@ -8,17 +8,17 @@ Kế hoạch và quyết định kiến trúc: [`docs/IMPLEMENTATION_PLAN_TIKTOK
 
 ## Trạng thái
 
-| Phase | Nội dung                                                               | Trạng thái                          |
-| ----- | ---------------------------------------------------------------------- | ----------------------------------- |
-| 0     | Khảo sát repo, kế hoạch                                                | Xong                                |
-| 1     | Giao diện Live Setup/Console + Demo provider                           | **Xong**                            |
-| 2a    | SQLite, dán chat thủ công, khôi phục, khóa API                         | **Xong**                            |
-| 2b    | Catalog SKU + đọc đơn bằng luật                                        | **Xong**                            |
-| 3a    | Lớp AI nhiều hãng (OpenAI/Claude/Gemini/DeepSeek), khóa của người dùng | **Xong**                            |
-| 3b    | AI phân loại ý định                                                    | Chưa                                |
-| 4     | Gợi ý trả lời + overlay                                                | Chưa                                |
-| 5     | Provider live thật                                                     | Chờ xác minh nguồn bình luận hợp lệ |
-| 6     | Hardening                                                              | Chưa                                |
+| Phase | Nội dung                                                               | Trạng thái                           |
+| ----- | ---------------------------------------------------------------------- | ------------------------------------ |
+| 0     | Khảo sát repo, kế hoạch                                                | Xong                                 |
+| 1     | Giao diện Live Setup/Console + Demo provider                           | **Xong**                             |
+| 2a    | SQLite, dán chat thủ công, khôi phục, khóa API                         | **Xong**                             |
+| 2b    | Catalog SKU + đọc đơn bằng luật                                        | **Xong**                             |
+| 3a    | Lớp AI nhiều hãng (OpenAI/Claude/Gemini/DeepSeek), khóa của người dùng | **Xong**                             |
+| 3b    | AI phân loại ý định                                                    | **Xong**                             |
+| 4a/4b | Gợi ý trả lời (người bán duyệt) + overlay Browser Source               | **Xong**                             |
+| 5     | Provider live thật                                                     | Chờ xác minh nguồn bình luận hợp lệ  |
+| 6     | Hardening: báo cáo, xuất, thời hạn lưu, sao lưu, xóa, nhật ký          | **Xong** (phần không cần nguồn live) |
 
 **TikTok không có API chính thức để đọc bình luận LIVE.** App có ba cách lấy bình luận:
 
@@ -37,6 +37,8 @@ không có khóa, ở trình duyệt thường, hoặc khi mất kết nối th�
 danh mục, nhiều mã trong một bình luận hoặc số lượng bất thường đều thành **待確認** kèm lý do, và không thể xác nhận
 trực tiếp. App không tự tạo đơn, không tự trả lời, không bao giờ tự điền tên/số điện thoại/địa chỉ; người bán bấm Xác nhận
 hoặc Hủy cho từng đơn.
+
+**Báo cáo và dữ liệu (Phase 6):** trang "Báo cáo phiên" cho xem số liệu từng phiên, xuất JSON/CSV vào thư mục Tải xuống, đặt thời hạn lưu (mặc định 90 ngày), sao lưu cơ sở dữ liệu, xóa một phiên hoặc toàn bộ, và xem nhật ký thao tác (chỉ mã và số lượng, không có bình luận hay khóa).
 
 Dữ liệu được lưu trong SQLite trên máy (`live-studio.db` ở thư mục dữ liệu của app) và tự nạp lại khi mở app.
 Khóa API (ChatGPT/OpenAI, Claude, Gemini, DeepSeek, Euler Stream) do người dùng tự nhập ở **Cài đặt**, lưu trong Keychain / Credential
@@ -100,11 +102,12 @@ src/
                 nhập CSV (catalogCsv.ts), OrderRepository (SQLite/bộ nhớ)
   ai/           cấu hình hãng AI + client gọi AI qua Rust (AiClient)
   secrets/      client khóa API (chỉ ghi / kiểm tra có chưa / xóa, không đọc lại)
-  pages/        Live Setup, Live Console, Đơn hàng (đơn nháp + danh mục), Cài đặt, trang giữ chỗ cho phase sau
+  report/       client báo cáo/xuất/xóa/sao lưu + thời hạn lưu (retention.ts)
+  pages/        Live Setup, Live Console, Đơn hàng (đơn nháp + danh mục), Gợi ý trả lời, Overlay, Báo cáo phiên, Cài đặt
   components/   vỏ ứng dụng, icon, StatusChip, trạng thái trống/tải/lỗi
   i18n/         zh-TW.ts (khóa gốc), vi.ts, bộ chọn ngôn ngữ
   theme/        tokens.css (token Apple), base.css (khung), live.css (màn Live)
-src-tauri/      backend Rust: db.rs (SQLite + migration), live.rs, orders.rs (danh mục + đơn nháp), replies.rs, overlay.rs (máy chủ overlay 127.0.0.1), ai.rs (gọi AI nhiều hãng), secrets.rs (keyring), euler.rs (WebSocket Euler Stream), commands.rs
+src-tauri/      backend Rust: db.rs (SQLite + migration), live.rs, orders.rs (danh mục + đơn nháp), replies.rs, data.rs (nhật ký, xuất, thời hạn lưu, sao lưu), overlay.rs (máy chủ overlay 127.0.0.1), ai.rs (gọi AI nhiều hãng), secrets.rs (keyring), euler.rs (WebSocket Euler Stream), commands.rs
 docs/           yêu cầu, kế hoạch, hướng dẫn cài đặt đồng bộ Windows/Mac
 ```
 

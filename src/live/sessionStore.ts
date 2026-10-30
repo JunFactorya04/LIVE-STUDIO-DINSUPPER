@@ -540,6 +540,22 @@ export class LiveSessionStore {
     this.persist(() => this.repo.deleteComments(sessionId));
   }
 
+  /**
+   * The stored data of the current session (or all of it) was deleted elsewhere: stop the source
+   * and return to an empty session so nothing refers to rows that no longer exist.
+   */
+  async forgetSession(options: { catalog?: boolean } = {}): Promise<void> {
+    await this.teardownProvider();
+    await this.flush();
+    this.seen.clear();
+    const fresh = this.freshSnapshot();
+    this.set({
+      ...fresh,
+      form: this.snapshot.form,
+      catalog: options.catalog ? [] : this.snapshot.catalog,
+    });
+  }
+
   async dispose(): Promise<void> {
     await this.teardownProvider();
     await this.flush();

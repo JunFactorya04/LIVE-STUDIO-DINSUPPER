@@ -8,6 +8,7 @@ import { ConsolePage } from "./pages/ConsolePage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { OverlayPage } from "./pages/OverlayPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
+import { ReportPage } from "./pages/ReportPage";
 import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SetupPage } from "./pages/SetupPage";
@@ -48,6 +49,8 @@ function PageBody({ id, onStarted }: { id: PageId; onStarted: () => void }) {
       return <OverlayPage />;
     case "orders":
       return <OrdersPage />;
+    case "report":
+      return <ReportPage />;
     case "settings":
       return <SettingsPage />;
     default:

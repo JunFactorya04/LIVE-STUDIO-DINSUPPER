@@ -95,6 +95,15 @@ CREATE TABLE live_reply_suggestions (
 CREATE INDEX ix_reply_suggestions_session ON live_reply_suggestions(session_id, created_at);
 ";
 
+const MIGRATION_4: &str = "
+CREATE TABLE audit_log (
+    id     INTEGER PRIMARY KEY AUTOINCREMENT,
+    at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    action TEXT NOT NULL,
+    detail TEXT NOT NULL DEFAULT ''
+);
+";
+
 fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -118,6 +127,11 @@ pub fn migrate(conn: &Connection) -> Result<()> {
     if version < 3 {
         conn.execute_batch(&format!(
             "BEGIN;{MIGRATION_3}PRAGMA user_version = 3;COMMIT;"
+        ))?;
+    }
+    if version < 4 {
+        conn.execute_batch(&format!(
+            "BEGIN;{MIGRATION_4}PRAGMA user_version = 4;COMMIT;"
         ))?;
     }
     Ok(())
@@ -150,7 +164,7 @@ mod tests {
         let v: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 3);
+        assert_eq!(v, 4);
     }
 
     #[test]

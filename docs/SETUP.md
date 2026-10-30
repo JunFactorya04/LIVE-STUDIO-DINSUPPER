@@ -55,6 +55,18 @@ Có hai cách để có file chạy luôn, không cần mở terminal:
 
 `LIVE-STUDIO.exe` cần WebView2 (Windows 10/11 đã có sẵn). Windows SmartScreen có thể cảnh báo "unknown publisher" vì file chưa ký số: bấm **More info → Run anyway**. Ký số cần chứng chỉ code signing, chưa có.
 
+## 2d. Xử lý sự cố thường gặp
+
+| Hiện tượng | Nguyên nhân và cách xử lý |
+| --- | --- |
+| GitHub Actions báo "account is locked due to a billing issue", job thất bại sau vài giây | Tài khoản GitHub bị khóa vì thanh toán, không phải lỗi code. Vào Settings → Billing and plans xử lý, rồi Actions → Re-run all jobs. Trong lúc chờ vẫn chạy được bằng file `Chay-LIVE-STUDIO` hoặc `Build-LIVE-STUDIO-WINDOWS.bat`. |
+| Báo cáo, xuất, sao lưu, xóa nói "chỉ dùng được trong app desktop" | Đang mở bằng `npm run dev` trên trình duyệt. Dùng `npm run tauri:dev` hoặc file .exe/.app. |
+| Không lưu được khóa API | Keychain (Mac) hoặc Credential Manager (Windows) bị khóa hoặc bị chặn; mở khóa rồi thử lại. App không ghi khóa ra file. |
+| AI báo AUTH / QUOTA / RATE_LIMIT / TIMEOUT | Khóa sai, hết hạn mức, gọi quá nhanh, hoặc mạng chậm. Xem Cài đặt → AI → Kiểm tra kết nối. Tên model mặc định chưa được kiểm chứng; có thể đổi ở ô Model. |
+| Overlay không hiện trong phần mềm phát | Dán đúng địa chỉ ở trang Overlay vào Browser Source; cổng 17891 bị chiếm thì app dùng cổng kế tiếp và địa chỉ trên trang sẽ đổi. |
+| Không thấy file xuất | Nằm trong thư mục Tải xuống (đường dẫn hiện ngay sau khi xuất). Nếu không có thư mục này app dùng thư mục dữ liệu của app. |
+| Windows SmartScreen cảnh báo | File chưa ký số: More info → Run anyway. |
+
 ## 3. Quy trình làm việc hằng ngày
 
 Trước khi bắt đầu code, lấy bản mới nhất:

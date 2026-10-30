@@ -23,9 +23,22 @@ fn db<'a>(s: &'a State<'_, DbState>) -> Result<std::sync::MutexGuard<'a, Connect
     s.0.lock().map_err(|_| "database lock poisoned".to_string())
 }
 
+/// Best-effort audit entry: it records codes only, and a failure never blocks the action.
+fn log(state: &State<'_, DbState>, action: &str, detail: &str) {
+    if let Ok(conn) = state.0.lock() {
+        let _ = crate::data::audit(&conn, action, detail);
+    }
+}
+
 #[tauri::command]
 pub fn live_create_session(state: State<'_, DbState>, session: NewSession) -> Result<(), String> {
-    live::create_session(&*db(&state)?, &session).map_err(err)
+    live::create_session(&*db(&state)?, &session).map_err(err)?;
+    log(
+        &state,
+        "SESSION_START",
+        &format!("provider={}", session.provider_type),
+    );
+    Ok(())
 }
 
 #[tauri::command]
@@ -69,7 +82,9 @@ pub fn live_delete_comments(
 
 #[tauri::command]
 pub fn live_delete_session(state: State<'_, DbState>, session_id: String) -> Result<usize, String> {
-    live::delete_session(&*db(&state)?, &session_id).map_err(err)
+    let n = live::delete_session(&*db(&state)?, &session_id).map_err(err)?;
+    log(&state, "SESSION_DELETE", &format!("rows={n}"));
+    Ok(n)
 }
 
 // Secrets: write, check, remove. There is intentionally no command that returns a key.
@@ -77,10 +92,14 @@ pub fn live_delete_session(state: State<'_, DbState>, session_id: String) -> Res
 #[tauri::command]
 pub fn secret_set(
     state: State<'_, SecretState>,
+    dbs: State<'_, DbState>,
     slot: String,
     value: String,
 ) -> Result<(), String> {
-    secrets::set_secret(state.0.as_ref(), &slot, &value)
+    secrets::set_secret(state.0.as_ref(), &slot, &value)?;
+    // Only the slot name is logged, never the value.
+    log(&dbs, "SECRET_SET", &format!("slot={slot}"));
+    Ok(())
 }
 
 #[tauri::command]
@@ -89,8 +108,14 @@ pub fn secret_exists(state: State<'_, SecretState>, slot: String) -> Result<bool
 }
 
 #[tauri::command]
-pub fn secret_remove(state: State<'_, SecretState>, slot: String) -> Result<(), String> {
-    secrets::remove_secret(state.0.as_ref(), &slot)
+pub fn secret_remove(
+    state: State<'_, SecretState>,
+    dbs: State<'_, DbState>,
+    slot: String,
+) -> Result<(), String> {
+    secrets::remove_secret(state.0.as_ref(), &slot)?;
+    log(&dbs, "SECRET_REMOVE", &format!("slot={slot}"));
+    Ok(())
 }
 
 // ---- Euler Stream comment source (unofficial third-party service) ----
@@ -135,10 +160,12 @@ pub fn euler_connect(
     app: AppHandle,
     secrets: State<'_, SecretState>,
     euler: State<'_, EulerState>,
+    dbs: State<'_, DbState>,
     session_id: String,
     unique_id: String,
 ) -> Result<(), String> {
     stop_euler(&euler);
+    log(&dbs, "EULER_CONNECT", "");
 
     let Some(unique_id) = euler::normalize_unique_id(&unique_id) else {
         emit_euler(
@@ -185,8 +212,9 @@ pub fn euler_connect(
 }
 
 #[tauri::command]
-pub fn euler_disconnect(euler: State<'_, EulerState>) {
+pub fn euler_disconnect(euler: State<'_, EulerState>, dbs: State<'_, DbState>) {
     stop_euler(&euler);
+    log(&dbs, "EULER_DISCONNECT", "");
 }
 
 // ---- Catalog and order drafts ----
@@ -228,7 +256,15 @@ pub fn order_set_status(
     status: String,
     now: String,
 ) -> Result<bool, String> {
-    orders::order_set_status(&*db(&state)?, &id, &status, &now).map_err(err)
+    let changed = orders::order_set_status(&*db(&state)?, &id, &status, &now).map_err(err)?;
+    if changed {
+        match status.as_str() {
+            "CONFIRMED" => log(&state, "ORDER_CONFIRMED", ""),
+            "CANCELLED" => log(&state, "ORDER_CANCELLED", ""),
+            _ => {}
+        }
+    }
+    Ok(changed)
 }
 
 // ---- AI providers (the seller's own key, read from the keychain here in Rust) ----
@@ -255,13 +291,14 @@ pub fn ai_providers() -> Vec<AiProviderInfo> {
 #[tauri::command]
 pub async fn ai_complete(
     state: State<'_, SecretState>,
+    dbs: State<'_, DbState>,
     provider: String,
     model: Option<String>,
     system: String,
     prompt: String,
     max_tokens: Option<u32>,
 ) -> Result<String, String> {
-    crate::ai::complete(
+    let result = crate::ai::complete(
         &*state.0,
         &provider,
         model.as_deref(),
@@ -270,8 +307,17 @@ pub async fn ai_complete(
         max_tokens.unwrap_or(256),
         None,
     )
-    .await
-    .map_err(|e| e.code().to_string())
+    .await;
+    // Provider and outcome only: the prompt, the answer and the key are never logged.
+    match &result {
+        Ok(_) => log(&dbs, "AI_CALL_OK", &format!("provider={provider}")),
+        Err(e) => log(
+            &dbs,
+            "AI_CALL_ERROR",
+            &format!("provider={provider} code={}", e.code()),
+        ),
+    }
+    result.map_err(|e| e.code().to_string())
 }
 
 #[tauri::command]
@@ -305,7 +351,17 @@ pub fn reply_update(
     status: Option<String>,
     now: String,
 ) -> Result<bool, String> {
-    replies::reply_update(&*db(&state)?, &id, text.as_deref(), status.as_deref(), &now).map_err(err)
+    let changed =
+        replies::reply_update(&*db(&state)?, &id, text.as_deref(), status.as_deref(), &now)
+            .map_err(err)?;
+    if changed {
+        match status.as_deref() {
+            Some("COPIED") => log(&state, "REPLY_COPIED", ""),
+            Some("REJECTED") => log(&state, "REPLY_REJECTED", ""),
+            _ => {}
+        }
+    }
+    Ok(changed)
 }
 
 // ---- Overlay (local Browser Source page; shows only what the seller pushes here) ----
@@ -341,4 +397,113 @@ pub fn overlay_info(state: State<'_, OverlayState>) -> OverlayInfo {
     OverlayInfo {
         url: port.map(|p| format!("http://127.0.0.1:{p}/overlay/live-product")),
     }
+}
+
+// ---- Hardening: report, export, retention, backup, wipe ----
+
+use crate::data::{self, AuditDto, SessionSummary};
+use tauri::Manager;
+
+#[tauri::command]
+pub fn report_sessions(state: State<'_, DbState>) -> Result<Vec<SessionSummary>, String> {
+    data::session_summaries(&*db(&state)?).map_err(err)
+}
+
+#[tauri::command]
+pub fn audit_list(state: State<'_, DbState>, limit: usize) -> Result<Vec<AuditDto>, String> {
+    data::audit_list(&*db(&state)?, limit).map_err(err)
+}
+
+/// Where exports and backups go: the user's Downloads folder, else the app data folder.
+fn out_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    let dir = app
+        .path()
+        .download_dir()
+        .or_else(|_| app.path().app_data_dir())
+        .map_err(err)?;
+    std::fs::create_dir_all(&dir).map_err(err)?;
+    Ok(dir)
+}
+
+fn stamp() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+/// Safe short piece of a session id for a file name.
+fn short_id(id: &str) -> String {
+    id.chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .take(8)
+        .collect()
+}
+
+/// Write a session export (`json` = everything, `orders_csv` = orders only). Returns the path.
+#[tauri::command]
+pub fn data_export(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    session_id: String,
+    format: String,
+) -> Result<String, String> {
+    let (body, ext, tag) = {
+        let conn = db(&state)?;
+        match format.as_str() {
+            "json" => (
+                data::export_json(&conn, &session_id).map_err(err)?,
+                "json",
+                "session",
+            ),
+            "orders_csv" => (
+                data::export_orders_csv(&conn, &session_id).map_err(err)?,
+                "csv",
+                "orders",
+            ),
+            _ => return Err("BAD_FORMAT".into()),
+        }
+    };
+    let path = out_dir(&app)?.join(format!(
+        "live-studio-{tag}-{}-{}.{ext}",
+        short_id(&session_id),
+        stamp()
+    ));
+    std::fs::write(&path, body).map_err(err)?;
+    log(&state, "EXPORT", &format!("format={format}"));
+    Ok(path.display().to_string())
+}
+
+/// Copy the whole database to a new file in Downloads. The copy holds comments and usernames.
+#[tauri::command]
+pub fn data_backup(app: AppHandle, state: State<'_, DbState>) -> Result<String, String> {
+    let path = out_dir(&app)?.join(format!("live-studio-backup-{}.db", stamp()));
+    data::backup_to(&*db(&state)?, &path).map_err(err)?;
+    log(&state, "BACKUP", "");
+    Ok(path.display().to_string())
+}
+
+/// Delete sessions older than `days` (0 = keep forever). Returns how many were removed.
+#[tauri::command]
+pub fn data_purge_older(state: State<'_, DbState>, days: u32) -> Result<usize, String> {
+    let n = data::purge_older_than(&*db(&state)?, days).map_err(err)?;
+    if n > 0 {
+        log(
+            &state,
+            "RETENTION_PURGE",
+            &format!("days={days} sessions={n}"),
+        );
+    }
+    Ok(n)
+}
+
+#[tauri::command]
+pub fn data_delete_all(state: State<'_, DbState>, include_catalog: bool) -> Result<usize, String> {
+    let n = data::delete_all(&*db(&state)?, include_catalog).map_err(err)?;
+    log(
+        &state,
+        "DELETE_ALL",
+        &format!("sessions={n} catalog={include_catalog}"),
+    );
+    Ok(n)
 }
