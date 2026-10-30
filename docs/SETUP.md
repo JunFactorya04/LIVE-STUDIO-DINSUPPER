@@ -46,6 +46,15 @@ Mac: nếu nhấp đúp không chạy, mở Terminal một lần: `chmod +x Chay
 
 Muốn tạo bộ cài để cài như app thường: `npm run tauri:build` (kết quả trong `src-tauri/target/release/bundle`).
 
+## 2c. File .exe cho Windows
+
+Có hai cách để có file chạy luôn, không cần mở terminal:
+
+1. **Tải từ GitHub (không cần cài gì):** trên GitHub vào tab **Actions**, chọn lần chạy "Build" mới nhất, mục **Artifacts** tải `LIVE-STUDIO-windows-exe`. Trong đó có `LIVE-STUDIO.exe` (nhấp đúp là chạy) và `LIVE STUDIO_..._x64-setup.exe` (bộ cài, cài cho người dùng hiện tại, không cần quyền admin). Muốn có trang tải cố định: tạo tag `v0.1.0` (`git tag v0.1.0 && git push origin v0.1.0`), hai file này sẽ nằm ở **Releases**.
+2. **Tự tạo trên máy Windows:** nhấp đúp `Build-LIVE-STUDIO-WINDOWS.bat` (cần Node, Rust và Microsoft C++ Build Tools). Lần đầu 10–20 phút; kết quả trong thư mục `release-exe`.
+
+`LIVE-STUDIO.exe` cần WebView2 (Windows 10/11 đã có sẵn). Windows SmartScreen có thể cảnh báo "unknown publisher" vì file chưa ký số: bấm **More info → Run anyway**. Ký số cần chứng chỉ code signing, chưa có.
+
 ## 3. Quy trình làm việc hằng ngày
 
 Trước khi bắt đầu code, lấy bản mới nhất:

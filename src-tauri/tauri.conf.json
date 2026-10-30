@@ -41,6 +41,14 @@
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "TradChinese",
+          "English"
+        ],
+        "displayLanguageSelector": true
       }
     },
     "icon": [
