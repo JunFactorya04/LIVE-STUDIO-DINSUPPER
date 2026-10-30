@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import {
   createBizClient,
   type BizClient,
+  EXPENSE_CATEGORIES,
+  EXPENSE_PRESETS,
   type Expense,
+  type ExpenseCategory,
   type ExpenseKind,
   type Purchase,
   type StockItem,
@@ -233,6 +236,7 @@ export function InventoryPage({ client }: { client?: BizClient }) {
                   <thead>
                     <tr>
                       <th scope="col">{v.name}</th>
+                      <th scope="col">{v.category}</th>
                       <th scope="col">{v.kind}</th>
                       <th scope="col">{v.amount}</th>
                       <th scope="col">{v.date}</th>
@@ -243,11 +247,12 @@ export function InventoryPage({ client }: { client?: BizClient }) {
                     {expenses.map((e) => (
                       <tr key={e.id} className={e.active ? "" : "is-off"}>
                         <th scope="row">{e.name}</th>
-                        <td>{e.kind === "FIXED" ? v.kinds.FIXED : v.kinds.ONCE}</td>
-                        <td>{money(e.amount)}</td>
+                        <td>{v.categories[e.category] ?? e.category}</td>
+                        <td>{v.kinds[e.kind]}</td>
+                        <td>{e.kind === "PERCENT" ? `${e.amount / 100}%` : money(e.amount)}</td>
                         <td>{e.at}</td>
                         <td>
-                          {e.kind === "FIXED" && (
+                          {e.kind !== "ONCE" && (
                             <button
                               type="button"
                               className="btn"
@@ -490,21 +495,55 @@ function ExpenseForm({ onSave }: { onSave: (e: Expense) => Promise<void> }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [kind, setKind] = useState<ExpenseKind>("FIXED");
+  const [category, setCategory] = useState<ExpenseCategory>("OTHER");
   const [at, setAt] = useState(today);
   const [err, setErr] = useState(false);
+  const preset = (key: string, cat: ExpenseCategory, k: ExpenseKind) => {
+    setName(v.presets[key as keyof typeof v.presets]);
+    setCategory(cat);
+    setKind(k);
+  };
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    const a = num(amount);
-    if (!name.trim() || Number.isNaN(a) || a < 0 || !/^\d{4}-\d{2}-\d{2}$/.test(at))
+    // A share of sales is typed as a percent (2.5) and stored in basis points (250).
+    const a =
+      kind === "PERCENT"
+        ? /^\d{1,3}([.,]\d{1,2})?$/.test(amount.trim())
+          ? Math.round(Number(amount.trim().replace(",", ".")) * 100)
+          : NaN
+        : num(amount);
+    const max = kind === "PERCENT" ? 10_000 : Infinity;
+    if (!name.trim() || Number.isNaN(a) || a < 0 || a > max || !/^\d{4}-\d{2}-\d{2}$/.test(at))
       return setErr(true);
     setErr(false);
-    await onSave({ id: newId("ex"), name: name.trim(), amount: a, kind, at, active: true });
+    await onSave({
+      id: newId("ex"),
+      name: name.trim(),
+      amount: a,
+      kind,
+      category,
+      at,
+      active: true,
+    });
     setName("");
     setAmount("");
   };
   return (
     <form className="box inv__form" onSubmit={(e) => void submit(e)} noValidate>
       <h2 className="section-title">{v.addExpense}</h2>
+      <p className="caption">{v.presetsHelp}</p>
+      <div className="chips" role="group" aria-label={v.presetsTitle}>
+        {EXPENSE_PRESETS.map((x) => (
+          <button
+            key={x.key}
+            type="button"
+            className="btn btn--chip"
+            onClick={() => preset(x.key, x.category, x.kind)}
+          >
+            {v.presets[x.key as keyof typeof v.presets]}
+          </button>
+        ))}
+      </div>
       <div className="inv__grid">
         <label className="field">
           {v.name}
@@ -516,13 +555,18 @@ function ExpenseForm({ onSave }: { onSave: (e: Expense) => Promise<void> }) {
           />
         </label>
         <label className="field">
-          {v.amount}
-          <input
+          {v.category}
+          <select
             className="input"
-            inputMode="numeric"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
+            value={category}
+            onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
+          >
+            {EXPENSE_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {v.categories[c]}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="field">
           {v.kind}
@@ -533,13 +577,24 @@ function ExpenseForm({ onSave }: { onSave: (e: Expense) => Promise<void> }) {
           >
             <option value="FIXED">{v.kinds.FIXED}</option>
             <option value="ONCE">{v.kinds.ONCE}</option>
+            <option value="PERCENT">{v.kinds.PERCENT}</option>
           </select>
         </label>
         <label className="field">
-          {kind === "FIXED" ? v.startFrom : v.date}
+          {kind === "PERCENT" ? v.percent : v.amount}
+          <input
+            className="input"
+            inputMode={kind === "PERCENT" ? "decimal" : "numeric"}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          {kind === "ONCE" ? v.date : v.startFrom}
           <input className="input" type="date" value={at} onChange={(e) => setAt(e.target.value)} />
         </label>
       </div>
+      {kind === "PERCENT" && <p className="caption">{v.percentHint}</p>}
       {err && (
         <p className="note note--error" role="alert">
           {v.errors.number}

@@ -6,7 +6,7 @@ import type { Expense, Purchase, StockItem } from "./client";
 // units x the unit cost saved with each order; a monthly expense is spread over the days of its
 // month, so a day, a week and a month all add up to the same thing.
 //   gross profit = revenue - cost of goods
-//   net income   = gross profit - expenses          (what the business really earned)
+//   net income   = gross profit - expenses (monthly, one-off and share-of-sales)          (what the business really earned)
 //   cash flow    = revenue - purchases - expenses   (money in minus money out)
 
 export interface PnlBucket extends Bucket {
@@ -14,6 +14,10 @@ export interface PnlBucket extends Bucket {
   grossProfit: number;
   fixedCosts: number;
   oneOffCosts: number;
+  /** Costs that are a share of sales (platform fee, payment fee, tax...). */
+  shareCosts: number;
+  /** All expenses of the bucket by group (RENT, ADS...). */
+  byCategory: Record<string, number>;
   purchases: number;
   netIncome: number;
   cashFlow: number;
@@ -33,6 +37,11 @@ export function fixedPerDay(expenses: readonly Expense[], d: Date): number {
   return expenses
     .filter((e) => e.kind === "FIXED" && e.active && e.at.slice(0, 7) <= k.slice(0, 7))
     .reduce((n, e) => n + e.amount / dim, 0);
+}
+
+/** Share of sales (basis points) that applies on day `key` (yyyy-mm-dd). */
+export function sharePerDay(expenses: readonly Expense[], key: string): Expense[] {
+  return expenses.filter((e) => e.kind === "PERCENT" && e.active && e.at.slice(0, 10) <= key);
 }
 
 export function buildPnl(
@@ -57,13 +66,37 @@ export function buildPnl(
     for (let d = new Date(b.start); d < end; d.setDate(d.getDate() + 1)) {
       fixed += fixedPerDay(expenses, d);
     }
-    const once = expenses
-      .filter((e) => e.kind === "ONCE" && e.active && inRange(e.at.slice(0, 10)))
-      .reduce((n, e) => n + e.amount, 0);
+    const onceItems = expenses.filter(
+      (e) => e.kind === "ONCE" && e.active && inRange(e.at.slice(0, 10)),
+    );
+    const once = onceItems.reduce((n, e) => n + e.amount, 0);
+    // Share-of-sales costs apply to each order from the day the item starts.
+    const byCategory: Record<string, number> = {};
+    const add = (cat: string, v: number) => {
+      byCategory[cat] = (byCategory[cat] ?? 0) + v;
+    };
+    let share = 0;
+    for (const o of inBucket) {
+      for (const e of sharePerDay(expenses, dayKey(new Date(o.createdAt)))) {
+        const v = (o.amount * e.amount) / 10_000;
+        share += v;
+        add(e.category, v);
+      }
+    }
+    for (const e of onceItems) add(e.category, e.amount);
     const bought = purchases
       .filter((p) => inRange(p.at))
       .reduce((n, p) => n + p.qty * p.unitCost, 0);
     const fixedCosts = Math.round(fixed);
+    const shareCosts = Math.round(share);
+    for (let d = new Date(b.start); d < end; d.setDate(d.getDate() + 1)) {
+      for (const e of expenses) {
+        if (e.kind === "FIXED" && e.active && e.at.slice(0, 7) <= dayKey(d).slice(0, 7)) {
+          add(e.category, e.amount / daysInMonth(d));
+        }
+      }
+    }
+    for (const k of Object.keys(byCategory)) byCategory[k] = Math.round(byCategory[k]);
     const grossProfit = b.revenue - cogs;
     return {
       ...b,
@@ -71,9 +104,11 @@ export function buildPnl(
       grossProfit,
       fixedCosts,
       oneOffCosts: once,
+      shareCosts,
+      byCategory,
       purchases: bought,
-      netIncome: grossProfit - fixedCosts - once,
-      cashFlow: b.revenue - bought - fixedCosts - once,
+      netIncome: grossProfit - fixedCosts - once - shareCosts,
+      cashFlow: b.revenue - bought - fixedCosts - once - shareCosts,
       tracked: inBucket.filter((o) => o.sku).length,
     };
   });
@@ -84,6 +119,11 @@ export function buildPnl(
     grossProfit: sum((b) => b.grossProfit),
     fixedCosts: sum((b) => b.fixedCosts),
     oneOffCosts: sum((b) => b.oneOffCosts),
+    shareCosts: sum((b) => b.shareCosts),
+    byCategory: buckets.reduce<Record<string, number>>((m, b) => {
+      for (const [k, v] of Object.entries(b.byCategory)) m[k] = (m[k] ?? 0) + v;
+      return m;
+    }, {}),
     purchases: sum((b) => b.purchases),
     netIncome: sum((b) => b.netIncome),
     cashFlow: sum((b) => b.cashFlow),

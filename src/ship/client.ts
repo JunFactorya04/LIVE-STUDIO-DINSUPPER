@@ -27,6 +27,18 @@ export interface ShipOrder {
   qty: number;
   /** Cost per unit when the order was saved (computed by the backend). */
   unitCost: number;
+  /** Waybill made through a carrier's API; empty until then (set by the backend only). */
+  carrier?: string;
+  tradeNo?: string;
+  tracking?: string;
+}
+
+export interface WaybillResult {
+  ok: boolean;
+  logisticsId: string;
+  paymentNo: string;
+  validationNo: string;
+  message: string;
 }
 
 export interface ShipCustomer {
@@ -63,6 +75,8 @@ export interface ShipClient {
   saveOrder(order: ShipOrder, remember: boolean): Promise<ShipOrder>;
   deleteOrder(id: string): Promise<void>;
   setExported(ids: string[], exported: boolean): Promise<void>;
+  /** Make the order's convenience-store waybill at ECPay (test or real environment). */
+  createWaybill(order: ShipOrder, stage: boolean): Promise<WaybillResult>;
   customers(): Promise<ShipCustomer[]>;
   saveCustomer(c: ShipCustomer): Promise<ShipCustomer>;
   deleteCustomer(tiktokId: string): Promise<void>;
@@ -97,6 +111,24 @@ class TauriShipClient implements ShipClient {
   }
   async setExported(ids: string[], exported: boolean) {
     await this.call<number>("ship_order_exported", { ids, exported });
+  }
+  createWaybill(order: ShipOrder, stage: boolean) {
+    return this.call<WaybillResult>("ecpay_create", {
+      stage,
+      orderId: order.id,
+      waybill: {
+        // Same order, same number: a second click cannot create a second waybill.
+        tradeNo: `LS${order.id.replace(/[^A-Za-z0-9]/g, "").slice(-14)}`,
+        subType: "UNIMARTC2C",
+        amount: order.amount,
+        collection: order.cod,
+        cod: true,
+        goods: order.product,
+        receiverName: order.recipientName,
+        receiverPhone: order.phone,
+        storeId: order.storeCode,
+      },
+    });
   }
   customers() {
     return this.call<ShipCustomer[]>("ship_customers");
@@ -139,6 +171,7 @@ class UnavailableShipClient implements ShipClient {
   orders = () => this.no();
   saveOrder = () => this.no();
   deleteOrder = () => this.no();
+  createWaybill = () => this.no();
   setExported = () => this.no();
   customers = () => this.no();
   saveCustomer = () => this.no();

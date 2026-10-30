@@ -39,6 +39,8 @@ pub const AUDIT_ACTIONS: &[&str] = &[
     "SHARE_STOP",
     "BIZ_SAVED",
     "BIZ_DELETED",
+    "WAYBILL_CREATED",
+    "WAYBILL_FAILED",
 ];
 
 fn bad(msg: &str) -> rusqlite::Error {

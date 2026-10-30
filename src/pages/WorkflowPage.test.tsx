@@ -17,6 +17,7 @@ function fake(over: Partial<ShipClient> = {}): ShipClient {
     orders: async () => [],
     saveOrder: vi.fn(),
     deleteOrder: vi.fn(),
+    createWaybill: vi.fn(),
     setExported: vi.fn(),
     customers: async () => [
       {

@@ -28,6 +28,7 @@ const fixed = (amount: number, at = "2026-01-01", active = true): Expense => ({
   name: "Thuê kho",
   amount,
   kind: "FIXED",
+  category: "RENT",
   at,
   active,
 });
@@ -40,6 +41,7 @@ describe("buildPnl", () => {
       name: "Quảng cáo",
       amount: 100,
       kind: "ONCE",
+      category: "ADS",
       at: "2026-10-30",
       active: true,
     };
@@ -98,5 +100,35 @@ describe("stock and sellers", () => {
   it("margin", () => {
     expect(marginPct(200, 150)).toBe(25);
     expect(marginPct(undefined, 10)).toBeUndefined();
+  });
+
+  it("takes a share of each order for percent costs and groups every cost", () => {
+    const pct: Expense = {
+      id: "p",
+      name: "Phí sàn",
+      amount: 250, // 2.50%
+      kind: "PERCENT",
+      category: "PLATFORM",
+      at: "2026-01-01",
+      active: true,
+    };
+    const orders = [order(30, 1000, "A", 1, 200)];
+    const p = buildPnl(orders, [], [pct, fixed(3100)], "day", NOW);
+    expect(p.current.shareCosts).toBe(25);
+    expect(p.current.byCategory).toMatchObject({ PLATFORM: 25, RENT: 100 });
+    // gross 800, minus 100 monthly share and 25 percent cost
+    expect(p.current.netIncome).toBe(800 - 100 - 25);
+    // a paused item and one that starts later cost nothing
+    const none = buildPnl(
+      orders,
+      [],
+      [
+        { ...pct, active: false },
+        { ...pct, id: "q", at: "2027-01-01" },
+      ],
+      "day",
+      NOW,
+    );
+    expect(none.current.shareCosts).toBe(0);
   });
 });

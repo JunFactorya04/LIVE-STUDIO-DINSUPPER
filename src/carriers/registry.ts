@@ -15,7 +15,9 @@ export type CarrierField =
   | "customerId"
   | "token"
   | "account"
-  | "password";
+  | "password"
+  | "senderName"
+  | "senderPhone";
 
 /** Fields that hold secrets are written as password inputs and can never be read back. */
 export const SECRET_FIELDS: ReadonlySet<CarrierField> = new Set([
@@ -32,8 +34,14 @@ export interface Carrier {
   zh: string;
   /** Name in Vietnamese for the Vietnamese UI. */
   vi: string;
-  /** Two letters on the tile, used until the seller adds the official logo file. */
+  /** Letters on the tile when the carrier has no logo file in the app. */
   mark: string;
+  /** The carrier's own sign-in / seller console page (opened in the browser, never auto-filled). */
+  consoleUrl: string;
+  /** The carrier's own parcel-tracking page. */
+  trackUrl: string;
+  /** True when the app itself can call this carrier: check the keys, create a waybill, track. */
+  live: boolean;
   tone: "blue" | "green" | "orange" | "red" | "purple" | "teal" | "indigo";
   modes: CarrierMode[];
   fields: CarrierField[];
@@ -49,8 +57,11 @@ export const CARRIERS: Carrier[] = [
     mark: "EC",
     tone: "green",
     modes: ["api"],
-    fields: ["merchantId", "hashKey", "hashIv"],
+    fields: ["merchantId", "hashKey", "hashIv", "senderName", "senderPhone"],
     excel: false,
+    live: true,
+    consoleUrl: "https://vendor.ecpay.com.tw/",
+    trackUrl: "https://www.ecpay.com.tw/Service/Logistics_Tracking",
   },
   {
     id: "seven",
@@ -61,6 +72,9 @@ export const CARRIERS: Carrier[] = [
     modes: ["excel", "login"],
     fields: ["account", "password"],
     excel: true,
+    live: false,
+    consoleUrl: "https://myship.7-11.com.tw/",
+    trackUrl: "https://myship.7-11.com.tw/Home/Main",
   },
   {
     id: "family",
@@ -71,6 +85,9 @@ export const CARRIERS: Carrier[] = [
     modes: ["excel", "login"],
     fields: ["account", "password"],
     excel: false,
+    live: false,
+    consoleUrl: "https://myfamiport.family.com.tw/",
+    trackUrl: "https://www.famiport.com.tw/Web_Famiport/page/parcel_search.aspx",
   },
   {
     id: "shopee",
@@ -81,6 +98,9 @@ export const CARRIERS: Carrier[] = [
     modes: ["api"],
     fields: ["partnerId", "partnerKey", "shopId"],
     excel: false,
+    live: false,
+    consoleUrl: "https://seller.shopee.tw/",
+    trackUrl: "https://shopee.tw/",
   },
   {
     id: "tcat",
@@ -91,6 +111,9 @@ export const CARRIERS: Carrier[] = [
     modes: ["api"],
     fields: ["customerId", "token"],
     excel: false,
+    live: false,
+    consoleUrl: "https://www.t-cat.com.tw/",
+    trackUrl: "https://www.t-cat.com.tw/inquire/trace.aspx",
   },
   {
     id: "hct",
@@ -101,6 +124,9 @@ export const CARRIERS: Carrier[] = [
     modes: ["login", "api"],
     fields: ["customerId", "account", "password"],
     excel: false,
+    live: false,
+    consoleUrl: "https://www.hct.com.tw/",
+    trackUrl: "https://www.hct.com.tw/search/searchgoods_n.aspx",
   },
   {
     id: "post",
@@ -111,6 +137,9 @@ export const CARRIERS: Carrier[] = [
     modes: ["login"],
     fields: ["account", "password"],
     excel: false,
+    live: false,
+    consoleUrl: "https://www.post.gov.tw/",
+    trackUrl: "https://postserv.post.gov.tw/pstmail/main_mail.html",
   },
 ];
 

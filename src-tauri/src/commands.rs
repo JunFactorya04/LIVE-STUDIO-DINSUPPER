@@ -844,8 +844,54 @@ pub fn biz_expense_delete(state: State<'_, DbState>, id: String) -> Result<usize
     Ok(n)
 }
 
-/// Logo of a shipping carrier, downloaded from that carrier's official site (see logo.rs).
+// ---------- shipping carriers ----------
+
+/// Result of asking ECPay about the saved keys. `accepted` is true only on a real answer from ECPay.
 #[tauri::command]
-pub async fn carrier_logo(id: String) -> Result<String, String> {
-    crate::logo::fetch(&id).await
+pub async fn ecpay_check(
+    secrets: State<'_, SecretState>,
+    stage: bool,
+) -> Result<crate::ecpay::CheckResult, String> {
+    crate::ecpay::check(&*secrets.0, stage).await
+}
+
+/// Make a convenience-store waybill at ECPay and keep its numbers on the order.
+#[tauri::command]
+pub async fn ecpay_create(
+    secrets: State<'_, SecretState>,
+    state: State<'_, DbState>,
+    stage: bool,
+    order_id: String,
+    waybill: crate::ecpay::NewWaybill,
+) -> Result<crate::ecpay::Waybill, String> {
+    let trade_no = waybill.trade_no.clone();
+    let result = crate::ecpay::create(&*secrets.0, stage, &waybill).await?;
+    if result.ok {
+        let tracking = if result.payment_no.is_empty() {
+            result.logistics_id.clone()
+        } else {
+            format!("{}{}", result.payment_no, result.validation_no)
+        };
+        crate::ship::order_waybill(&*db(&state)?, &order_id, "ecpay", &trade_no, &tracking)
+            .map_err(err)?;
+        log(&state, "WAYBILL_CREATED", "carrier=ecpay");
+    } else {
+        log(&state, "WAYBILL_FAILED", "carrier=ecpay");
+    }
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn ecpay_query(
+    secrets: State<'_, SecretState>,
+    stage: bool,
+    trade_no: String,
+) -> Result<crate::ecpay::TradeStatus, String> {
+    crate::ecpay::query(&*secrets.0, stage, &trade_no).await
+}
+
+/// Open a carrier's own page in the system browser. Only https pages of the known carriers.
+#[tauri::command]
+pub fn open_carrier_page(url: String) -> Result<(), String> {
+    crate::browser::open_carrier(&url)
 }

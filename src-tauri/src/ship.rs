@@ -318,6 +318,13 @@ pub struct ShipOrderDto {
     /// Cost per unit when the order was saved; computed. Ignored on input.
     #[serde(default)]
     pub unit_cost: i64,
+    /// Waybill made through a carrier's API (empty until then); set by `order_waybill`, ignored on input.
+    #[serde(default)]
+    pub carrier: String,
+    #[serde(default)]
+    pub trade_no: String,
+    #[serde(default)]
+    pub tracking: String,
 }
 
 /// Validate and store (insert or update) one shipping order. Returns the stored form.
@@ -440,6 +447,26 @@ pub fn order_save(
     order_get(conn, &o.id)?.ok_or_else(|| bad("missing"))
 }
 
+/// Remember the waybill a carrier returned for an order.
+pub fn order_waybill(
+    conn: &Connection,
+    id: &str,
+    carrier: &str,
+    trade_no: &str,
+    tracking: &str,
+) -> Result<usize> {
+    let ok = |s: &str, max: usize| {
+        s.len() <= max && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+    };
+    if !ok(carrier, 20) || !ok(trade_no, 20) || !ok(tracking, 60) {
+        return Err(bad("waybill"));
+    }
+    conn.execute(
+        "UPDATE ship_orders SET carrier=?2, trade_no=?3, tracking=?4 WHERE id=?1",
+        rusqlite::params![id, carrier, trade_no, tracking],
+    )
+}
+
 fn map_order(r: &rusqlite::Row<'_>) -> Result<ShipOrderDto> {
     Ok(ShipOrderDto {
         id: r.get(0)?,
@@ -459,11 +486,15 @@ fn map_order(r: &rusqlite::Row<'_>) -> Result<ShipOrderDto> {
         sku: r.get(14)?,
         qty: r.get(15)?,
         unit_cost: r.get(16)?,
+        carrier: r.get(17)?,
+        trade_no: r.get(18)?,
+        tracking: r.get(19)?,
     })
 }
 
 const ORDER_COLS: &str = "id, tiktok_id, recipient_name, phone, temperature, store_code, \
-    store_name, product, note, amount, shipping_fee, cod, exported, created_at, sku, qty, unit_cost";
+    store_name, product, note, amount, shipping_fee, cod, exported, created_at, sku, qty, unit_cost, \
+    carrier, trade_no, tracking";
 
 pub fn order_get(conn: &Connection, id: &str) -> Result<Option<ShipOrderDto>> {
     conn.query_row(
@@ -662,6 +693,9 @@ mod tests {
             sku: String::new(),
             qty: 0,
             unit_cost: 0,
+            carrier: String::new(),
+            trade_no: String::new(),
+            tracking: String::new(),
         }
     }
 

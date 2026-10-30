@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { readStage, writeStage } from "../carriers/env";
+import { CARRIER_LOGOS } from "../carriers/logos";
 import {
   CARRIERS,
   SECRET_FIELDS,
@@ -8,52 +10,41 @@ import {
   type CarrierField,
 } from "../carriers/registry";
 import { useI18n } from "../i18n";
+import { invoke } from "../platform/backend";
 import { createSecretsClient, type SecretsClient } from "../secrets/client";
 
-// Shipping carriers in Taiwan and the credentials each one needs. Secrets go to the OS keychain
-// through the same path as the AI keys: they can be set and removed, never read back. The tile
-// shows the seller's own copy of the official logo when they add one; until then a neutral mark.
+// Shipping carriers in Taiwan and how each one is really reached. Keys and passwords go to the OS
+// keychain (set and removed, never read back). Only ECPay has an API the app calls itself; the
+// other carriers are used through their own sign-in pages, which the app opens in the browser.
+// "Verified" is shown only after ECPay itself answered that the keys are good.
 
-const LOGO_KEY = "live-studio.carrier-logos";
-const MAX_LOGO_BYTES = 200_000;
-
-const loadLogos = (): Record<string, string> => {
-  try {
-    return JSON.parse(localStorage.getItem(LOGO_KEY) ?? "{}") as Record<string, string>;
-  } catch {
-    return {};
-  }
-};
-const saveLogos = (m: Record<string, string>) => {
-  try {
-    localStorage.setItem(LOGO_KEY, JSON.stringify(m));
-  } catch {
-    /* too large or blocked: the logo applies until the page is closed */
-  }
-};
-
-async function officialLogo(id: string): Promise<string> {
-  const { invoke } = await import("../platform/backend");
-  return invoke<string>("carrier_logo", { id });
+export interface EcpayCheck {
+  accepted: boolean;
+  message: string;
 }
+
+const defaultCheck = (stage: boolean) => invoke<EcpayCheck>("ecpay_check", { stage });
+const defaultOpen = (url: string) => invoke<void>("open_carrier_page", { url });
 
 export function CarriersPage({
   secrets,
-  fetchLogo = officialLogo,
+  check = defaultCheck,
+  openPage = defaultOpen,
 }: {
   secrets?: SecretsClient;
-  /** Gets a carrier's logo from its official site; replaced in tests. */
-  fetchLogo?: (id: string) => Promise<string>;
+  /** Asks ECPay whether the saved keys work; replaced in tests. */
+  check?: (stage: boolean) => Promise<EcpayCheck>;
+  /** Opens a carrier's own page in the system browser; replaced in tests. */
+  openPage?: (url: string) => Promise<void>;
 }) {
   const { t, locale } = useI18n();
   const c = t.carriers;
   const [api] = useState(() => secrets ?? createSecretsClient());
   const [filled, setFilled] = useState<Record<string, Set<CarrierField>>>({});
   const [open, setOpen] = useState<string>();
-  const [logos, setLogos] = useState(loadLogos);
+  const [stage, setStage] = useState(readStage);
+  const [verified, setVerified] = useState<Record<string, EcpayCheck | "busy" | "error">>({});
   const [error, setError] = useState<string>();
-  const [fetching, setFetching] = useState<ReadonlySet<string>>(new Set());
-  const tried = useRef(new Set<string>());
 
   const refresh = useCallback(async () => {
     if (!api.available) return;
@@ -75,62 +66,29 @@ export function CarriersPage({
     void refresh();
   }, [refresh]);
 
-  // Get a carrier's logo from its own site and keep it on this computer.
-  const getOfficial = useCallback(
-    async (id: string) => {
-      setFetching((prev) => new Set(prev).add(id));
-      try {
-        const url = await fetchLogo(id);
-        setLogos((prev) => {
-          const next = { ...prev, [id]: url };
-          saveLogos(next);
-          return next;
-        });
-        return true;
-      } catch {
-        return false;
-      } finally {
-        setFetching((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
-      }
-    },
-    [fetchLogo],
-  );
-
-  // On first open, fetch the logos that are still missing (once per carrier per app run).
-  useEffect(() => {
-    if (!api.available) return;
-    for (const car of CARRIERS) {
-      if (logos[car.id] || tried.current.has(car.id)) continue;
-      tried.current.add(car.id);
-      void getOfficial(car.id);
-    }
-  }, [api.available, getOfficial, logos]);
-
-  const onLogo = (id: string, e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    if (!/^image\/(png|jpeg|svg\+xml|webp)$/.test(file.type) || file.size > MAX_LOGO_BYTES) {
-      return setError(c.logoBad);
-    }
-    setError(undefined);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const next = { ...logos, [id]: String(reader.result) };
-      setLogos(next);
-      saveLogos(next);
-    };
-    reader.readAsDataURL(file);
+  const setEnv = (value: boolean) => {
+    setStage(value);
+    setVerified({});
+    writeStage(value);
   };
-  const clearLogo = (id: string) => {
-    const next = { ...logos };
-    delete next[id];
-    setLogos(next);
-    saveLogos(next);
+
+  const runCheck = async () => {
+    setVerified((v) => ({ ...v, ecpay: "busy" }));
+    try {
+      const r = await check(stage);
+      setVerified((v) => ({ ...v, ecpay: r }));
+    } catch {
+      setVerified((v) => ({ ...v, ecpay: "error" }));
+    }
+  };
+
+  const go = async (url: string) => {
+    try {
+      await openPage(url);
+      setError(undefined);
+    } catch {
+      setError(c.openFail);
+    }
   };
 
   return (
@@ -147,18 +105,22 @@ export function CarriersPage({
       </section>
       <div className="carrier-grid">
         {CARRIERS.map((car) => {
-          const status = statusOf(car, filled[car.id] ?? new Set());
+          const v = verified[car.id];
+          const checked = v && typeof v === "object" ? v : undefined;
+          const status = checked?.accepted
+            ? "verified"
+            : statusOf(car, filled[car.id] ?? new Set());
           return (
             <article key={car.id} className="carrier">
               <div className="carrier__head">
-                <Mark car={car} logo={logos[car.id]} />
+                <Mark car={car} />
                 <div className="carrier__name">
                   <strong>{car.zh}</strong>
                   <span className="muted">{locale === "vi" ? car.vi : car.zh}</span>
                 </div>
                 <span
                   className={`chip ${
-                    status === "saved"
+                    status === "verified" || status === "saved"
                       ? "tone-green"
                       : status === "excel"
                         ? "tone-blue"
@@ -178,6 +140,43 @@ export function CarriersPage({
                 ))}
               </div>
               <p className="caption">{c.how[car.id as keyof typeof c.how]}</p>
+
+              {car.live && (
+                <div className="carrier__env">
+                  <div className="segmented" role="group" aria-label={c.envTitle}>
+                    <button type="button" aria-pressed={stage} onClick={() => setEnv(true)}>
+                      {c.envTest}
+                    </button>
+                    <button type="button" aria-pressed={!stage} onClick={() => setEnv(false)}>
+                      {c.envLive}
+                    </button>
+                  </div>
+                  <p className="caption">{stage ? c.envTestHelp : c.envLiveHelp}</p>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={!api.available || v === "busy"}
+                    onClick={() => void runCheck()}
+                  >
+                    {v === "busy" ? c.checking : c.check}
+                  </button>
+                  {checked && (
+                    <p
+                      className={`note${checked.accepted ? "" : " note--error"}`}
+                      role={checked.accepted ? "status" : "alert"}
+                    >
+                      {checked.accepted ? c.checkOk : c.checkBad}
+                      {checked.message && <code className="reply"> {checked.message}</code>}
+                    </p>
+                  )}
+                  {v === "error" && (
+                    <p className="note note--error" role="alert">
+                      {c.checkNoNet}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="carrier__actions">
                 <button
                   type="button"
@@ -187,39 +186,26 @@ export function CarriersPage({
                 >
                   {open === car.id ? c.close : c.connect}
                 </button>
-                <button
-                  type="button"
-                  className="btn"
-                  disabled={!api.available || fetching.has(car.id)}
-                  onClick={() =>
-                    void getOfficial(car.id).then((ok) =>
-                      setError(ok ? undefined : c.logoFetchFail),
-                    )
-                  }
-                >
-                  {fetching.has(car.id) ? c.logoFetching : c.logoFetch}
+                <button type="button" className="btn" onClick={() => void go(car.consoleUrl)}>
+                  {car.live ? c.openConsole : c.openLogin}
                 </button>
-                <label className="btn">
-                  {logos[car.id] ? c.logoChange : c.logoAdd}
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/svg+xml,image/webp"
-                    className="sr-only"
-                    onChange={(e) => onLogo(car.id, e)}
-                  />
-                </label>
-                {logos[car.id] && (
-                  <button type="button" className="btn" onClick={() => clearLogo(car.id)}>
-                    {c.logoRemove}
-                  </button>
-                )}
+                <button type="button" className="btn" onClick={() => void go(car.trackUrl)}>
+                  {c.track}
+                </button>
               </div>
               {open === car.id && (
                 <CredentialForm
                   car={car}
                   api={api}
                   filled={filled[car.id] ?? new Set()}
-                  onChanged={() => void refresh()}
+                  onChanged={() => {
+                    setVerified((x) => {
+                      const next = { ...x };
+                      delete next[car.id];
+                      return next;
+                    });
+                    void refresh();
+                  }}
                 />
               )}
             </article>
@@ -231,7 +217,8 @@ export function CarriersPage({
   );
 }
 
-function Mark({ car, logo }: { car: Carrier; logo?: string }) {
+function Mark({ car }: { car: Carrier }) {
+  const logo = CARRIER_LOGOS[car.id];
   if (logo) return <img className="carrier__logo" src={logo} alt={car.zh} />;
   return (
     <span className={`carrier__mark tone-${car.tone}`} aria-hidden="true">
@@ -303,7 +290,7 @@ function CredentialForm({
           />
         </label>
       ))}
-      <p className="caption">{c.secretNote}</p>
+      <p className="caption">{car.live ? c.secretNoteLive : c.secretNote}</p>
       {msg && (
         <p
           className={`note${msg.error ? " note--error" : ""}`}

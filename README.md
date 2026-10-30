@@ -133,3 +133,7 @@ Mục **Đơn ship**: danh sách khách (tự thêm TikTok ID khi chốt đơn),
 ## Chia sẻ cho điện thoại
 
 Cài đặt → **Chia sẻ cho điện thoại** → Bật chia sẻ → quét QR bằng điện thoại cùng Wi-Fi. Điện thoại thao tác thật trên dữ liệu của máy tính (đơn, tin nhắn, đơn ship) và in qua máy in cài trên máy tính; chặn zoom và cuộn trang. Chỉ bật trên Wi-Fi riêng; link có mã bí mật đổi mỗi lần bật. Chi tiết: `docs/IMPLEMENTATION_PLAN_TIKTOK_LIVE.md` §18.
+
+## Hãng vận chuyển và thu chi
+
+Mục **Hãng vận chuyển** có logo 7 hãng đóng gói sẵn. ECPay là hãng duy nhất app gọi API trực tiếp (kiểm tra khóa, tạo vận đơn 7-ELEVEN/FamilyMart ở môi trường thử hoặc thật); các hãng khác mở trang đăng nhập/tra đơn chính thức. Mục **Kho & chi phí** có 13 nhóm chi phí và khoản tính theo % doanh thu; thu nhập thực tế trừ hết các khoản này.

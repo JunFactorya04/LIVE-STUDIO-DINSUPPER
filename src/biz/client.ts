@@ -24,15 +24,55 @@ export interface Purchase {
   at: string;
 }
 
-export type ExpenseKind = "FIXED" | "ONCE";
+export type ExpenseKind = "FIXED" | "ONCE" | "PERCENT";
+
+/** Expense groups, in the order they are offered. */
+export const EXPENSE_CATEGORIES = [
+  "RENT",
+  "SALARY",
+  "PLATFORM",
+  "PAYMENT",
+  "ADS",
+  "SHIPPING",
+  "PACKAGING",
+  "UTILITY",
+  "SOFTWARE",
+  "TAX",
+  "DEPRECIATION",
+  "RETURNS",
+  "OTHER",
+] as const;
+export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
+
+/** Ready-made items for a real business: group, how it is counted, and a short key for its name. */
+export const EXPENSE_PRESETS: ReadonlyArray<{
+  key: string;
+  category: ExpenseCategory;
+  kind: ExpenseKind;
+}> = [
+  { key: "rent", category: "RENT", kind: "FIXED" },
+  { key: "salary", category: "SALARY", kind: "FIXED" },
+  { key: "platform", category: "PLATFORM", kind: "PERCENT" },
+  { key: "payment", category: "PAYMENT", kind: "PERCENT" },
+  { key: "ads", category: "ADS", kind: "ONCE" },
+  { key: "shipping", category: "SHIPPING", kind: "PERCENT" },
+  { key: "packaging", category: "PACKAGING", kind: "PERCENT" },
+  { key: "utility", category: "UTILITY", kind: "FIXED" },
+  { key: "software", category: "SOFTWARE", kind: "FIXED" },
+  { key: "tax", category: "TAX", kind: "PERCENT" },
+  { key: "depreciation", category: "DEPRECIATION", kind: "FIXED" },
+  { key: "returns", category: "RETURNS", kind: "PERCENT" },
+];
 
 export interface Expense {
   id: string;
   name: string;
   amount: number;
   kind: ExpenseKind;
-  /** FIXED: first day it applies (its month on). ONCE: the day it was paid. */
+  /** FIXED: first day it applies (its month on). ONCE: the day it was paid. PERCENT: from this day. */
   at: string;
+  /** For PERCENT, `amount` is in basis points (250 = 2.50% of sales). */
+  category: ExpenseCategory;
   active: boolean;
 }
 

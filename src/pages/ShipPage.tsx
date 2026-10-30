@@ -1,3 +1,4 @@
+import { readStage } from "../carriers/env";
 import { useLiveSession } from "../live/useLiveSession";
 import { StoreSearch } from "./StoreSearch";
 import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
@@ -230,6 +231,35 @@ function OrdersTab({
     }
   };
 
+  const [waybilling, setWaybilling] = useState<string>();
+  const waybill = async (o: ShipOrder) => {
+    const stage = readStage();
+    // A real waybill costs money: ask first. The test environment needs no question.
+    if (!stage && !window.confirm(t.ship.waybill.confirm)) return;
+    setWaybilling(o.id);
+    try {
+      const r = await api.createWaybill(o, stage);
+      if (r.ok) {
+        const env = stage ? t.ship.waybill.envTest : t.ship.waybill.envLive;
+        onNote({
+          text: fmt(t.ship.waybill.done, { no: r.paymentNo || r.logisticsId, env }),
+          error: false,
+        });
+        await onChanged();
+      } else {
+        onNote({ text: `${t.ship.waybill.failed} ${r.message}`, error: true });
+      }
+    } catch (e) {
+      const code = String(e) as keyof typeof t.ship.waybill.errors;
+      onNote({
+        text: t.ship.waybill.errors[code] ?? t.ship.waybill.errors.UNREACHABLE,
+        error: true,
+      });
+    } finally {
+      setWaybilling(undefined);
+    }
+  };
+
   const print = async (o: ShipOrder) => {
     const ok = await printer.print(shipSlip(o, t.ship.slip));
     if (ok) onNote({ text: t.ship.printed, error: false });
@@ -347,6 +377,11 @@ function OrdersTab({
                     <span className={`chip ${o.exported ? "tone-green" : "tone-orange"}`}>
                       {o.exported ? t.ship.status.exported : t.ship.status.pending}
                     </span>
+                    {o.carrier === "ecpay" && o.tracking && (
+                      <span className="chip tone-blue">
+                        {fmt(t.ship.waybill.tracking, { no: o.tracking })}
+                      </span>
+                    )}
                   </td>
                   <td className="cell-actions nowrap">
                     {printerReady && (
@@ -358,6 +393,18 @@ function OrdersTab({
                           onClick={() => void print(o)}
                         >
                           {t.ship.actions.print}
+                        </button>{" "}
+                      </>
+                    )}
+                    {!o.tracking && (
+                      <>
+                        <button
+                          type="button"
+                          className="btn"
+                          disabled={waybilling === o.id}
+                          onClick={() => void waybill(o)}
+                        >
+                          {waybilling === o.id ? t.ship.waybill.creating : t.ship.waybill.create}
                         </button>{" "}
                       </>
                     )}

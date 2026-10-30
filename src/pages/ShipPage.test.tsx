@@ -45,6 +45,7 @@ function fake(over: Partial<ShipClient> = {}, orders = [order()], customers: Shi
     orders: async () => orders,
     saveOrder: vi.fn(async (o: ShipOrder) => ({ ...o, cod: o.amount + o.shippingFee })),
     deleteOrder: vi.fn(async () => undefined),
+    createWaybill: vi.fn(),
     setExported: vi.fn(async () => undefined),
     customers: async () => customers,
     saveCustomer: vi.fn(),
@@ -215,5 +216,42 @@ describe("ShipPage", () => {
   it("says plainly when it is not the desktop app", async () => {
     mount(fake({ available: false }));
     expect(await screen.findByText(zhTW.ship.errors.desktopOnly)).toBeTruthy();
+  });
+});
+
+describe("ECPay waybill", () => {
+  it("asks ECPay in the test environment by default and says nothing shipped for real", async () => {
+    localStorage.clear();
+    const createWaybill = vi.fn(async () => ({
+      ok: true,
+      logisticsId: "L1",
+      paymentNo: "F123",
+      validationNo: "9",
+      message: "",
+    }));
+    mount(fake({ createWaybill }));
+    fireEvent.click(await screen.findByRole("button", { name: zhTW.ship.waybill.create }));
+    await waitFor(() =>
+      expect(createWaybill).toHaveBeenCalledWith(expect.objectContaining({ id: "o1" }), true),
+    );
+    expect(await screen.findByText(/F123/)).toBeTruthy();
+    expect(screen.getByText(new RegExp(zhTW.ship.waybill.envTest))).toBeTruthy();
+  });
+
+  it("shows ECPay's refusal and hides the button once an order has a waybill", async () => {
+    const createWaybill = vi.fn(async () => ({
+      ok: false,
+      logisticsId: "",
+      paymentNo: "",
+      validationNo: "",
+      message: "store closed",
+    }));
+    mount(fake({ createWaybill }));
+    fireEvent.click(await screen.findByRole("button", { name: zhTW.ship.waybill.create }));
+    expect(await screen.findByText(/store closed/)).toBeTruthy();
+    cleanup();
+    mount(fake({}, [order({ carrier: "ecpay", tracking: "F1239" })]));
+    await screen.findByText(/F1239/);
+    expect(screen.queryByRole("button", { name: zhTW.ship.waybill.create })).toBeNull();
   });
 });

@@ -184,6 +184,26 @@ CREATE TABLE biz_expenses (
 );
 ";
 
+const MIGRATION_8: &str = "
+ALTER TABLE ship_orders ADD COLUMN carrier TEXT NOT NULL DEFAULT '';
+ALTER TABLE ship_orders ADD COLUMN trade_no TEXT NOT NULL DEFAULT '';
+ALTER TABLE ship_orders ADD COLUMN tracking TEXT NOT NULL DEFAULT '';
+CREATE TABLE biz_expenses_new (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    amount     INTEGER NOT NULL,
+    kind       TEXT NOT NULL CHECK (kind IN ('FIXED','ONCE','PERCENT')),
+    at         TEXT NOT NULL,
+    active     INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    category   TEXT NOT NULL DEFAULT 'OTHER'
+);
+INSERT INTO biz_expenses_new (id, name, amount, kind, at, active, created_at)
+    SELECT id, name, amount, kind, at, active, created_at FROM biz_expenses;
+DROP TABLE biz_expenses;
+ALTER TABLE biz_expenses_new RENAME TO biz_expenses;
+";
+
 fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -229,6 +249,11 @@ pub fn migrate(conn: &Connection) -> Result<()> {
             "BEGIN;{MIGRATION_7}PRAGMA user_version = 7;COMMIT;"
         ))?;
     }
+    if version < 8 {
+        conn.execute_batch(&format!(
+            "BEGIN;{MIGRATION_8}PRAGMA user_version = 8;COMMIT;"
+        ))?;
+    }
     Ok(())
 }
 
@@ -259,7 +284,7 @@ mod tests {
         let v: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 7);
+        assert_eq!(v, 8);
     }
 
     #[test]

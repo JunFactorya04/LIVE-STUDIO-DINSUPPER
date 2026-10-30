@@ -3,12 +3,13 @@
 
 mod ai;
 mod biz;
+mod browser;
 mod commands;
 mod data;
 mod db;
+mod ecpay;
 mod euler;
 mod live;
-mod logo;
 mod orders;
 mod overlay;
 mod printer;
@@ -96,7 +97,10 @@ pub fn run() {
             commands::ship_export_xlsx,
             commands::ship_order_save,
             commands::ship_order_delete,
-            commands::carrier_logo,
+            commands::ecpay_check,
+            commands::ecpay_create,
+            commands::ecpay_query,
+            commands::open_carrier_page,
             commands::biz_stock_list,
             commands::biz_stock_save,
             commands::biz_stock_delete,

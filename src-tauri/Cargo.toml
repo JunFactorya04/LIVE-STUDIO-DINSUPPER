@@ -22,7 +22,7 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 tokio = { version = "1", features = ["rt", "macros", "time", "net", "io-util", "sync"] }
 # HTTPS client for the AI providers (same native-tls choice as above).
 reqwest = { version = "0.12", default-features = false, features = ["native-tls"] }
-base64 = "0.22"
+md-5 = "0.10"
 tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 futures-util = "0.3"
 url = "2"

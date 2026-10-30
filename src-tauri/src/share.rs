@@ -599,6 +599,10 @@ mod tests {
             "biz_expense_save",
             "biz_expense_delete",
             "secret_exists",
+            "ecpay_check",
+            "ecpay_create",
+            "ecpay_query",
+            "open_carrier_page",
         ] {
             assert!(
                 !ALLOWED.contains(&cmd),

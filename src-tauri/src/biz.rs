@@ -211,15 +211,39 @@ pub fn purchase_delete(conn: &Connection, id: &str, now: &str) -> Result<usize> 
 
 // ---------- expenses ----------
 
+/// Fixed list of expense groups (the screen shows their names); anything else is rejected.
+pub const CATEGORIES: [&str; 13] = [
+    "RENT",
+    "SALARY",
+    "PLATFORM",
+    "PAYMENT",
+    "ADS",
+    "SHIPPING",
+    "PACKAGING",
+    "UTILITY",
+    "SOFTWARE",
+    "TAX",
+    "DEPRECIATION",
+    "RETURNS",
+    "OTHER",
+];
+
+fn other() -> String {
+    "OTHER".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ExpenseDto {
     pub id: String,
     pub name: String,
     pub amount: i64,
-    /// "FIXED" = every month from `at`'s month on while active; "ONCE" = only on day `at`.
+    /// "FIXED" = every month from `at`'s month on while active; "ONCE" = only on day `at`;
+    /// "PERCENT" = a share of sales from `at` on, with `amount` in basis points (250 = 2.50%).
     pub kind: String,
     pub at: String,
+    #[serde(default = "other")]
+    pub category: String,
     #[serde(default = "yes")]
     pub active: bool,
 }
@@ -238,22 +262,37 @@ pub fn expense_save(conn: &Connection, e: &ExpenseDto, now: &str) -> Result<()> 
     if !(0..=MAX_MONEY).contains(&e.amount) {
         return Err(bad("amount"));
     }
-    if e.kind != "FIXED" && e.kind != "ONCE" {
+    if !matches!(e.kind.as_str(), "FIXED" | "ONCE" | "PERCENT") {
         return Err(bad("kind"));
+    }
+    if e.kind == "PERCENT" && e.amount > 10_000 {
+        return Err(bad("amount"));
+    }
+    if !CATEGORIES.contains(&e.category.as_str()) {
+        return Err(bad("category"));
     }
     let at = date(&e.at)?;
     conn.execute(
-        "INSERT INTO biz_expenses (id, name, amount, kind, at, active, created_at)
-         VALUES (?1,?2,?3,?4,?5,?6,?7)
-         ON CONFLICT(id) DO UPDATE SET name=?2, amount=?3, kind=?4, at=?5, active=?6",
-        params![e.id, name, e.amount, e.kind, at, e.active as i64, now],
+        "INSERT INTO biz_expenses (id, name, amount, kind, at, active, created_at, category)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8)
+         ON CONFLICT(id) DO UPDATE SET name=?2, amount=?3, kind=?4, at=?5, active=?6, category=?8",
+        params![
+            e.id,
+            name,
+            e.amount,
+            e.kind,
+            at,
+            e.active as i64,
+            now,
+            e.category
+        ],
     )?;
     Ok(())
 }
 
 pub fn expense_list(conn: &Connection) -> Result<Vec<ExpenseDto>> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, amount, kind, at, active FROM biz_expenses ORDER BY kind, name",
+        "SELECT id, name, amount, kind, at, active, category FROM biz_expenses ORDER BY kind, name",
     )?;
     let rows = stmt.query_map([], |r| {
         Ok(ExpenseDto {
@@ -263,6 +302,7 @@ pub fn expense_list(conn: &Connection) -> Result<Vec<ExpenseDto>> {
             kind: r.get(3)?,
             at: r.get(4)?,
             active: r.get::<_, i64>(5)? != 0,
+            category: r.get(6)?,
         })
     })?;
     rows.collect()
@@ -316,9 +356,40 @@ mod tests {
             amount: 5000,
             kind: "FIXED".into(),
             at: "2026-10-01".into(),
+            category: "RENT".into(),
             active: true,
         };
         expense_save(&c, &e, "t").unwrap();
+        assert_eq!(expense_list(&c).unwrap()[0].category, "RENT");
+        // A share of sales is kept in basis points and cannot pass 100%.
+        let pct = ExpenseDto {
+            id: "e2".into(),
+            name: "Phí sàn".into(),
+            amount: 250,
+            kind: "PERCENT".into(),
+            category: "PLATFORM".into(),
+            ..e.clone()
+        };
+        expense_save(&c, &pct, "t").unwrap();
+        assert!(expense_save(
+            &c,
+            &ExpenseDto {
+                amount: 10_001,
+                ..pct.clone()
+            },
+            "t"
+        )
+        .is_err());
+        assert!(expense_save(
+            &c,
+            &ExpenseDto {
+                category: "NOPE".into(),
+                ..e.clone()
+            },
+            "t"
+        )
+        .is_err());
+        assert_eq!(expense_delete(&c, "e2").unwrap(), 1);
         assert_eq!(expense_list(&c).unwrap().len(), 1);
         assert!(expense_save(
             &c,

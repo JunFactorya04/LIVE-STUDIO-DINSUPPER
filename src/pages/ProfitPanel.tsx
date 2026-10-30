@@ -40,7 +40,7 @@ export function ProfitPanel({
 
   const c = pnl.current;
   const prev = pnl.previous;
-  const costs = c.fixedCosts + c.oneOffCosts;
+  const costs = c.fixedCosts + c.oneOffCosts + c.shareCosts;
   const vs = t.finance.vsPrevious[period];
   const hasBooks = purchases.length > 0 || expenses.length > 0 || stock.length > 0;
 
@@ -66,7 +66,7 @@ export function ProfitPanel({
       id: "costs",
       title: p.costs,
       v: costs,
-      before: prev.fixedCosts + prev.oneOffCosts,
+      before: prev.fixedCosts + prev.oneOffCosts + prev.shareCosts,
       tone: "tone-red",
     },
     { id: "net", title: p.net, v: c.netIncome, before: prev.netIncome, tone: "tone-green" },
@@ -152,6 +152,21 @@ export function ProfitPanel({
             <strong>{money(c.netIncome)}</strong>
           </li>
         </ul>
+        <h3 className="subhead">{p.byGroup}</h3>
+        {Object.keys(c.byCategory).length === 0 ? (
+          <p className="caption">{p.byGroupNone}</p>
+        ) : (
+          <ul className="fin-legend">
+            {Object.entries(c.byCategory)
+              .sort((a, b) => b[1] - a[1])
+              .map(([k, val]) => (
+                <li key={k}>
+                  {t.inventory.categories[k as keyof typeof t.inventory.categories] ?? k}:{" "}
+                  <strong>{money(val)}</strong>
+                </li>
+              ))}
+          </ul>
+        )}
         {c.orders > 0 && c.tracked < c.orders && (
           <p className="caption">
             {p.untracked
