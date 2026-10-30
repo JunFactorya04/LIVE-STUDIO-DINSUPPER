@@ -843,3 +843,9 @@ pub fn biz_expense_delete(state: State<'_, DbState>, id: String) -> Result<usize
     log(&state, "BIZ_DELETED", "expense");
     Ok(n)
 }
+
+/// Logo of a shipping carrier, downloaded from that carrier's official site (see logo.rs).
+#[tauri::command]
+pub async fn carrier_logo(id: String) -> Result<String, String> {
+    crate::logo::fetch(&id).await
+}

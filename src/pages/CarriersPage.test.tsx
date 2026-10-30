@@ -19,14 +19,31 @@ function vault(): SecretsClient & { map: Map<string, string> } {
   };
 }
 
-const view = (s: SecretsClient) =>
+const view = (
+  s: SecretsClient,
+  fetchLogo: (id: string) => Promise<string> = async () => {
+    throw new Error("offline");
+  },
+) =>
   render(
     <I18nProvider initial="zh-TW">
-      <CarriersPage secrets={s} />
+      <CarriersPage secrets={s} fetchLogo={fetchLogo} />
     </I18nProvider>,
   );
 
 describe("CarriersPage", () => {
+  it("fetches each missing logo from the official site once and shows it", async () => {
+    localStorage.clear();
+    const asked: string[] = [];
+    view(vault(), async (id) => {
+      asked.push(id);
+      return "data:image/png;base64,AAAA";
+    });
+    await waitFor(() => expect(document.querySelectorAll("img.carrier__logo").length).toBe(7));
+    expect(asked.sort()).toEqual(["ecpay", "family", "hct", "post", "seven", "shopee", "tcat"]);
+    localStorage.clear();
+  });
+
   it("lists the carriers and never claims a connection it did not verify", async () => {
     view(vault());
     expect(screen.getAllByText("黑貓宅急便").length).toBeGreaterThan(0);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
   CARRIERS,
   SECRET_FIELDS,
@@ -32,7 +32,19 @@ const saveLogos = (m: Record<string, string>) => {
   }
 };
 
-export function CarriersPage({ secrets }: { secrets?: SecretsClient }) {
+async function officialLogo(id: string): Promise<string> {
+  const { invoke } = await import("../platform/backend");
+  return invoke<string>("carrier_logo", { id });
+}
+
+export function CarriersPage({
+  secrets,
+  fetchLogo = officialLogo,
+}: {
+  secrets?: SecretsClient;
+  /** Gets a carrier's logo from its official site; replaced in tests. */
+  fetchLogo?: (id: string) => Promise<string>;
+}) {
   const { t, locale } = useI18n();
   const c = t.carriers;
   const [api] = useState(() => secrets ?? createSecretsClient());
@@ -40,6 +52,8 @@ export function CarriersPage({ secrets }: { secrets?: SecretsClient }) {
   const [open, setOpen] = useState<string>();
   const [logos, setLogos] = useState(loadLogos);
   const [error, setError] = useState<string>();
+  const [fetching, setFetching] = useState<ReadonlySet<string>>(new Set());
+  const tried = useRef(new Set<string>());
 
   const refresh = useCallback(async () => {
     if (!api.available) return;
@@ -60,6 +74,41 @@ export function CarriersPage({ secrets }: { secrets?: SecretsClient }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Get a carrier's logo from its own site and keep it on this computer.
+  const getOfficial = useCallback(
+    async (id: string) => {
+      setFetching((prev) => new Set(prev).add(id));
+      try {
+        const url = await fetchLogo(id);
+        setLogos((prev) => {
+          const next = { ...prev, [id]: url };
+          saveLogos(next);
+          return next;
+        });
+        return true;
+      } catch {
+        return false;
+      } finally {
+        setFetching((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    },
+    [fetchLogo],
+  );
+
+  // On first open, fetch the logos that are still missing (once per carrier per app run).
+  useEffect(() => {
+    if (!api.available) return;
+    for (const car of CARRIERS) {
+      if (logos[car.id] || tried.current.has(car.id)) continue;
+      tried.current.add(car.id);
+      void getOfficial(car.id);
+    }
+  }, [api.available, getOfficial, logos]);
 
   const onLogo = (id: string, e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -137,6 +186,18 @@ export function CarriersPage({ secrets }: { secrets?: SecretsClient }) {
                   onClick={() => setOpen(open === car.id ? undefined : car.id)}
                 >
                   {open === car.id ? c.close : c.connect}
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={!api.available || fetching.has(car.id)}
+                  onClick={() =>
+                    void getOfficial(car.id).then((ok) =>
+                      setError(ok ? undefined : c.logoFetchFail),
+                    )
+                  }
+                >
+                  {fetching.has(car.id) ? c.logoFetching : c.logoFetch}
                 </button>
                 <label className="btn">
                   {logos[car.id] ? c.logoChange : c.logoAdd}
