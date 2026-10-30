@@ -1,3 +1,6 @@
+# Source files are LF everywhere (Prettier checks this; Windows checkouts would otherwise be CRLF).
+* text=auto eol=lf
+
 # Keep launchers working on both systems: .bat needs CRLF, .command (bash) needs LF.
 *.bat     text eol=crlf
 *.command text eol=lf
