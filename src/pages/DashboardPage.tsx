@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { loadAiConfig } from "../ai/config";
 import { confirmedBars, countAiErrors, todoItems, totals } from "../dashboard/metrics";
 import { useI18n } from "../i18n";
+import { topAsked } from "../orders/insights";
 import { useLiveSession } from "../live/useLiveSession";
 import type { PageId } from "../navigation";
 import { createReportClient, type ReportClient, type SessionSummary } from "../report/client";
@@ -57,6 +58,8 @@ export function DashboardPage({
     };
   }, [s.comments, s.drafts, s.replies]);
 
+  const asked = useMemo(() => topAsked(s.comments, s.catalog), [s.comments, s.catalog]);
+
   const todo = todoItems({
     needsReview: now.needsReview,
     unclassified: now.unclassified,
@@ -89,6 +92,24 @@ export function DashboardPage({
           {kpi(d.kpi.confirmed, now.confirmed)}
           {kpi(d.kpi.copied, now.copied)}
         </div>
+      </section>
+
+      <section className="box">
+        <h2 className="section-title">{d.askedTitle}</h2>
+        {asked.length === 0 ? (
+          <p className="caption">{d.askedNone}</p>
+        ) : (
+          <ul className="todo-list" aria-label={d.askedTitle}>
+            {asked.map((a) => (
+              <li key={a.sku}>
+                <span>
+                  <strong>{a.sku}</strong> {a.name}
+                </span>
+                <span className="muted">{fmt(d.askedCount, { n: a.count })}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="box">

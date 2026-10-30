@@ -5,6 +5,7 @@ import { useI18n } from "../i18n";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
 import { parseCatalogCsv, splitList } from "../orders/catalogCsv";
 import { canTransition } from "../orders/engine";
+import { duplicateDraftIds } from "../orders/insights";
 import { getPrintService } from "../print/service";
 import { isConfigured, loadPrinter } from "../print/settings";
 import { tempSlip } from "../print/slip";
@@ -72,6 +73,7 @@ function DraftsTab() {
     () => new Map(s.comments.map((c) => [c.eventId, c.commentText])),
     [s.comments],
   );
+  const dupes = useMemo(() => duplicateDraftIds(s.drafts), [s.drafts]);
   const names = useMemo(() => new Map(s.catalog.map((c) => [c.sku, c.name])), [s.catalog]);
   const rows = useMemo(
     () =>
@@ -179,6 +181,12 @@ function DraftsTab() {
                       <span className={`chip ${STATUS_TONE[d.status]}`}>
                         {t.orders.status[d.status]}
                       </span>
+                      {dupes.has(d.id) && (
+                        <span className="chip tone-orange" title={t.orders.duplicateHint}>
+                          {" "}
+                          {t.orders.duplicate}
+                        </span>
+                      )}
                     </td>
                     <td className="wrap" data-label={t.orders.columns.reason}>
                       {d.reasons.length === 0

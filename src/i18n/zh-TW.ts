@@ -234,6 +234,8 @@ export const zhTW = {
     noCatalogHint: "尚未建立商品目錄，系統無法辨識商品代號。請先到「商品目錄」新增商品。",
     noMatch: "沒有符合的草稿",
     searchPlaceholder: "搜尋帳號、編號、顏色或尺寸",
+    duplicate: "可能重複？",
+    duplicateHint: "同一買家、同一商品與規格。請確認，若重複請取消其中一筆。",
     reasons: {
       NO_USER: "沒有帳號資料",
       NO_SKU: "缺少商品",
@@ -456,6 +458,9 @@ export const zhTW = {
       sessions: "場次",
       cancelled: "已取消訂單",
     },
+    askedTitle: "最多人詢問的商品",
+    askedNone: "尚無留言提到商品目錄中的商品。",
+    askedCount: "{n} 則留言",
     todoTitle: "待處理",
     todoNone: "目前沒有待處理的事項。",
     todo: {

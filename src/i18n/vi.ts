@@ -260,6 +260,8 @@ export const vi: Messages = {
       "Chưa có danh mục sản phẩm nên không nhận diện được mã. Hãy thêm sản phẩm ở tab “Danh mục sản phẩm”.",
     noMatch: "Không có đơn nháp phù hợp",
     searchPlaceholder: "Tìm đơn theo tài khoản, mã, màu hoặc size",
+    duplicate: "Đơn trùng?",
+    duplicateHint: "Cùng người mua, cùng sản phẩm và biến thể. Hãy kiểm tra rồi hủy bớt nếu trùng.",
     reasons: {
       NO_USER: "Không có thông tin tài khoản",
       NO_SKU: "Thiếu sản phẩm",
@@ -485,6 +487,9 @@ export const vi: Messages = {
       sessions: "Số phiên",
       cancelled: "Đơn đã hủy",
     },
+    askedTitle: "Sản phẩm được hỏi nhiều",
+    askedNone: "Chưa có bình luận nào nhắc tới sản phẩm trong danh mục.",
+    askedCount: "{n} bình luận",
     todoTitle: "Cần xử lý",
     todoNone: "Hiện không có việc nào cần xử lý.",
     todo: {
