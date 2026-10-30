@@ -5,6 +5,10 @@ import { useI18n } from "../i18n";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
 import { parseCatalogCsv, splitList } from "../orders/catalogCsv";
 import { canTransition } from "../orders/engine";
+import { getPrintService } from "../print/service";
+import { isConfigured, loadPrinter } from "../print/settings";
+import { tempSlip } from "../print/slip";
+import { usePrintStatus } from "../print/usePrint";
 import type { CatalogItem, OrderStatus } from "../orders/types";
 
 type Tab = "drafts" | "catalog";
@@ -46,6 +50,9 @@ function DraftsTab() {
   const s = useLiveSession();
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
+  const printer = getPrintService();
+  const printStatus = usePrintStatus(printer);
+  const printerReady = printer.available && isConfigured(loadPrinter());
   const searchRef = useRef<HTMLInputElement>(null);
 
   // Cmd/Ctrl+F focuses the search box, like on the Live console.
@@ -108,6 +115,11 @@ function DraftsTab() {
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
+      {printStatus.error && (
+        <p className="banner banner--error" role="alert">
+          {t.print.errors[printStatus.error]}
+        </p>
+      )}
       {s.drafts.length === 0 ? (
         <EmptyState title={t.orders.emptyTitle} hint={t.orders.emptyHint} />
       ) : rows.length === 0 ? (
@@ -186,6 +198,20 @@ function DraftsTab() {
                       >
                         {t.orders.confirm}
                       </button>{" "}
+                      {printerReady && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn"
+                            disabled={printStatus.printing}
+                            onClick={() =>
+                              void printer.print(tempSlip(d, s.comments, t.print.slip))
+                            }
+                          >
+                            {t.print.button}
+                          </button>{" "}
+                        </>
+                      )}
                       <button
                         type="button"
                         className="btn"

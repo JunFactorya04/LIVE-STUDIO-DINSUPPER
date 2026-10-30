@@ -38,6 +38,8 @@ danh mục, nhiều mã trong một bình luận hoặc số lượng bất thư
 trực tiếp. App không tự tạo đơn, không tự trả lời, không bao giờ tự điền tên/số điện thoại/địa chỉ; người bán bấm Xác nhận
 hoặc Hủy cho từng đơn.
 
+**In phiếu:** Cài đặt → Máy in mạng (IP, cổng, khổ giấy), nút "In thử", "In phiếu tạm" cho từng đơn nháp và tùy chọn tự in khi có đơn nháp mới (mặc định tắt). Chưa thử trên máy in thật.
+
 **Tổng quan:** trang đầu của mục Quản lý cho xem số liệu phiên hiện tại, việc cần xử lý và so sánh các phiên.
 
 **Báo cáo và dữ liệu (Phase 6):** trang "Báo cáo phiên" cho xem số liệu từng phiên, xuất JSON/CSV vào thư mục Tải xuống, đặt thời hạn lưu (mặc định 90 ngày), sao lưu cơ sở dữ liệu, xóa một phiên hoặc toàn bộ, và xem nhật ký thao tác (chỉ mã và số lượng, không có bình luận hay khóa).

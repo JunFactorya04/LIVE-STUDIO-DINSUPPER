@@ -9,6 +9,7 @@ mod euler;
 mod live;
 mod orders;
 mod overlay;
+mod printer;
 mod replies;
 mod secrets;
 
@@ -70,6 +71,8 @@ pub fn run() {
             commands::reply_update,
             commands::overlay_set,
             commands::overlay_info,
+            commands::printer_print,
+            commands::printer_probe,
             commands::euler_connect,
             commands::euler_disconnect,
             commands::report_sessions,

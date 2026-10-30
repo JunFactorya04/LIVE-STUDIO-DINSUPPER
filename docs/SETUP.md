@@ -69,6 +69,7 @@ Có hai cách để có file chạy luôn, không cần mở terminal:
 | AI báo AUTH / QUOTA / RATE_LIMIT / TIMEOUT | Khóa sai, hết hạn mức, gọi quá nhanh, hoặc mạng chậm. Xem Cài đặt → AI → Kiểm tra kết nối. Tên model mặc định chưa được kiểm chứng; có thể đổi ở ô Model. |
 | Overlay không hiện trong phần mềm phát | Dán đúng địa chỉ ở trang Overlay vào Browser Source; cổng 17891 bị chiếm thì app dùng cổng kế tiếp và địa chỉ trên trang sẽ đổi. |
 | Không thấy file xuất | Nằm trong thư mục Tải xuống (đường dẫn hiện ngay sau khi xuất). Nếu không có thư mục này app dùng thư mục dữ liệu của app. |
+| In thử báo UNREACHABLE / TIMEOUT | Máy in và máy tính phải cùng mạng; kiểm tra IP trên tem hoặc trang tự in của máy in, cổng thường là 9100. Máy in chỉ dùng ZPL/TSPL (tem vận chuyển) có thể không nhận ESC/POS. |
 | Windows SmartScreen cảnh báo | File chưa ký số: More info → Run anyway. |
 
 ## 3. Quy trình làm việc hằng ngày

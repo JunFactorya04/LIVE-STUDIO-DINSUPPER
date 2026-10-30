@@ -1,6 +1,7 @@
 import { LOCALES, useI18n, type Locale } from "../i18n";
 import { AiSection } from "./AiSection";
 import { ApiKeysSection } from "./ApiKeysSection";
+import { PrinterSection } from "./PrinterSection";
 
 export function SettingsPage() {
   const { t, locale, setLocale } = useI18n();
@@ -26,6 +27,7 @@ export function SettingsPage() {
       </section>
       <ApiKeysSection />
       <AiSection />
+      <PrinterSection />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { StatusChip } from "./components/StatusChip";
 import { useI18n } from "./i18n";
 import { useLiveSession } from "./live/useLiveSession";
 import { NAV_ITEMS, type PageId } from "./navigation";
+import { AutoPrint } from "./pages/AutoPrint";
 import { ConsolePage } from "./pages/ConsolePage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { OrdersPage } from "./pages/OrdersPage";
@@ -34,6 +35,7 @@ export function App({ initialPage = "setup" }: { initialPage?: PageId }) {
         </div>
       </main>
       <TabBar current={page} onSelect={setPage} />
+      <AutoPrint />
     </div>
   );
 }

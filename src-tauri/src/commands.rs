@@ -507,3 +507,43 @@ pub fn data_delete_all(state: State<'_, DbState>, include_catalog: bool) -> Resu
     );
     Ok(n)
 }
+
+// ---- Network printer (raw TCP / ESC/POS raster; private addresses only) ----
+
+use crate::printer;
+
+/// Print a bitmap page. `bits` is `ceil(width/8)` bytes per row, 1 = black.
+/// Returns Ok, or one of the short codes of `printer::PrintError`. Only the outcome is logged.
+#[tauri::command]
+pub async fn printer_print(
+    dbs: State<'_, DbState>,
+    host: String,
+    port: u16,
+    width: usize,
+    height: usize,
+    bits: Vec<u8>,
+) -> Result<(), String> {
+    let result = async {
+        let addr = printer::parse_target(&host, port)?;
+        let job = printer::build_job(width, height, &bits)?;
+        printer::send(addr, &job).await
+    }
+    .await;
+    match result {
+        Ok(()) => {
+            log(&dbs, "PRINT_OK", "");
+            Ok(())
+        }
+        Err(e) => {
+            log(&dbs, "PRINT_ERROR", &format!("code={}", e.code()));
+            Err(e.code().to_string())
+        }
+    }
+}
+
+/// Check that the printer accepts a connection; prints nothing.
+#[tauri::command]
+pub async fn printer_probe(host: String, port: u16) -> Result<(), String> {
+    let addr = printer::parse_target(&host, port).map_err(|e| e.code().to_string())?;
+    printer::probe(addr).await.map_err(|e| e.code().to_string())
+}

@@ -29,6 +29,8 @@ pub const AUDIT_ACTIONS: &[&str] = &[
     "BACKUP",
     "RETENTION_PURGE",
     "DELETE_ALL",
+    "PRINT_OK",
+    "PRINT_ERROR",
 ];
 
 fn bad(msg: &str) -> rusqlite::Error {

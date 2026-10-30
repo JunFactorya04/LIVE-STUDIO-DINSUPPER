@@ -191,6 +191,11 @@ button {
 
 .page--no-inspector {
   grid-template-columns: minmax(0, 1fr);
+  /* Grow with the content so the scroll area (and its bottom padding above the phone tab bar)
+     includes everything; a fixed height let the last box slide under the tab bar. */
+  height: auto;
+  min-height: 100%;
+  align-content: start;
 }
 
 .inspector {
