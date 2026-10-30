@@ -71,8 +71,9 @@ describe("Dashboard page", () => {
   it("lists pending work and jumps to the page that handles it", async () => {
     const { onNavigate } = mount(client());
     // Empty catalog, no source, and one AI error in the log.
-    expect(await screen.findByText("尚未建立商品目錄")).toBeInTheDocument();
-    expect(screen.getByText("最近 AI 呼叫失敗 1 次")).toBeInTheDocument();
+    // The AI error comes from the audit log, which loads asynchronously: wait for it.
+    expect(await screen.findByText("最近 AI 呼叫失敗 1 次")).toBeInTheDocument();
+    expect(screen.getByText("尚未建立商品目錄")).toBeInTheDocument();
     fireEvent.click(
       within(screen.getByText("尚未連接留言來源").closest("li")!).getByRole("button"),
     );
