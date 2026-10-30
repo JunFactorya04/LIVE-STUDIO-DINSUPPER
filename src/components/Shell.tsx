@@ -1,44 +1,39 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NAV_ITEMS, type PageId } from "../navigation";
 import { NavIcon } from "./Icons";
-import { vi } from "../i18n/vi";
+import { useI18n } from "../i18n";
 
-interface SidebarProps {
+interface NavProps {
   current: PageId;
   onSelect: (id: PageId) => void;
 }
 
-export function Sidebar({ current, onSelect }: SidebarProps) {
-  const main = NAV_ITEMS.filter((i) => i.section === "main");
-  const manage = NAV_ITEMS.filter((i) => i.section === "manage");
+export function Sidebar({ current, onSelect }: NavProps) {
+  const { t } = useI18n();
+  const sections = [
+    { key: "main", title: t.nav.sectionMain },
+    { key: "manage", title: t.nav.sectionManage },
+  ] as const;
 
   return (
-    <aside className="sidebar" aria-label={vi.app.name}>
-      <div className="sidebar__section">{vi.nav.sectionMain}</div>
-      {main.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          className="sidebar__item"
-          aria-current={current === item.id ? "page" : undefined}
-          onClick={() => onSelect(item.id)}
-        >
-          <NavIcon id={item.id} />
-          {item.label}
-        </button>
-      ))}
-      <div className="sidebar__section">{vi.nav.sectionManage}</div>
-      {manage.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          className="sidebar__item"
-          aria-current={current === item.id ? "page" : undefined}
-          onClick={() => onSelect(item.id)}
-        >
-          <NavIcon id={item.id} />
-          {item.label}
-        </button>
+    <aside className="sidebar" aria-label={t.app.name}>
+      <div className="sidebar__brand">{t.app.assistant}</div>
+      {sections.map((section) => (
+        <div key={section.key}>
+          <div className="sidebar__section">{section.title}</div>
+          {NAV_ITEMS.filter((i) => i.section === section.key).map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="sidebar__item"
+              aria-current={current === item.id ? "page" : undefined}
+              onClick={() => onSelect(item.id)}
+            >
+              <NavIcon id={item.id} />
+              {t.nav[item.id]}
+            </button>
+          ))}
+        </div>
       ))}
     </aside>
   );
@@ -48,10 +43,9 @@ interface ToolbarProps {
   title: string;
   subtitle?: string;
   actions?: ReactNode;
-  searchable?: boolean;
 }
 
-export function Toolbar({ title, subtitle, actions, searchable = true }: ToolbarProps) {
+export function Toolbar({ title, subtitle, actions }: ToolbarProps) {
   return (
     <header className="toolbar" data-tauri-drag-region>
       <div className="toolbar__title">
@@ -59,27 +53,73 @@ export function Toolbar({ title, subtitle, actions, searchable = true }: Toolbar
         {subtitle && <span>{subtitle}</span>}
       </div>
       <div className="toolbar__spacer" />
-      {searchable && <input className="search" type="search" placeholder={vi.common.search} aria-label={vi.common.search} />}
       {actions}
     </header>
   );
 }
 
-export function TabBar({ current, onSelect }: SidebarProps) {
+export function TabBar({ current, onSelect }: NavProps) {
+  const { t } = useI18n();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const tabs = NAV_ITEMS.filter((i) => i.tab);
+  const rest = NAV_ITEMS.filter((i) => !i.tab);
+  const moreActive = rest.some((i) => i.id === current);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMoreOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
+
   return (
-    <nav className="tabbar" aria-label={vi.app.name}>
-      {NAV_ITEMS.map((item) => (
+    <nav className="tabbar" aria-label={t.app.name}>
+      {moreOpen && (
+        <div className="more-menu" role="menu">
+          {rest.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="menuitem"
+              className="more-menu__item"
+              aria-current={current === item.id ? "page" : undefined}
+              onClick={() => {
+                setMoreOpen(false);
+                onSelect(item.id);
+              }}
+            >
+              <NavIcon id={item.id} size={20} />
+              {t.nav[item.id]}
+            </button>
+          ))}
+        </div>
+      )}
+      {tabs.map((item) => (
         <button
           key={item.id}
           type="button"
           className="tabbar__item"
           aria-current={current === item.id ? "page" : undefined}
-          onClick={() => onSelect(item.id)}
+          onClick={() => {
+            setMoreOpen(false);
+            onSelect(item.id);
+          }}
         >
-          <NavIcon id={item.id} size={20} />
-          {item.label}
+          <NavIcon id={item.id} size={22} />
+          {t.nav[item.id]}
         </button>
       ))}
+      <button
+        type="button"
+        className="tabbar__item"
+        aria-haspopup="menu"
+        aria-expanded={moreOpen}
+        aria-current={moreActive ? "page" : undefined}
+        onClick={() => setMoreOpen((v) => !v)}
+      >
+        <NavIcon id="more" size={22} />
+        {t.nav.more}
+      </button>
     </nav>
   );
 }

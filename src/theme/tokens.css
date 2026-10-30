@@ -51,10 +51,12 @@
   --shadow-box: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-pop: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.18);
 
-  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text",
-    "Segoe UI", system-ui, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display",
-    "Segoe UI Variable Display", system-ui, sans-serif;
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI",
+    system-ui, sans-serif;
+  --font-display:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display", system-ui,
+    sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   color-scheme: light;
@@ -120,8 +122,23 @@
 }
 
 /* Tinted chips: readable in light and dark. */
-.tone-blue { color: color-mix(in srgb, var(--sys-blue) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-blue) 15%, transparent); }
-.tone-green { color: color-mix(in srgb, var(--sys-green) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-green) 15%, transparent); }
-.tone-orange { color: color-mix(in srgb, var(--sys-orange) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-orange) 15%, transparent); }
-.tone-red { color: color-mix(in srgb, var(--sys-red) 85%, var(--mac-label)); background: color-mix(in srgb, var(--sys-red) 15%, transparent); }
-.tone-gray { color: var(--mac-label-2); background: var(--mac-hover); }
+.tone-blue {
+  color: color-mix(in srgb, var(--sys-blue) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-blue) 15%, transparent);
+}
+.tone-green {
+  color: color-mix(in srgb, var(--sys-green) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-green) 15%, transparent);
+}
+.tone-orange {
+  color: color-mix(in srgb, var(--sys-orange) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-orange) 15%, transparent);
+}
+.tone-red {
+  color: color-mix(in srgb, var(--sys-red) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-red) 15%, transparent);
+}
+.tone-gray {
+  color: var(--mac-label-2);
+  background: var(--mac-hover);
+}

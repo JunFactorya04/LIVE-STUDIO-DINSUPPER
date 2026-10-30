@@ -1,17 +1,19 @@
 import type { PageId } from "../navigation";
 
-// Outline icons, 1.5px stroke, 17px in sidebar — close to SF Symbols style.
+// Outline icons, 1.5px stroke, 17px in the sidebar: close to the SF Symbols style.
 // Replace with real SF Symbols when a native shell is added.
-const paths: Record<PageId, string> = {
-  dashboard: "M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z",
-  live: "M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0M6.3 6.3a8 8 0 0 0 0 11.4M17.7 6.3a8 8 0 0 1 0 11.4",
-  platforms: "M4 6h16M4 12h16M4 18h10",
-  content: "M4 4h16v4H4zM4 10h16v10H4z",
-  schedule: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
+const paths: Record<PageId | "more", string> = {
+  setup: "M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6",
+  console: "M4 5h16v11H10l-4 3v-3H4z",
+  orders: "M5 4h14v16H5zM9 9h6M9 13h6",
+  replies: "M10 8L5 12l5 4M5 12h9a5 5 0 0 1 5 5",
+  overlay: "M12 4l8 4-8 4-8-4zM4 12l8 4 8-4M4 16l8 4 8-4",
+  report: "M5 20V10M12 20V4M19 20v-7",
   settings: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM4 12h2M18 12h2M12 4v2M12 18v2",
+  more: "M6 12h.01M12 12h.01M18 12h.01",
 };
 
-export function NavIcon({ id, size = 17 }: { id: PageId; size?: number }) {
+export function NavIcon({ id, size = 17 }: { id: PageId | "more"; size?: number }) {
   return (
     <svg
       className="icon"
@@ -20,7 +22,7 @@ export function NavIcon({ id, size = 17 }: { id: PageId; size?: number }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.5}
+      strokeWidth={id === "more" ? 3 : 1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"

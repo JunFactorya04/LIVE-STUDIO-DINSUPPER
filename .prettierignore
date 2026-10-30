@@ -1,0 +1,4 @@
+dist
+src-tauri
+graphify-out
+package-lock.json

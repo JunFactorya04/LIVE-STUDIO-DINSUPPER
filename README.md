@@ -1,14 +1,33 @@
 # LIVE STUDIO
 
-Ứng dụng desktop quản lý nội dung và phát trực tiếp trên nhiều nền tảng.
-Chạy trên **macOS** và **Windows** từ cùng một mã nguồn.
+Ứng dụng desktop **Local Shop Assistant — TikTok LIVE Assistant**: hỗ trợ người bán xử lý bình luận
+livestream, đề xuất trả lời và tạo đơn nháp. Chạy trên **macOS** và **Windows** từ cùng một mã nguồn.
+
+Yêu cầu sản phẩm: [`docs/TIKTOK_LIVE_ASSISTANT.md`](docs/TIKTOK_LIVE_ASSISTANT.md).
+Kế hoạch và quyết định kiến trúc: [`docs/IMPLEMENTATION_PLAN_TIKTOK_LIVE.md`](docs/IMPLEMENTATION_PLAN_TIKTOK_LIVE.md).
+
+## Trạng thái
+
+| Phase | Nội dung                                     | Trạng thái                          |
+| ----- | -------------------------------------------- | ----------------------------------- |
+| 0     | Khảo sát repo, kế hoạch                      | Xong                                |
+| 1     | Giao diện Live Setup/Console + Demo provider | **Xong**                            |
+| 2     | SQLite + event bus                           | Chưa                                |
+| 3     | AI phân loại + đơn nháp                      | Chưa                                |
+| 4     | Gợi ý trả lời + overlay                      | Chưa                                |
+| 5     | Provider live thật                           | Chờ xác minh nguồn bình luận hợp lệ |
+| 6     | Hardening                                    | Chưa                                |
+
+**Chưa có nguồn bình luận TikTok thật.** App chỉ hiện `Connected` khi một provider thật xác nhận;
+hiện chỉ có `DemoLiveCommentProvider` (nhãn DEMO) và `NoSourceProvider` (luôn `UNAVAILABLE`).
 
 ## Công nghệ
 
-- **Vỏ ứng dụng:** Tauri 2 (Rust), nhẹ, dùng WebView gốc của từng hệ điều hành
+- **Vỏ ứng dụng:** Tauri 2 (Rust), dùng WebView gốc của từng hệ điều hành
 - **Giao diện:** React 18 + TypeScript + Vite
-- **Thiết kế:** chuẩn Apple (macOS/iOS), token nằm ở `src/theme/tokens.css`
-- **Ngôn ngữ giao diện:** tiếng Việt, chuỗi đặt tập trung ở `src/i18n/vi.ts`
+- **Thiết kế:** chuẩn Apple (macOS/iOS), token ở `src/theme/tokens.css`
+- **Ngôn ngữ giao diện:** zh-TW (mặc định) và Tiếng Việt, chọn ở mục Cài đặt; chuỗi nằm ở `src/i18n/`
+- **Kiểm thử:** Vitest + Testing Library; **lint/format:** ESLint + Prettier
 
 ## Yêu cầu
 
@@ -23,7 +42,17 @@ Chạy trên **macOS** và **Windows** từ cùng một mã nguồn.
 ```bash
 npm install
 npm run tauri:dev      # mở cửa sổ ứng dụng với hot reload
-npm run build          # kiểm tra kiểu và build giao diện
+npm run dev            # chỉ giao diện, mở trong trình duyệt (cổng 1420)
+```
+
+Thử nhanh không cần tài khoản: **Thiết lập Live** → bật **chế độ Demo** → **Kết nối** → **Bắt đầu**.
+
+## Kiểm tra trước khi commit
+
+```bash
+npm run check          # typecheck + lint + kiểm tra định dạng + test
+npm run format         # tự định dạng
+npm run build          # build giao diện
 ```
 
 ## Đóng gói
@@ -32,27 +61,29 @@ npm run build          # kiểm tra kiểu và build giao diện
 npm run tauri:build    # macOS: .dmg/.app · Windows: .msi/.exe
 ```
 
-Bản build chính thức được tạo tự động bởi GitHub Actions (xem `.github/workflows/build.yml`).
+Bản build chính thức do GitHub Actions tạo (`.github/workflows/build.yml`).
 
 ## Cấu trúc
 
 ```
 src/
-  theme/        token màu, kích thước, font (tokens.css) và layout (base.css)
-  i18n/         toàn bộ chuỗi giao diện (tiếng Việt)
-  components/   vỏ ứng dụng, icon, trạng thái trống/tải/lỗi
-  navigation.ts danh sách mục menu (dùng cho sidebar và tab bar)
-  App.tsx       khung chính
-src-tauri/
-  src/lib.rs    lệnh phía backend (thêm tại đây)
-  tauri.conf.json, capabilities/  cấu hình cửa sổ và quyền
-docs/
-  PLAN.md       kế hoạch và danh sách tính năng
+  live/         lõi Live: types, LiveCommentProvider, Demo/NoSource provider,
+                kiểm tra URL/username, LiveSessionStore (chống trùng, giới hạn 1000 bình luận)
+  pages/        Live Setup, Live Console, Cài đặt, trang giữ chỗ cho phase sau
+  components/   vỏ ứng dụng, icon, StatusChip, trạng thái trống/tải/lỗi
+  i18n/         zh-TW.ts (khóa gốc), vi.ts, bộ chọn ngôn ngữ
+  theme/        tokens.css (token Apple), base.css (khung), live.css (màn Live)
+src-tauri/      backend Rust (thêm lệnh ở src/lib.rs)
+docs/           yêu cầu, kế hoạch, hướng dẫn cài đặt đồng bộ Windows/Mac
 ```
 
 ## Quy ước
 
-- Mọi màu và cỡ chữ lấy từ token, không viết trực tiếp.
-- Mọi danh sách và trang phải có đủ 3 trạng thái: đang tải, trống, lỗi.
-- Code platform riêng đặt sau `#[cfg(target_os = "...")]` để cả hai hệ điều hành cùng build được.
-- Mỗi tab phải kiểm tra ở hai kích thước: desktop 1440×900 và điện thoại 390×844.
+- Mọi màu và cỡ chữ lấy từ token; chỉ dùng `#fff` cho chữ trên nền xanh hệ thống.
+- Mọi danh sách và trang phải có trạng thái trống, đang tải, lỗi (`components/States.tsx`).
+- Thêm ngôn ngữ: thêm file cùng cấu trúc `Messages`; thiếu khóa là lỗi kiểu dữ liệu.
+- Code riêng từng hệ điều hành đặt sau `#[cfg(target_os = "...")]` để Mac và Windows cùng build.
+- Mỗi màn hình kiểm tra ở hai kích thước (desktop 1440×900, điện thoại 390×844) và cả sáng/tối.
+- Không đưa secret vào frontend, repo hoặc log; không tự gửi bình luận lên TikTok.
+
+Hướng dẫn cài công cụ, đồng bộ giữa Windows và Mac, và dùng Graphify: [`docs/SETUP.md`](docs/SETUP.md).
