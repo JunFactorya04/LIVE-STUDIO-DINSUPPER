@@ -40,6 +40,43 @@ CREATE INDEX ix_live_comments_session_order
     ON live_comments(session_id, id);
 ";
 
+const MIGRATION_2: &str = "
+CREATE TABLE catalog_items (
+    sku        TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    price      REAL,
+    colors     TEXT NOT NULL DEFAULT '[]',
+    sizes      TEXT NOT NULL DEFAULT '[]',
+    aliases    TEXT NOT NULL DEFAULT '[]',
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+
+CREATE TABLE live_order_drafts (
+    id               TEXT PRIMARY KEY,
+    session_id       TEXT NOT NULL REFERENCES live_sessions(id) ON DELETE CASCADE,
+    platform_user_id TEXT,
+    username         TEXT,
+    sku              TEXT,
+    variant_json     TEXT NOT NULL DEFAULT '{}',
+    quantity         INTEGER,
+    confidence       REAL NOT NULL,
+    status           TEXT NOT NULL,
+    review_reason    TEXT,
+    created_at       TEXT NOT NULL,
+    updated_at       TEXT NOT NULL
+);
+CREATE INDEX ix_order_drafts_session ON live_order_drafts(session_id, created_at);
+
+CREATE TABLE live_order_evidence (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_draft_id TEXT NOT NULL REFERENCES live_order_drafts(id) ON DELETE CASCADE,
+    event_id       TEXT NOT NULL,
+    field_name     TEXT NOT NULL,
+    evidence_text  TEXT NOT NULL
+);
+CREATE INDEX ix_order_evidence_draft ON live_order_evidence(order_draft_id);
+";
+
 fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -53,6 +90,11 @@ pub fn migrate(conn: &Connection) -> Result<()> {
     if version < 1 {
         conn.execute_batch(&format!(
             "BEGIN;{MIGRATION_1}PRAGMA user_version = 1;COMMIT;"
+        ))?;
+    }
+    if version < 2 {
+        conn.execute_batch(&format!(
+            "BEGIN;{MIGRATION_2}PRAGMA user_version = 2;COMMIT;"
         ))?;
     }
     Ok(())
@@ -85,7 +127,7 @@ mod tests {
         let v: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 1);
+        assert_eq!(v, 2);
     }
 
     #[test]

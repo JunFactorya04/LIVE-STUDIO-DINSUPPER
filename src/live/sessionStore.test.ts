@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DemoLiveCommentProvider } from "./demoProvider";
 import { EulerProvider, type EulerBackend, type EulerEnvelope } from "./eulerProvider";
+import { MemoryOrderRepository } from "../orders/repository";
 import { MemoryLiveRepository, type LiveRepository } from "./repository";
 import { LiveSessionStore, MAX_COMMENTS } from "./sessionStore";
 import type { LiveCommentEvent, LiveProviderStatus } from "./types";
@@ -187,6 +188,85 @@ describe("LiveSessionStore persistence", () => {
     expect(b.receive(snap.comments[0])).toBe(false);
     await b.flush();
     expect((await repo.latestSession())?.endedAt).toBeDefined();
+  });
+
+  describe("order drafts", () => {
+    const item = { sku: "A12", name: "連帽衫", colors: ["黑色"], sizes: ["M"], aliases: [] };
+    function pair() {
+      const repo = new MemoryLiveRepository();
+      const orders = new MemoryOrderRepository();
+      const make = () => {
+        let n = 0;
+        let d = 0;
+        return new LiveSessionStore({
+          repository: repo,
+          orders,
+          newId: () => `sess-${++n}`,
+          newDraftId: () => `od-${++d}`,
+        });
+      };
+      return { orders, make };
+    }
+
+    it("builds drafts from pasted comments, needs the seller to confirm, and restores them", async () => {
+      const { make } = pair();
+      const a = make();
+      a.saveCatalogItem(item);
+      await manualSession(a);
+      a.submitManual("amy: A12 黑色 M x2\nbob: Z99 x1\ncarol: 好漂亮");
+      const [amy, bob] = a.getSnapshot().drafts;
+      expect(a.getSnapshot().drafts).toHaveLength(2);
+      expect(amy).toMatchObject({ username: "amy", status: "DRAFT", quantity: 2 });
+      expect(bob).toMatchObject({ username: "bob", status: "NEEDS_REVIEW" });
+
+      // Nothing is confirmed by itself, and a draft that needs review cannot be confirmed.
+      expect(a.setDraftStatus(bob.id, "CONFIRMED")).toBe(false);
+      expect(a.setDraftStatus(amy.id, "CONFIRMED")).toBe(true);
+      expect(a.setDraftStatus(amy.id, "CONFIRMED")).toBe(false);
+      await a.flush();
+
+      const b = make();
+      await b.restore();
+      const snap = b.getSnapshot();
+      expect(snap.catalog.map((c) => c.sku)).toEqual(["A12"]);
+      expect(snap.drafts.map((d) => [d.username, d.status])).toEqual([
+        ["amy", "CONFIRMED"],
+        ["bob", "NEEDS_REVIEW"],
+      ]);
+      expect(snap.persistError).toBe(false);
+    });
+
+    it("the same pasted comment never makes a second draft", async () => {
+      const { make } = pair();
+      const a = make();
+      a.saveCatalogItem(item);
+      await manualSession(a);
+      a.submitManual("amy: A12 黑色 M x2");
+      a.submitManual("amy: A12 黑色 M x2");
+      expect(a.getSnapshot().drafts).toHaveLength(1);
+    });
+
+    it("catalog changes are saved, imported and deleted in storage", async () => {
+      const { orders, make } = pair();
+      const a = make();
+      a.saveCatalogItem(item);
+      a.importCatalog([{ ...item, sku: "B7", name: "托特包", colors: [], sizes: [] }]);
+      a.deleteCatalogItem("A12");
+      await a.flush();
+      expect((await orders.listCatalog()).map((c) => c.sku)).toEqual(["B7"]);
+      expect(a.getSnapshot().catalog.map((c) => c.sku)).toEqual(["B7"]);
+    });
+
+    it("clearing comments keeps the order drafts", async () => {
+      const { make } = pair();
+      const a = make();
+      a.saveCatalogItem(item);
+      await manualSession(a);
+      a.submitManual("amy: A12 黑色 M x2");
+      a.clearComments();
+      expect(a.getSnapshot().comments).toEqual([]);
+      expect(a.getSnapshot().drafts).toHaveLength(1);
+    });
   });
 
   it("restore with an empty database leaves a clean store", async () => {

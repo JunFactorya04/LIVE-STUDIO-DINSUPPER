@@ -60,7 +60,7 @@ Nghiệm thu: chạy app thấy feed Demo, mọi bình luận giả đều gắn
 ### Phase 2 — Lưu trữ + nguồn chạy thật
 
 - **2a (xong):** SQLite, nguồn "Dán thủ công", khôi phục sau khi tắt app, khóa API do người dùng nhập.
-- **2b:** catalog SKU + bộ đọc đơn bằng luật (không AI).
+- **2b (xong):** catalog SKU + bộ đọc đơn bằng luật (không AI), xem mục 8.
 - Sự kiện Tauri (Rust → giao diện) chỉ cần khi có provider hoặc AI chạy phía Rust; hoãn tới đó.
 
 ### Phase 3 — AI + đơn nháp
@@ -171,3 +171,39 @@ Community miễn phí: 2.500 yêu cầu/ngày, 25 WebSocket đám mây. Business
 - Test Rust (19): phân tích khung tin, mã đóng, URL, và chạy thật với máy chủ WebSocket cục bộ giả lập giao thức (nhận đúng `uniqueId` và `apiKey`, phát gói bình luận, đóng bằng 4404 / 4401, mạng lỗi không lộ khóa).
 - Test giao diện (47): `EulerProvider`, store với nguồn `live` (CONNECTING cho tới khi có bằng chứng, chống trùng, lưu, cần xác nhận).
 - **Chưa kiểm chứng với Euler Stream thật.** Môi trường phát triển không gọi được `ws.eulerstream.com`; hình dạng tin nhắn lấy từ SDK, không phải từ một phiên chạy thật. Cần thử trên máy có khóa thật: nếu bình luận không hiện, xem `docs` Euler Stream "Event Types" và chỉnh `parse_chat` trong `euler.rs`.
+
+## 8. Phase 2b — catalog và đơn nháp bằng luật
+
+Nguồn catalog chưa được người dùng quyết định (nhập tay / Excel / từ công cụ 7-11), nên làm trước nhập tay + dán Excel/CSV; thêm nguồn khác sau chỉ cần gọi `importCatalog`.
+
+### Lưu trữ (migration 2)
+
+`catalog_items`, `live_order_drafts` (khóa ngoại tới phiên, xóa theo phiên), `live_order_evidence` (id bình luận nguồn cho từng trường). Lệnh Tauri: `catalog_list/upsert/delete`, `order_save/list/set_status`. Rust kiểm tra: trạng thái hợp lệ, số lượng 1–999, độ tin cậy 0–1; chuyển trạng thái: `CONFIRMED` chỉ từ `DRAFT`, `CANCELLED` từ mọi trạng thái chưa hủy, đơn đã hủy là cuối cùng.
+
+### Parser (`src/orders/parser.ts`)
+
+- Chuẩn hóa NFKC, chữ thường. Khớp mã SKU **chính xác theo token** (A12 không khớp A123, bỏ qua `-`/`_`); khớp theo tên/tên gọi khác là yếu hơn (độ tin cậy ×0.85). Token giống mã (`a12`, `b-7`) mà không có trong catalog → `SKU_NOT_FOUND`; nhiều mã → `MULTIPLE_SKU`.
+- Màu/size theo catalog của sản phẩm (hỗ trợ tên gọi khác bằng `|`), chữ Latin phải đứng riêng ("m" không nằm trong "name"). Hai màu khác nhau trong một bình luận → xung đột, không đoán.
+- Số lượng: `×N`, `xN`, `N件/個/cái/pcs`, `要N`, `lấy N`, số Hán (一…九十九, 兩); số trần chỉ tin khi đã có đơn mở. Vượt giới hạn (mặc định 20) → `QTY_TOO_LARGE`, không lưu số.
+
+### Engine (`src/orders/engine.ts`, hàm thuần, không sửa dữ liệu vào)
+
+- Khóa khách = `platformUserId` hoặc username viết thường. Gộp vào đơn đang mở của khách trong 120 giây (theo thời gian bình luận); sản phẩm khác → đơn mới, đơn cũ giữ nguyên. Hai khách xen kẽ không bao giờ lẫn.
+- Bình luận chỉ mở đơn mới khi có mã (biết hoặc không biết) hoặc số lượng rõ ràng; màu/size/số trần đứng một mình chỉ gộp vào đơn đang mở. "我要兩個" không rõ sản phẩm → `NEEDS_REVIEW`.
+- Giá trị mâu thuẫn → giữ giá trị đầu, thêm `CONFLICT_*`. Mọi lý do → `NEEDS_REVIEW`. Độ tin cậy cố định: 1.0; khớp theo tên ×0.85; số trần ×0.9; chỉ có username tối đa 0.8; cần kiểm tra tối đa 0.5.
+- Cùng một bình luận không bao giờ tính hai lần (kiểm tra theo id bằng chứng).
+
+### Giao diện
+
+Trang "直播訂單": bảng đơn nháp (bình luận gốc, lý do, nút Xác nhận/Hủy; Xác nhận bị khóa khi cần kiểm tra) và tab danh mục (thêm/sửa/xóa, dán Excel/CSV). Console hiển thị số 草稿/待確認 thật. "Xóa bình luận" giữ lại đơn nháp.
+
+### Giới hạn đã biết
+
+- Chưa có sửa tay đơn `NEEDS_REVIEW` (hiện chỉ xác nhận được đơn sạch hoặc hủy); mã SKU phải là chữ/số Latin.
+- Bình luận OCR chưa có nguồn nên chưa tính độ tin cậy riêng cho OCR.
+- Đọc "đổi sang…" (sửa số lượng/màu) chưa hỗ trợ: sẽ ra `CONFLICT_*` để người bán xem.
+- Dán lại một bình luận y hệt ở lần dán sau bị coi là trùng (giới hạn từ Phase 2a).
+
+### Kiểm tra
+
+`cargo test`: 24 test Rust (thêm 5 cho danh mục/đơn). `npm run check`: test giao diện + parser/engine (27 test cho các ca spec: SKU không có, thiếu màu/size/số lượng, một khách nhiều bình luận, hai khách xen kẽ), store (đơn nháp, khôi phục, danh mục), trang Đơn hàng. Ảnh chụp 1440×900 và 390×844 sáng/tối: không tràn ngang.

@@ -13,7 +13,7 @@ Kế hoạch và quyết định kiến trúc: [`docs/IMPLEMENTATION_PLAN_TIKTOK
 | 0     | Khảo sát repo, kế hoạch                        | Xong                                |
 | 1     | Giao diện Live Setup/Console + Demo provider   | **Xong**                            |
 | 2a    | SQLite, dán chat thủ công, khôi phục, khóa API | **Xong**                            |
-| 2b    | Catalog SKU + đọc đơn bằng luật                | Chưa                                |
+| 2b    | Catalog SKU + đọc đơn bằng luật                | **Xong**                            |
 | 3     | AI phân loại + đơn nháp                        | Chưa                                |
 | 4     | Gợi ý trả lời + overlay                        | Chưa                                |
 | 5     | Provider live thật                             | Chờ xác minh nguồn bình luận hợp lệ |
@@ -30,6 +30,12 @@ Kế hoạch và quyết định kiến trúc: [`docs/IMPLEMENTATION_PLAN_TIKTOK
 App chỉ hiện `Connected` khi dịch vụ xác nhận (tin `tiktok.connect`, `room.status: connected` hoặc có bình luận thật);
 không có khóa, ở trình duyệt thường, hoặc khi mất kết nối thì hiện lý do cụ thể. Chưa kiểm thử với Euler Stream thật
 (môi trường phát triển không gọi được dịch vụ này), xem `docs/IMPLEMENTATION_PLAN_TIKTOK_LIVE.md`, mục 7.
+
+**Đơn nháp (2b):** mỗi bình luận được đọc bằng luật cố định (không AI) và ghép vào đơn nháp của đúng khách. Chỉ khớp với
+**danh mục sản phẩm** bạn nhập (tab "商品目錄", hoặc dán từ Excel/CSV). Đơn thiếu màu/size/số lượng, mã không có trong
+danh mục, nhiều mã trong một bình luận hoặc số lượng bất thường đều thành **待確認** kèm lý do, và không thể xác nhận
+trực tiếp. App không tự tạo đơn, không tự trả lời, không bao giờ tự điền tên/số điện thoại/địa chỉ; người bán bấm Xác nhận
+hoặc Hủy cho từng đơn.
 
 Dữ liệu được lưu trong SQLite trên máy (`live-studio.db` ở thư mục dữ liệu của app) và tự nạp lại khi mở app.
 Khóa API (Claude, OpenAI, Gemini, Euler Stream) do người dùng tự nhập ở **Cài đặt**, lưu trong Keychain / Credential
@@ -87,12 +93,14 @@ src/
   live/         lõi Live: types, LiveCommentProvider, Demo / Manual / Euler provider,
                 kiểm tra URL/username, ManualPasteProvider + paste.ts, LiveRepository (SQLite/bộ nhớ),
                 LiveSessionStore (chống trùng, giới hạn 1000 bình luận, lưu và khôi phục)
+  orders/       danh mục, parser bình luận → trường đơn (parser.ts), engine ghép đơn nháp theo khách (engine.ts),
+                nhập CSV (catalogCsv.ts), OrderRepository (SQLite/bộ nhớ)
   secrets/      client khóa API (chỉ ghi / kiểm tra có chưa / xóa, không đọc lại)
-  pages/        Live Setup, Live Console, Cài đặt, trang giữ chỗ cho phase sau
+  pages/        Live Setup, Live Console, Đơn hàng (đơn nháp + danh mục), Cài đặt, trang giữ chỗ cho phase sau
   components/   vỏ ứng dụng, icon, StatusChip, trạng thái trống/tải/lỗi
   i18n/         zh-TW.ts (khóa gốc), vi.ts, bộ chọn ngôn ngữ
   theme/        tokens.css (token Apple), base.css (khung), live.css (màn Live)
-src-tauri/      backend Rust: db.rs (SQLite + migration), live.rs, secrets.rs (keyring), euler.rs (WebSocket Euler Stream), commands.rs
+src-tauri/      backend Rust: db.rs (SQLite + migration), live.rs, orders.rs (danh mục + đơn nháp), secrets.rs (keyring), euler.rs (WebSocket Euler Stream), commands.rs
 docs/           yêu cầu, kế hoạch, hướng dẫn cài đặt đồng bộ Windows/Mac
 ```
 

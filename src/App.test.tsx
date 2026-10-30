@@ -12,7 +12,7 @@ import type { LiveCommentEvent } from "./live/types";
 import { ApiKeysSection } from "./pages/ApiKeysSection";
 import type { SecretsClient } from "./secrets/client";
 
-function setup(initialPage?: "setup" | "console" | "settings") {
+function setup(initialPage?: "setup" | "console" | "orders" | "settings") {
   let n = 0;
   const store = new LiveSessionStore({
     newId: () => `sess-${++n}`,
@@ -185,6 +185,64 @@ describe("API keys", () => {
 
     fireEvent.click(screen.getByRole("button", { name: zhTW.settings.apiRemove }));
     await waitFor(() => expect(vault.has("claude")).toBe(false));
+  });
+});
+
+describe("Orders page", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("shows drafts with reasons, confirms only clean ones, and updates the console counts", async () => {
+    const store = setup("orders");
+    store.saveCatalogItem({
+      sku: "A12",
+      name: "連帽衫",
+      colors: ["黑色"],
+      sizes: ["M"],
+      aliases: [],
+    });
+    await act(async () => {
+      await store.connectSource();
+      store.startSession();
+      store.submitManual("amy: A12 黑色 M x2\nbob: Z99 x1");
+    });
+    const table = screen.getByRole("table", { name: zhTW.orders.tabs.drafts });
+    const rows = within(table).getAllByRole("row").slice(1);
+    expect(rows).toHaveLength(2);
+    // Newest first: bob (needs review) above amy (draft).
+    const bobRow = rows[0];
+    const amyRow = rows[1];
+    expect(within(bobRow).getByText(zhTW.orders.reasons.SKU_NOT_FOUND)).toBeInTheDocument();
+    expect(within(bobRow).getByRole("button", { name: zhTW.orders.confirm })).toBeDisabled();
+    expect(within(amyRow).getByText("A12")).toBeInTheDocument();
+
+    fireEvent.click(within(amyRow).getByRole("button", { name: zhTW.orders.confirm }));
+    expect(within(table).getByText(zhTW.orders.status.CONFIRMED)).toBeInTheDocument();
+    expect(within(amyRow).getByRole("button", { name: zhTW.orders.confirm })).toBeDisabled();
+    expect(store.getSnapshot().drafts.map((d) => d.status)).toEqual(["CONFIRMED", "NEEDS_REVIEW"]);
+  });
+
+  it("explains an empty state and imports a catalog from pasted text", async () => {
+    const store = setup("orders");
+    expect(screen.getByText(zhTW.orders.emptyTitle)).toBeInTheDocument();
+    expect(screen.getByText(zhTW.orders.noCatalogHint)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: zhTW.orders.tabs.catalog }));
+    fireEvent.change(screen.getByLabelText(zhTW.orders.catalog.importTitle), {
+      target: { value: "A12\t黑色連帽衫\t790\t黑色|黑;白色\tM;L\t帽T\nbad" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: zhTW.orders.catalog.importButton }));
+    expect(await screen.findByText("已匯入 1 項，1 行無法讀取。")).toBeInTheDocument();
+    expect(store.getSnapshot().catalog[0]).toMatchObject({ sku: "A12", price: 790 });
+    expect(
+      screen.getByRole("button", { name: `${zhTW.orders.catalog.edit} A12` }),
+    ).toBeInTheDocument();
+  });
+
+  it("rejects a catalog item without code and name", () => {
+    setup("orders");
+    fireEvent.click(screen.getByRole("button", { name: zhTW.orders.tabs.catalog }));
+    fireEvent.click(screen.getByRole("button", { name: zhTW.orders.catalog.save }));
+    expect(screen.getByRole("alert")).toHaveTextContent(zhTW.orders.catalog.skuRequired);
   });
 });
 

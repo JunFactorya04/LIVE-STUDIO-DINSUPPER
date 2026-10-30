@@ -5,6 +5,9 @@ import { EulerProvider, createEulerBackend } from "./eulerProvider";
 import type { LiveCommentProvider } from "./provider";
 import { createRepository, type LiveRepository } from "./repository";
 import type { LiveCommentEvent, LiveProviderStatus } from "./types";
+import { applyComment, canTransition } from "../orders/engine";
+import { createOrderRepository, type OrderRepository } from "../orders/repository";
+import type { CatalogItem, OrderDraft, OrderStatus } from "../orders/types";
 
 // Framework-free store for one LIVE session. React reads it through
 // useSyncExternalStore (see ./useLiveSession.ts).
@@ -40,6 +43,10 @@ export interface LiveSessionSnapshot {
   startedAt: string | undefined;
   endedAt: string | undefined;
   comments: readonly LiveCommentEvent[];
+  /** Product list of the shop (kept across sessions). */
+  catalog: readonly CatalogItem[];
+  /** Order drafts of this session, built from comments; the seller confirms them. */
+  drafts: readonly OrderDraft[];
   duplicates: number;
   dropped: number;
   /** True when this session was loaded from storage after a restart. */
@@ -50,6 +57,8 @@ export interface LiveSessionSnapshot {
 
 export interface StoreDeps {
   repository?: LiveRepository;
+  orders?: OrderRepository;
+  newDraftId?: () => string;
   createDemoProvider?: () => LiveCommentProvider;
   createLiveProvider?: () => LiveCommentProvider;
   newId?: () => string;
@@ -62,6 +71,19 @@ function defaultId(): string {
   return `ls-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function defaultDraftId(): string {
+  return `od-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function mergeCatalog(
+  current: readonly CatalogItem[],
+  incoming: readonly CatalogItem[],
+): CatalogItem[] {
+  const map = new Map(current.map((c) => [c.sku, c]));
+  for (const item of incoming) map.set(item.sku, item);
+  return [...map.values()].sort((a, b) => a.sku.localeCompare(b.sku));
+}
+
 export class LiveSessionStore {
   private snapshot: LiveSessionSnapshot;
   private listeners = new Set<() => void>();
@@ -70,11 +92,13 @@ export class LiveSessionStore {
   private manual: ManualPasteProvider | undefined;
   private seen = new Set<string>();
   private readonly repo: LiveRepository;
+  private readonly orders: OrderRepository;
   private queue: Promise<void> = Promise.resolve();
   private restoring: Promise<void> | undefined;
 
   constructor(private readonly deps: StoreDeps = {}) {
     this.repo = deps.repository ?? createRepository();
+    this.orders = deps.orders ?? createOrderRepository();
     this.snapshot = this.freshSnapshot();
   }
 
@@ -98,9 +122,17 @@ export class LiveSessionStore {
 
   private async doRestore(): Promise<void> {
     try {
+      const stored = await this.orders.listCatalog();
+      // Items typed before the load finished are newer than the stored ones.
+      this.set({ catalog: mergeCatalog(stored, this.snapshot.catalog) });
+    } catch {
+      this.set({ persistError: true });
+    }
+    try {
       const stored = await this.repo.latestSession();
       if (!stored || this.snapshot.providerType) return; // nothing saved, or user already started
       const comments = await this.repo.listComments(stored.id, MAX_COMMENTS);
+      const drafts = await this.orders.listDrafts(stored.id);
       if (this.snapshot.providerType) return;
       this.seen = new Set(comments.map((c) => `${c.sessionId}|${c.source}|${c.eventId}`));
       const source: SourceMode =
@@ -127,6 +159,7 @@ export class LiveSessionStore {
         startedAt: stored.startedAt,
         endedAt: stored.startedAt ? endedAt : undefined,
         comments,
+        drafts,
         restored: comments.length > 0,
       });
     } catch {
@@ -204,6 +237,7 @@ export class LiveSessionStore {
       sessionId,
       issues: [],
       comments: [],
+      drafts: [],
       duplicates: 0,
       dropped: 0,
       startedAt: undefined,
@@ -288,11 +322,57 @@ export class LiveSessionStore {
       comments = comments.slice(extra);
       dropped += extra;
     }
-    if (accepted.length || duplicates !== this.snapshot.duplicates) {
-      this.set({ comments, dropped, duplicates });
+    // Comments -> order drafts (suggestions only; the seller decides).
+    let drafts = this.snapshot.drafts;
+    const changed = new Map<string, OrderDraft>();
+    for (const event of accepted) {
+      const result = applyComment(drafts, event, this.snapshot.catalog, {
+        newId: this.deps.newDraftId ?? defaultDraftId,
+      });
+      drafts = result.drafts;
+      if (result.changed) changed.set(result.changed.id, result.changed);
     }
-    if (accepted.length) this.persist(() => this.repo.ingest(accepted));
+
+    if (accepted.length || duplicates !== this.snapshot.duplicates) {
+      this.set({ comments, dropped, duplicates, drafts });
+    }
+    if (accepted.length) {
+      this.persist(() => this.repo.ingest(accepted));
+      // Drafts are saved after their comments so the session row exists first.
+      for (const d of changed.values()) this.persist(() => this.orders.saveDraft(d));
+    }
     return accepted.length;
+  }
+
+  // ---- catalog ----
+
+  saveCatalogItem(item: CatalogItem): void {
+    this.set({ catalog: mergeCatalog(this.snapshot.catalog, [item]) });
+    this.persist(() => this.orders.upsertCatalogItem(item));
+  }
+
+  importCatalog(items: readonly CatalogItem[]): void {
+    this.set({ catalog: mergeCatalog(this.snapshot.catalog, items) });
+    for (const item of items) this.persist(() => this.orders.upsertCatalogItem(item));
+  }
+
+  deleteCatalogItem(sku: string): void {
+    this.set({ catalog: this.snapshot.catalog.filter((c) => c.sku !== sku) });
+    this.persist(() => this.orders.deleteCatalogItem(sku));
+  }
+
+  // ---- seller decisions ----
+
+  /** Confirm or cancel a draft. Confirming is only allowed for a clean DRAFT. */
+  setDraftStatus(id: string, status: OrderStatus): boolean {
+    const draft = this.snapshot.drafts.find((d) => d.id === id);
+    if (!draft || !canTransition(draft.status, status)) return false;
+    const now = this.nowIso();
+    this.set({
+      drafts: this.snapshot.drafts.map((d) => (d.id === id ? { ...d, status, updatedAt: now } : d)),
+    });
+    this.persist(() => this.orders.setStatus(id, status, now));
+    return true;
   }
 
   /** Delete the stored comments of the current session (spec section 10). */
@@ -327,6 +407,8 @@ export class LiveSessionStore {
       startedAt: undefined,
       endedAt: undefined,
       comments: [],
+      catalog: [],
+      drafts: [],
       duplicates: 0,
       dropped: 0,
       restored: false,

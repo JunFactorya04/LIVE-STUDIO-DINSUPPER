@@ -188,3 +188,45 @@ pub fn euler_connect(
 pub fn euler_disconnect(euler: State<'_, EulerState>) {
     stop_euler(&euler);
 }
+
+// ---- Catalog and order drafts ----
+
+use crate::orders::{self, CatalogItemDto, OrderDraftDto};
+
+#[tauri::command]
+pub fn catalog_list(state: State<'_, DbState>) -> Result<Vec<CatalogItemDto>, String> {
+    orders::catalog_list(&*db(&state)?).map_err(err)
+}
+
+#[tauri::command]
+pub fn catalog_upsert(state: State<'_, DbState>, item: CatalogItemDto) -> Result<(), String> {
+    orders::catalog_upsert(&*db(&state)?, &item).map_err(err)
+}
+
+#[tauri::command]
+pub fn catalog_delete(state: State<'_, DbState>, sku: String) -> Result<usize, String> {
+    orders::catalog_delete(&*db(&state)?, &sku).map_err(err)
+}
+
+#[tauri::command]
+pub fn order_save(state: State<'_, DbState>, draft: OrderDraftDto) -> Result<(), String> {
+    orders::order_save(&mut *db(&state)?, &draft).map_err(err)
+}
+
+#[tauri::command]
+pub fn order_list(
+    state: State<'_, DbState>,
+    session_id: String,
+) -> Result<Vec<OrderDraftDto>, String> {
+    orders::order_list(&*db(&state)?, &session_id).map_err(err)
+}
+
+#[tauri::command]
+pub fn order_set_status(
+    state: State<'_, DbState>,
+    id: String,
+    status: String,
+    now: String,
+) -> Result<bool, String> {
+    orders::order_set_status(&*db(&state)?, &id, &status, &now).map_err(err)
+}

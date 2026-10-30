@@ -102,9 +102,9 @@ export function ConsolePage() {
           <dt>{t.console.totalComments}</dt>
           <dd className="num">{s.comments.length}</dd>
           <dt>{t.console.drafts}</dt>
-          <dd className="num">0</dd>
+          <dd className="num">{s.drafts.filter((d) => d.status === "DRAFT").length}</dd>
           <dt>{t.console.needsReview}</dt>
-          <dd className="num">0</dd>
+          <dd className="num">{s.drafts.filter((d) => d.status === "NEEDS_REVIEW").length}</dd>
           {s.duplicates > 0 && (
             <>
               <dt>{t.console.duplicates}</dt>
@@ -127,6 +127,7 @@ export function ConsolePage() {
           )}
           {confirmClear ? (
             <div className="actions">
+              <p className="caption">{t.console.clearHint}</p>
               <button
                 type="button"
                 className="btn btn--destructive"

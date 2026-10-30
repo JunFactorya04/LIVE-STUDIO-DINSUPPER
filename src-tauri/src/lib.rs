@@ -5,6 +5,7 @@ mod commands;
 mod db;
 mod euler;
 mod live;
+mod orders;
 mod secrets;
 
 use std::sync::Mutex;
@@ -42,6 +43,12 @@ pub fn run() {
             commands::secret_set,
             commands::secret_exists,
             commands::secret_remove,
+            commands::catalog_list,
+            commands::catalog_upsert,
+            commands::catalog_delete,
+            commands::order_save,
+            commands::order_list,
+            commands::order_set_status,
             commands::euler_connect,
             commands::euler_disconnect,
         ])
