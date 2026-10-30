@@ -731,6 +731,15 @@ export const vi: Messages = {
       sent: "Đã gửi",
       failed: "Gửi lỗi",
       noTarget: "Mã {code} từ điện thoại: hãy mở tab Xuất kho hoặc Kiểm kê trên máy tính.",
+      printers: "Máy in (qua máy tính)",
+      printersHelp:
+        "iPhone không nối thẳng máy in được, nên in đi qua máy tính và dùng máy in đã cài ở Cài đặt của máy tính.",
+      receiptPrinter: "Máy in hóa đơn",
+      labelPrinter: "Máy in tem mã vạch",
+      notSet: "Chưa cài trên máy tính",
+      test: "In thử",
+      testOk: "Đã gửi lệnh in thử.",
+      testFail: "In thử lỗi. Kiểm tra máy in và máy tính còn bật app.",
     },
     labelOpts: {
       title: "Tuỳ chọn in tem",
@@ -908,6 +917,18 @@ export const vi: Messages = {
         },
       ],
     },
+  },
+  camera: {
+    open: "Quét bằng camera",
+    close: "Xong",
+    title: "Quét mã bằng camera",
+    hold: "Đưa mã vào khung và giữ yên 3 giây",
+    holding: "Đang giữ",
+    denied:
+      "Chưa được cấp quyền camera. Vào Cài đặt của điện thoại → Safari → Camera, cho phép rồi mở lại.",
+    noCamera: "Không mở được camera trên thiết bị này.",
+    needHttps:
+      "Camera chỉ chạy trên link HTTPS. Trên máy tính: Cài đặt → Điện thoại, cài chứng chỉ cho iPhone rồi mở link HTTPS.",
   },
   carriers: {
     title: "Kết nối hãng vận chuyển",
@@ -1192,8 +1213,27 @@ export const vi: Messages = {
       "Chỉ bật khi dùng Wi-Fi riêng của bạn; không bật trên Wi-Fi công cộng.",
       "Đường dẫn chứa mã bí mật, đổi mỗi lần bật. Ai có đường dẫn đều thao tác được, đừng gửi cho người lạ.",
       "Lần đầu Windows có thể hỏi về tường lửa: chọn mạng riêng (Private).",
-      "Kết nối là HTTP trong mạng nội bộ, không mã hóa. Tắt chia sẻ khi không dùng.",
+      "Link thường là HTTP trong mạng nội bộ, không mã hóa; link HTTPS có mã hóa nhưng chỉ khi đã cài chứng chỉ. Tắt chia sẻ khi không dùng.",
     ],
+    cert: {
+      title: "Camera iPhone: cài chứng chỉ để mở link HTTPS",
+      help: "Trình duyệt chỉ cho dùng camera trên trang HTTPS. App tự tạo một chứng chỉ riêng trên máy tính này; bạn cài nó lên iPhone một lần.",
+      steps: [
+        '1. Trên iPhone, quét mã "Chứng chỉ" bên dưới bằng camera, mở trong Safari và bấm Cho phép tải hồ sơ.',
+        '2. Cài đặt → Đã tải hồ sơ → Cài đặt (iOS sẽ báo "Chưa được ký", đó là bình thường vì chứng chỉ do chính máy bạn tạo).',
+        "3. Cài đặt → Cài đặt chung → Giới thiệu → Cài đặt tin cậy chứng nhận → bật LIVE STUDIO local CA.",
+        "4. Mở link HTTPS bên dưới, vào Kho mã vạch → Quét bằng camera và cho phép camera.",
+      ],
+      profile: "Chứng chỉ cho iPhone (.mobileconfig)",
+      copyProfile: "Sao chép link chứng chỉ iPhone",
+      copyCert: "Sao chép link chứng chỉ .crt (Android)",
+      secureLink: "Link HTTPS (dùng camera)",
+      secureHelp: "Mở link này sau khi đã cài và bật tin cậy chứng chỉ.",
+      safety:
+        "Chứng chỉ chỉ có hiệu lực cho địa chỉ mạng nội bộ (10.x, 172.16-31.x, 192.168.x), không thể dùng giả mạo trang web ngoài. Khóa của nó nằm trong thư mục dữ liệu của app trên máy tính này, không gửi đi đâu; điện thoại chỉ nhận chứng chỉ công khai. Muốn gỡ: Cài đặt → Cài đặt chung → VPN & Quản lý thiết bị → xóa hồ sơ.",
+      unavailable:
+        "Chưa tạo được link HTTPS (chứng chỉ hoặc cổng mạng lỗi). Link thường vẫn dùng được, chỉ camera không chạy.",
+    },
     errors: {
       NOT_DESKTOP: "Chỉ bật được trong app trên máy tính.",
       NO_PORT: "Không mở được cổng mạng. Đóng bớt ứng dụng rồi thử lại.",

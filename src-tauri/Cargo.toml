@@ -28,6 +28,11 @@ futures-util = "0.3"
 url = "2"
 # Random secret for the phone-sharing link.
 getrandom = "0.2"
+# HTTPS for the phone link (a phone browser only allows the camera on a secure page): a local
+# certificate authority made on this computer, and rustls with the pure-Rust-plus-C `ring` backend.
+rcgen = { version = "0.14", default-features = false, features = ["crypto", "ring", "pem"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
 # Reads/writes the 7-ELEVEN order-import template (an .xlsx is a zip of XML files).
 zip = { version = "2", default-features = false, features = ["deflate"] }
 

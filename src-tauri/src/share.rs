@@ -19,12 +19,14 @@ use std::net::{IpAddr, SocketAddr};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio::net::TcpListener;
 use tokio::sync::Notify;
 
 pub const FIRST_PORT: u16 = 47800;
 pub const PORT_TRIES: u16 = 20;
+/// The HTTPS twin of the page; the phone needs it for the camera.
+pub const FIRST_TLS_PORT: u16 = 47900;
 const MAX_HEAD: usize = 16 * 1024;
 const MAX_BODY: usize = 8 * 1024 * 1024;
 const MAX_FAILS: u32 = 30;
@@ -75,16 +77,36 @@ pub struct PrinterCfg {
     pub width_dots: usize,
 }
 
+/// The two printers chosen on the computer: receipts and barcode labels.
+#[derive(Debug, Clone, Default)]
+pub struct Printers {
+    pub receipt: Option<PrinterCfg>,
+    pub label: Option<PrinterCfg>,
+}
+
+impl Printers {
+    /// `kind` comes from the phone: "label" or anything else (receipt).
+    pub fn pick(&self, kind: Option<&str>) -> Option<PrinterCfg> {
+        if kind == Some("label") {
+            self.label.clone()
+        } else {
+            self.receipt.clone()
+        }
+    }
+}
+
 struct Running {
     token: String,
     port: u16,
+    tls_port: Option<u16>,
     stop: Arc<Notify>,
+    stop_tls: Arc<Notify>,
 }
 
 #[derive(Default)]
 pub struct ShareState {
     running: Mutex<Option<Running>>,
-    printer: Arc<Mutex<Option<PrinterCfg>>>,
+    printer: Arc<Mutex<Printers>>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -94,6 +116,12 @@ pub struct ShareInfo {
     pub port: Option<u16>,
     /// Links to open on the phone (one per network address of this computer).
     pub urls: Vec<String>,
+    /// The same links over HTTPS: these are the ones that let the phone use its camera.
+    pub secure_urls: Vec<String>,
+    /// iOS profile that installs the certificate authority (open it on the phone).
+    pub profile_url: Option<String>,
+    /// The same certificate as a plain file (Android and others).
+    pub cert_url: Option<String>,
 }
 
 // ---------- pure helpers (tested) ----------
@@ -189,7 +217,7 @@ fn out<T: Serialize>(r: Result<T, String>) -> Result<Value, String> {
 
 async fn dispatch(
     app: &AppHandle,
-    printer: &Mutex<Option<PrinterCfg>>,
+    printer: &Mutex<Printers>,
     cmd: &str,
     a: &Value,
 ) -> Result<Value, String> {
@@ -303,15 +331,20 @@ async fn dispatch(
             arg(a, "now")?,
         )),
         "printer_config" => {
-            let cfg = printer.lock().map_err(|_| "lock".to_string())?.clone();
+            let kind: Option<String> = arg(a, "kind")?;
+            let cfg = printer
+                .lock()
+                .map_err(|_| "lock".to_string())?
+                .pick(kind.as_deref());
             out(Ok(cfg))
         }
         "printer_print" => {
             // Always the printer chosen on the computer, never a host sent by the phone.
+            let kind: Option<String> = arg(a, "kind")?;
             let cfg = printer
                 .lock()
                 .map_err(|_| "lock".to_string())?
-                .clone()
+                .pick(kind.as_deref())
                 .ok_or("NOT_CONFIGURED")?;
             out(commands::printer_print(
                 app.state(),
@@ -343,7 +376,7 @@ fn reason(status: u16) -> &'static str {
     }
 }
 
-async fn reply(stream: &mut TcpStream, status: u16, ctype: &str, body: &[u8]) {
+async fn reply<S: AsyncWrite + Unpin>(stream: &mut S, status: u16, ctype: &str, body: &[u8]) {
     let head = format!(
         "HTTP/1.1 {status} {}\r\ncontent-type: {ctype}\r\ncontent-length: {}\r\ncache-control: no-store\r\nx-content-type-options: nosniff\r\nreferrer-policy: no-referrer\r\nconnection: close\r\n\r\n",
         reason(status),
@@ -354,13 +387,14 @@ async fn reply(stream: &mut TcpStream, status: u16, ctype: &str, body: &[u8]) {
     let _ = stream.shutdown().await;
 }
 
-async fn handle(
-    mut stream: TcpStream,
+async fn handle<S: AsyncRead + AsyncWrite + Unpin>(
+    mut stream: S,
     peer: SocketAddr,
     app: AppHandle,
     token: String,
-    printer: Arc<Mutex<Option<PrinterCfg>>>,
+    printer: Arc<Mutex<Printers>>,
     fails: Arc<AtomicU32>,
+    ca: Option<Arc<Vec<u8>>>,
 ) {
     if !is_lan_peer(peer.ip()) {
         return reply(&mut stream, 403, "text/plain", b"forbidden").await;
@@ -447,6 +481,23 @@ async fn handle(
     if req.method != "GET" && req.method != "HEAD" {
         return reply(&mut stream, 405, "text/plain", b"method not allowed").await;
     }
+    // The public certificate of the local CA, for the phone to install. It is not secret, and a
+    // link tapped in the browser cannot carry the token, so these two paths need none.
+    if let Some(ca) = &ca {
+        if path == "/ca.mobileconfig" {
+            let body = crate::cert::mobileconfig(ca);
+            return reply(
+                &mut stream,
+                200,
+                "application/x-apple-aspen-config",
+                body.as_bytes(),
+            )
+            .await;
+        }
+        if path == "/ca.crt" {
+            return reply(&mut stream, 200, "application/x-x509-ca-cert", ca).await;
+        }
+    }
     let want = if path == "/" {
         "/index.html"
     } else {
@@ -464,12 +515,15 @@ async fn handle(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn serve(
     listener: std::net::TcpListener,
     app: AppHandle,
     token: String,
     stop: Arc<Notify>,
-    printer: Arc<Mutex<Option<PrinterCfg>>>,
+    printer: Arc<Mutex<Printers>>,
+    tls: Option<tokio_rustls::TlsAcceptor>,
+    ca: Option<Arc<Vec<u8>>>,
 ) {
     let Ok(listener) = TcpListener::from_std(listener) else {
         return;
@@ -480,14 +534,29 @@ async fn serve(
             _ = stop.notified() => break,
             accepted = listener.accept() => {
                 let Ok((stream, peer)) = accepted else { continue };
-                tokio::spawn(handle(
-                    stream,
-                    peer,
-                    app.clone(),
-                    token.clone(),
-                    printer.clone(),
-                    fails.clone(),
-                ));
+                let (app, token, printer, fails, ca) =
+                    (app.clone(), token.clone(), printer.clone(), fails.clone(), ca.clone());
+                match tls.clone() {
+                    None => {
+                        tokio::spawn(handle(stream, peer, app, token, printer, fails, ca));
+                    }
+                    Some(acceptor) => {
+                        tokio::spawn(async move {
+                            // Strangers get no handshake at all.
+                            if !is_lan_peer(peer.ip()) {
+                                return;
+                            }
+                            let shaken = tokio::time::timeout(
+                                std::time::Duration::from_secs(10),
+                                acceptor.accept(stream),
+                            )
+                            .await;
+                            if let Ok(Ok(s)) = shaken {
+                                handle(s, peer, app, token, printer, fails, ca).await;
+                            }
+                        });
+                    }
+                }
             }
         }
     }
@@ -495,9 +564,9 @@ async fn serve(
 
 // ---------- start / stop (called from the desktop window only) ----------
 
-fn bind() -> std::io::Result<std::net::TcpListener> {
+fn bind(first: u16) -> std::io::Result<std::net::TcpListener> {
     let mut last = None;
-    for p in FIRST_PORT..FIRST_PORT + PORT_TRIES {
+    for p in first..first + PORT_TRIES {
         match std::net::TcpListener::bind(("0.0.0.0", p)) {
             Ok(l) => {
                 l.set_nonblocking(true)?;
@@ -515,14 +584,32 @@ fn info(r: &Option<Running>) -> ShareInfo {
             running: false,
             port: None,
             urls: vec![],
+            secure_urls: vec![],
+            profile_url: None,
+            cert_url: None,
         },
-        Some(r) => ShareInfo {
-            running: true,
-            port: Some(r.port),
-            urls: lan_ip()
-                .map(|ip| vec![format!("http://{ip}:{}/?t={}", r.port, r.token)])
-                .unwrap_or_default(),
-        },
+        Some(r) => {
+            let ip = lan_ip();
+            ShareInfo {
+                running: true,
+                port: Some(r.port),
+                urls: ip
+                    .map(|ip| vec![format!("http://{ip}:{}/?t={}", r.port, r.token)])
+                    .unwrap_or_default(),
+                secure_urls: match (ip, r.tls_port) {
+                    (Some(ip), Some(tp)) => vec![format!("https://{ip}:{tp}/?t={}", r.token)],
+                    _ => vec![],
+                },
+                profile_url: match (ip, r.tls_port) {
+                    (Some(ip), Some(_)) => Some(format!("http://{ip}:{}/ca.mobileconfig", r.port)),
+                    _ => None,
+                },
+                cert_url: match (ip, r.tls_port) {
+                    (Some(ip), Some(_)) => Some(format!("http://{ip}:{}/ca.crt", r.port)),
+                    _ => None,
+                },
+            }
+        }
     }
 }
 
@@ -531,18 +618,52 @@ pub fn start(app: &AppHandle, state: &ShareState) -> Result<ShareInfo, String> {
     if guard.is_some() {
         return Ok(info(&guard));
     }
-    let listener = bind().map_err(|_| "NO_PORT".to_string())?;
+    let listener = bind(FIRST_PORT).map_err(|_| "NO_PORT".to_string())?;
     let port = listener.local_addr().map_err(|e| e.to_string())?.port();
     let token = new_token()?;
     let stop = Arc::new(Notify::new());
+    let stop_tls = Arc::new(Notify::new());
+
+    // HTTPS is a bonus: if the certificate or the port fails, the plain link still works.
+    let mut ips: Vec<std::net::IpAddr> = lan_ip().into_iter().collect();
+    ips.push(std::net::Ipv4Addr::LOCALHOST.into());
+    let secure = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())
+        .and_then(|dir| crate::cert::load_or_create(&dir, &ips))
+        .ok()
+        .and_then(|c| bind(FIRST_TLS_PORT).ok().map(|l| (c, l)));
+    let ca = secure.as_ref().map(|(c, _)| Arc::new(c.ca_der.clone()));
+    let mut tls_port = None;
+    if let Some((c, l)) = secure {
+        tls_port = l.local_addr().ok().map(|a| a.port());
+        tauri::async_runtime::spawn(serve(
+            l,
+            app.clone(),
+            token.clone(),
+            stop_tls.clone(),
+            state.printer.clone(),
+            Some(tokio_rustls::TlsAcceptor::from(c.server)),
+            ca.clone(),
+        ));
+    }
     tauri::async_runtime::spawn(serve(
         listener,
         app.clone(),
         token.clone(),
         stop.clone(),
         state.printer.clone(),
+        None,
+        ca,
     ));
-    *guard = Some(Running { token, port, stop });
+    *guard = Some(Running {
+        token,
+        port,
+        tls_port,
+        stop,
+        stop_tls,
+    });
     Ok(info(&guard))
 }
 
@@ -550,6 +671,7 @@ pub fn stop(state: &ShareState) -> Result<ShareInfo, String> {
     let mut guard = state.running.lock().map_err(|_| "lock".to_string())?;
     if let Some(r) = guard.take() {
         r.stop.notify_one();
+        r.stop_tls.notify_one();
     }
     Ok(info(&guard))
 }
@@ -559,8 +681,13 @@ pub fn status(state: &ShareState) -> Result<ShareInfo, String> {
     Ok(info(&guard))
 }
 
-pub fn set_printer(state: &ShareState, cfg: Option<PrinterCfg>) -> Result<(), String> {
-    *state.printer.lock().map_err(|_| "lock".to_string())? = cfg;
+pub fn set_printer(state: &ShareState, label: bool, cfg: Option<PrinterCfg>) -> Result<(), String> {
+    let mut p = state.printer.lock().map_err(|_| "lock".to_string())?;
+    if label {
+        p.label = cfg;
+    } else {
+        p.receipt = cfg;
+    }
     Ok(())
 }
 
@@ -656,5 +783,22 @@ mod tests {
                 "{cmd} must not be callable from a phone"
             );
         }
+    }
+
+    #[test]
+    fn the_phone_gets_the_receipt_or_the_label_printer_of_the_computer() {
+        let cfg = |h: &str| PrinterCfg {
+            host: h.into(),
+            port: 9100,
+            width_dots: 576,
+        };
+        let p = Printers {
+            receipt: Some(cfg("192.168.1.50")),
+            label: Some(cfg("192.168.1.51")),
+        };
+        assert_eq!(p.pick(None).unwrap().host, "192.168.1.50");
+        assert_eq!(p.pick(Some("receipt")).unwrap().host, "192.168.1.50");
+        assert_eq!(p.pick(Some("label")).unwrap().host, "192.168.1.51");
+        assert!(Printers::default().pick(Some("label")).is_none());
     }
 }

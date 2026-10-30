@@ -1,5 +1,5 @@
 import { hasBackend, isRemote, invoke } from "../platform/backend";
-import { isConfigured, loadPrinter } from "../print/settings";
+import { isConfigured, loadLabelPrinter, loadPrinter } from "../print/settings";
 
 // Sharing the app with a phone on the same Wi-Fi. Only the desktop app can start it; the phone
 // that opens the link is a client of the same commands (see platform/backend.ts).
@@ -8,6 +8,12 @@ export interface ShareInfo {
   running: boolean;
   port: number | null;
   urls: string[];
+  /** The same links over HTTPS (the phone camera only works on these). */
+  secureUrls?: string[];
+  /** iOS profile that installs the computer's certificate authority. */
+  profileUrl?: string | null;
+  /** The same certificate as a plain file, for Android. */
+  certUrl?: string | null;
 }
 
 export const NOT_SHARING: ShareInfo = { running: false, port: null, urls: [] };
@@ -33,12 +39,17 @@ class TauriShareClient implements ShareClient {
   };
   stop = () => invoke<ShareInfo>("share_stop");
   async syncPrinter(): Promise<void> {
-    const p = loadPrinter();
-    await invoke("share_set_printer", {
-      host: isConfigured(p) ? p.host : "",
-      port: p.port,
-      widthDots: p.widthDots,
-    });
+    for (const [kind, p] of [
+      ["receipt", loadPrinter()],
+      ["label", loadLabelPrinter()],
+    ] as const) {
+      await invoke("share_set_printer", {
+        host: isConfigured(p) ? p.host : "",
+        port: p.port,
+        widthDots: p.widthDots,
+        kind,
+      });
+    }
   }
 }
 
@@ -55,14 +66,14 @@ class UnavailableShareClient implements ShareClient {
 export const createShareClient = (): ShareClient =>
   desktop() ? new TauriShareClient() : new UnavailableShareClient();
 
-/** Phone only: take the computer's printer into this browser so Print works with no setup. */
+/** Phone only: take the computer's printers into this browser so Print works with no setup. */
 export async function adoptComputerPrinter(): Promise<void> {
   if (!isRemote()) return;
+  type Cfg = { host: string; port: number; widthDots: number } | null;
+  const { savePrinter, saveLabelPrinter, loadLabelPrinter, LABEL_WIDTHS } =
+    await import("../print/settings");
   try {
-    const cfg = await invoke<{ host: string; port: number; widthDots: number } | null>(
-      "printer_config",
-    );
-    const { savePrinter } = await import("../print/settings");
+    const cfg = await invoke<Cfg>("printer_config", { kind: "receipt" });
     const mine = loadPrinter();
     savePrinter({
       ...mine,
@@ -73,5 +84,19 @@ export async function adoptComputerPrinter(): Promise<void> {
     });
   } catch {
     // no printer yet or the computer is unreachable: Print shows the usual error
+  }
+  try {
+    const cfg = await invoke<Cfg>("printer_config", { kind: "label" });
+    const mine = loadLabelPrinter();
+    const w = LABEL_WIDTHS.find((x) => x === cfg?.widthDots);
+    saveLabelPrinter({
+      ...mine,
+      host: cfg?.host ?? "",
+      port: cfg?.port ?? mine.port,
+      widthDots: w ?? mine.widthDots,
+      autoTemp: false,
+    });
+  } catch {
+    // same: the label printer is optional
   }
 }

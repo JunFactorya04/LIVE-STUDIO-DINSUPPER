@@ -39,14 +39,12 @@ export function PrinterSection({
 
   const update = (next: PrinterSettings) => {
     setCfg(next);
-    if (label) {
-      saveLabelPrinter(next);
-    } else {
-      savePrinter(next);
-      void createShareClient()
-        .syncPrinter()
-        .catch(() => undefined);
-    }
+    if (label) saveLabelPrinter(next);
+    else savePrinter(next);
+    // A phone prints through this computer, so the sharing server learns both printers.
+    void createShareClient()
+      .syncPrinter()
+      .catch(() => undefined);
     setNote(undefined);
   };
   const fail = (code: PrintErrorCode) => setNote({ text: p.errors[code], error: true });

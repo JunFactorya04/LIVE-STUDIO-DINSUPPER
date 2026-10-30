@@ -105,6 +105,13 @@ export function ShareSection({ client }: { client?: ShareClient }) {
           </div>
         </div>
       )}
+      {info.running && (
+        <CertificateBlock
+          secure={info.secureUrls?.[0]}
+          profile={info.profileUrl ?? undefined}
+          cert={info.certUrl ?? undefined}
+        />
+      )}
       <ul className="share-warnings">
         {s.warnings.map((w) => (
           <li key={w} className="caption">
@@ -113,5 +120,71 @@ export function ShareSection({ client }: { client?: ShareClient }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+// The phone camera needs an HTTPS page. The computer makes its own certificate authority; the
+// phone installs it once (iOS: a profile, then "Certificate Trust Settings").
+function CertificateBlock({
+  secure,
+  profile,
+  cert,
+}: {
+  secure?: string;
+  profile?: string;
+  cert?: string;
+}) {
+  const { t } = useI18n();
+  const s = t.share.cert;
+  const [copied, setCopied] = useState<string>();
+  const copy = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(key);
+      window.setTimeout(() => setCopied(undefined), 1500);
+    } catch {
+      /* the link is shown and can be selected */
+    }
+  };
+  if (!secure || !profile) return <p className="note">{s.unavailable}</p>;
+  return (
+    <div className="share-cert">
+      <h3 className="section-title">{s.title}</h3>
+      <p className="caption">{s.help}</p>
+      <ol className="wh-steps">
+        {s.steps.map((x) => (
+          <li key={x} className="caption">
+            {x}
+          </li>
+        ))}
+      </ol>
+      <div className="share-link">
+        <Qr text={profile} label={s.profile} />
+        <div className="share-link__text">
+          <strong>{s.profile}</strong>
+          <code className="share-url">{profile}</code>
+          <button type="button" className="btn" onClick={() => void copy(profile, "p")}>
+            {copied === "p" ? t.share.copied : s.copyProfile}
+          </button>
+          {cert && (
+            <button type="button" className="btn" onClick={() => void copy(cert, "c")}>
+              {copied === "c" ? t.share.copied : s.copyCert}
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="share-link">
+        <Qr text={secure} label={s.secureLink} />
+        <div className="share-link__text">
+          <strong>{s.secureLink}</strong>
+          <span className="caption">{s.secureHelp}</span>
+          <code className="share-url">{secure}</code>
+          <button type="button" className="btn" onClick={() => void copy(secure, "s")}>
+            {copied === "s" ? t.share.copied : t.share.copy}
+          </button>
+        </div>
+      </div>
+      <p className="caption">{s.safety}</p>
+    </div>
   );
 }

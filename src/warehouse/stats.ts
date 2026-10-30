@@ -55,3 +55,6 @@ export function addScan(
   if (list.includes(code)) return { list: [...list], added: false, code };
   return { list: [...list, code], added: true, code };
 }
+
+/** A code this app prints on a label: `<SKU>-<6 digits>`. Other barcodes in view are ignored. */
+export const isUnitCode = (code: string): boolean => /^[A-Za-z0-9._-]{1,30}-\d{6}$/.test(code);

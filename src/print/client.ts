@@ -47,6 +47,8 @@ function toError(e: unknown): PrintError {
 
 class TauriPrintClient implements PrintClient {
   readonly available = true;
+  /** On a phone the computer picks the printer: the receipt one or the label one. */
+  constructor(private readonly kind: "receipt" | "label") {}
   async print(s: PrinterSettings, page: Bitmap): Promise<void> {
     const { invoke } = await import("../platform/backend");
     try {
@@ -56,6 +58,7 @@ class TauriPrintClient implements PrintClient {
         width: page.width,
         height: page.height,
         bits: Array.from(page.bits),
+        kind: this.kind,
       });
     } catch (e) {
       throw toError(e);
@@ -77,6 +80,6 @@ export const unavailablePrinter: PrintClient = {
   probe: () => Promise.reject(new PrintError("NOT_DESKTOP")),
 };
 
-export function createPrintClient(): PrintClient {
-  return isTauri() ? new TauriPrintClient() : unavailablePrinter;
+export function createPrintClient(kind: "receipt" | "label" = "receipt"): PrintClient {
+  return isTauri() ? new TauriPrintClient(kind) : unavailablePrinter;
 }

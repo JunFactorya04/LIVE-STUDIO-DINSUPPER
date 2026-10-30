@@ -4,6 +4,7 @@
 mod ai;
 mod biz;
 mod browser;
+mod cert;
 mod commands;
 mod data;
 mod db;

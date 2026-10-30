@@ -709,6 +709,14 @@ export const zhTW = {
       sent: "已送出",
       failed: "送出失敗",
       noTarget: "手機送來條碼 {code}：請在電腦上開啟出貨或盤點頁。",
+      printers: "印表機（經由電腦）",
+      printersHelp: "iPhone 無法直接連網路印表機，列印會經由電腦，使用電腦「設定」中的印表機。",
+      receiptPrinter: "收據印表機",
+      labelPrinter: "條碼標籤機",
+      notSet: "電腦尚未設定",
+      test: "測試列印",
+      testOk: "已送出測試列印。",
+      testFail: "測試列印失敗。請檢查印表機，以及電腦的程式是否開著。",
     },
     labelOpts: {
       title: "標籤列印選項",
@@ -884,6 +892,17 @@ export const zhTW = {
         },
       ],
     },
+  },
+  camera: {
+    open: "用相機掃描",
+    close: "完成",
+    title: "相機掃描條碼",
+    hold: "把條碼放進框內並保持 3 秒不動",
+    holding: "保持中",
+    denied: "尚未允許相機權限。到手機「設定」→ Safari → 相機，允許後再重新開啟。",
+    noCamera: "此裝置無法開啟相機。",
+    needHttps:
+      "相機只能在 HTTPS 連結使用。請在電腦：設定 → 手機，先為 iPhone 安裝憑證，再開啟 HTTPS 連結。",
   },
   carriers: {
     title: "物流商連結",
@@ -1155,6 +1174,24 @@ export const zhTW = {
       "第一次 Windows 可能詢問防火牆：請選擇私人網路（Private）。",
       "連線為區域網路內的 HTTP，未加密。不使用時請關閉分享。",
     ],
+    cert: {
+      title: "iPhone 相機：安裝憑證以開啟 HTTPS 連結",
+      help: "瀏覽器只在 HTTPS 頁面允許使用相機。本程式會在這台電腦建立專用憑證，請在 iPhone 安裝一次。",
+      steps: [
+        "1. 用 iPhone 相機掃描下方「憑證」QR，在 Safari 開啟並按「允許」下載描述檔。",
+        "2. 設定 → 已下載描述檔 → 安裝（iOS 會顯示「未簽署」，因為憑證是你自己的電腦產生，屬正常）。",
+        "3. 設定 → 一般 → 關於本機 → 憑證信任設定 → 開啟 LIVE STUDIO local CA。",
+        "4. 開啟下方 HTTPS 連結，進入條碼倉庫 → 用相機掃描，並允許相機。",
+      ],
+      profile: "iPhone 憑證（.mobileconfig）",
+      copyProfile: "複製 iPhone 憑證連結",
+      copyCert: "複製 .crt 憑證連結（Android）",
+      secureLink: "HTTPS 連結（使用相機）",
+      secureHelp: "安裝並信任憑證後，再開啟此連結。",
+      safety:
+        "此憑證只對內網位址（10.x、172.16-31.x、192.168.x）有效，無法用來冒充外部網站。金鑰存放在本機的應用程式資料夾，不會外傳；手機只會收到公開憑證。要移除：設定 → 一般 → VPN 與裝置管理 → 刪除描述檔。",
+      unavailable: "無法建立 HTTPS 連結（憑證或連接埠錯誤）。一般連結仍可使用，只是相機無法啟動。",
+    },
     errors: {
       NOT_DESKTOP: "只能在電腦版程式中開啟。",
       NO_PORT: "無法開啟網路埠，請關閉部分程式後再試。",

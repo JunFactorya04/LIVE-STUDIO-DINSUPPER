@@ -17,7 +17,9 @@ import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
 import { InventoryPage } from "./pages/InventoryPage";
+import { CameraButton } from "./camera/CameraScanner";
 import { WarehousePage } from "./pages/WarehousePage";
+import { isUnitCode } from "./warehouse/stats";
 import { CarriersPage } from "./pages/CarriersPage";
 import { ShipPage } from "./pages/ShipPage";
 import { SetupPage } from "./pages/SetupPage";
@@ -77,7 +79,9 @@ function PageBody({
     case "inventory":
       return <InventoryPage />;
     case "warehouse":
-      return <WarehousePage />;
+      return (
+        <WarehousePage camera={(onScan) => <CameraButton onScan={onScan} accept={isUnitCode} />} />
+      );
     case "carriers":
       return <CarriersPage />;
     case "report":

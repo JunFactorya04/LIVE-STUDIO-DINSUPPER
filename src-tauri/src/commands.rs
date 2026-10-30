@@ -752,6 +752,7 @@ pub fn share_set_printer(
     host: String,
     port: u16,
     width_dots: usize,
+    kind: Option<String>,
 ) -> Result<(), String> {
     let cfg = if host.trim().is_empty() {
         None
@@ -764,7 +765,7 @@ pub fn share_set_printer(
             width_dots,
         })
     };
-    share::set_printer(&state, cfg)
+    share::set_printer(&state, kind.as_deref() == Some("label"), cfg)
 }
 
 // ---- shop books (stock, purchases, expenses) ----

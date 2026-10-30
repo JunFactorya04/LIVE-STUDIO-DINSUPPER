@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { isRemote } from "../platform/backend";
 import { useI18n } from "../i18n";
 import { useLiveSession } from "../live/useLiveSession";
-import { labelRun } from "../print/label";
+import { labelRun, unitLabel } from "../print/label";
+import { testSlip } from "../print/slip";
 import { loadLabelOptions, saveLabelOptions, type LabelOptions } from "../print/labelOptions";
 import { LabelOptionsPanel } from "./LabelOptionsPanel";
 import { WarehouseAnalysis } from "./WarehouseAnalysis";
@@ -147,7 +148,9 @@ export function WarehousePage({
         <CountTab api={api} say={say} explain={explain} camera={camera} register={register} />
       )}
       {tab === "history" && <HistoryTab api={api} explain={explain} say={say} locale={locale} />}
-      {tab === "send" && remote && <SendTab relay={relayApi} camera={camera} />}
+      {tab === "send" && remote && (
+        <SendTab relay={relayApi} camera={camera} labelSvc={labelSvc} receiptSvc={receiptSvc} />
+      )}
       {tab === "analysis" && <WarehouseAnalysis api={api} />}
       {tab === "guide" && <Guide />}
     </div>
@@ -540,7 +543,11 @@ function ReceiveTab({ api, labelSvc, say, explain }: Common & { labelSvc: PrintS
 function SendTab({
   relay,
   camera,
+  labelSvc,
+  receiptSvc,
 }: {
+  labelSvc: PrintService;
+  receiptSvc: PrintService;
   relay: ScanRelay;
   camera?: (onScan: (code: string) => void) => React.ReactNode;
 }) {
@@ -566,6 +573,7 @@ function SendTab({
         label={t.warehouse.scanHere}
         extra={camera?.((c) => void send(c))}
       />
+      <PhonePrinters labelSvc={labelSvc} receiptSvc={receiptSvc} />
       {sent.length > 0 && (
         <ul className="wh-list" aria-live="polite">
           {sent.map((x, i) => (
@@ -577,6 +585,66 @@ function SendTab({
         </ul>
       )}
     </section>
+  );
+}
+
+// A phone cannot reach a network printer itself (a browser has no raw TCP), so it prints through
+// the computer, which uses the printers chosen in its Settings. This shows which ones and tests them.
+function PhonePrinters({
+  labelSvc,
+  receiptSvc,
+}: {
+  labelSvc: PrintService;
+  receiptSvc: PrintService;
+}) {
+  const { t } = useI18n();
+  const r = t.warehouse.relay;
+  const [msg, setMsg] = useState<{ text: string; error: boolean }>();
+  const rows = [
+    { key: "receipt", name: r.receiptPrinter, svc: receiptSvc, cfg: loadPrinter() },
+    { key: "label", name: r.labelPrinter, svc: labelSvc, cfg: loadLabelPrinter() },
+  ] as const;
+  const test = async (key: "receipt" | "label", svc: PrintService) => {
+    setMsg(undefined);
+    const ok = await svc.print(
+      key === "label"
+        ? unitLabel({ code: "TEST-000001", sku: "TEST", price: 123 })
+        : testSlip(t.print.slip.testTitle, t.print.slip.testBody),
+    );
+    setMsg({ text: ok ? r.testOk : r.testFail, error: !ok });
+  };
+  return (
+    <div className="phone-printers">
+      <h3 className="section-title">{r.printers}</h3>
+      <p className="caption">{r.printersHelp}</p>
+      {rows.map((x) => (
+        <div key={x.key} className="phone-printers__row">
+          <span>
+            <strong>{x.name}</strong>
+            <br />
+            <span className="caption">
+              {isConfigured(x.cfg) ? `${x.cfg.host}:${x.cfg.port}` : r.notSet}
+            </span>
+          </span>
+          <button
+            type="button"
+            className="btn"
+            disabled={!isConfigured(x.cfg)}
+            onClick={() => void test(x.key, x.svc)}
+          >
+            {r.test}
+          </button>
+        </div>
+      ))}
+      {msg && (
+        <p
+          className={`note${msg.error ? " note--error" : ""}`}
+          role={msg.error ? "alert" : "status"}
+        >
+          {msg.text}
+        </p>
+      )}
+    </div>
   );
 }
 

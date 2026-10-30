@@ -97,4 +97,7 @@ export const getPrintService = (): PrintService => (shared ??= new PrintService(
 let sharedLabel: PrintService | undefined;
 /** The second printer (barcode labels): same queue and error handling, its own settings. */
 export const getLabelService = (): PrintService =>
-  (sharedLabel ??= new PrintService({ loadSettings: loadLabelPrinter }));
+  (sharedLabel ??= new PrintService({
+    loadSettings: loadLabelPrinter,
+    client: createPrintClient("label"),
+  }));
