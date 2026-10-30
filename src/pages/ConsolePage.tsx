@@ -143,7 +143,8 @@ export function ConsolePage() {
     s.comments.length === 0 && (s.status === "DISCONNECTED" || s.status === "UNAVAILABLE");
   const running = Boolean(s.startedAt && !s.endedAt);
 
-  // "Tạo đơn": make (or find) the draft for this comment; with `print`, send the temporary slip.
+  // "Tạo đơn": make (or find) the draft for this comment and, when a printer is set up, print its
+  // sticker in the same tap. The second button only appears afterwards, to print it again.
   const createOrder = (c: LiveCommentEvent, print: boolean) => {
     const draft = store.draftFromComment(c.eventId);
     if (!draft || !print) return;
@@ -391,13 +392,13 @@ export function ConsolePage() {
                           className="btn btn--primary"
                           onClick={(e) => {
                             e.stopPropagation();
-                            createOrder(c, false);
+                            createOrder(c, printerReady);
                           }}
                         >
                           {t.console.createOrder}
                         </button>
                       )}
-                      {printerReady && (
+                      {printerReady && draftByEvent.has(c.eventId) && (
                         <button
                           type="button"
                           className="btn"
