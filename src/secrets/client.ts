@@ -4,7 +4,9 @@ import { isTauri } from "../live/repository";
 // written by Rust. This client can set, remove and ask "is it set"; there is no way to read one.
 
 export const SECRET_SLOTS = ["claude", "openai", "gemini", "deepseek", "connector"] as const;
-export type SecretSlot = (typeof SECRET_SLOTS)[number];
+/** A fixed slot, or `carrier-<carrier>-<field>` for a shipping carrier credential. */
+export type FixedSecretSlot = (typeof SECRET_SLOTS)[number];
+export type SecretSlot = FixedSecretSlot | `carrier-${string}`;
 
 export interface SecretsClient {
   /** False in a plain browser: keys are only stored by the desktop app. */

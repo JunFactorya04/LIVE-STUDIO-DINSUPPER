@@ -313,3 +313,14 @@ Cài đặt → Chung: Theo hệ thống (mặc định) / Sáng / Tối, nhớ 
 ## 21. Báo cáo tài chính (Tổng quan)
 
 `dashboard/finance.ts` + `pages/FinancePanel.tsx`: từ các đơn ship đã lưu, theo Ngày (14 kỳ) / Tuần (12 tuần, bắt đầu thứ Hai) / Tháng (12 tháng): thẻ KPI (doanh thu = tiền hàng, số đơn, thu hộ COD = tiền hàng + phí, giá trị TB/đơn) kèm % so với kỳ trước, biểu đồ cột doanh thu, vòng tròn đã/chưa xuất Excel, bảng chi tiết có tổng (copy dán Excel), top khách mua. Không có đơn thì hiện trạng thái trống, không tự bịa số. Chưa có: chi phí/lợi nhuận, doanh thu theo phiên Live, hoàn/hủy đơn (app chưa theo dõi các số này).
+
+## 22. Sổ sách: kho, nhập hàng, chi phí, lợi nhuận
+
+- **Dữ liệu (migration 7, `src-tauri/src/biz.rs`):** `biz_stock` (giá vốn TB, tồn, mức báo sắp hết), `biz_purchases` (nhập hàng: tăng tồn, tính lại giá vốn bình quân gia quyền; xóa một lần nhập thì trừ lại), `biz_expenses` (hằng tháng `FIXED` hoặc một lần `ONCE`). `ship_orders` có thêm `sku`, `qty`, `unit_cost`: chọn sản phẩm trong danh mục khi tạo đơn ship thì tồn kho tự trừ (sửa/xóa đơn thì cộng lại) và lưu giá vốn tại thời điểm bán.
+- **Báo cáo (`biz/ledger.ts`, `pages/ProfitPanel.tsx`):** lợi nhuận gộp = doanh thu − giá vốn; thu nhập thực tế = lợi nhuận gộp − chi phí; dòng tiền = doanh thu − tiền nhập hàng − chi phí. Chi phí hằng tháng chia đều theo ngày của tháng nên ngày/tuần/tháng khớp nhau. Hàng bán chạy (số lượng, lãi), giá trị tồn, sắp hết/âm kho, hàng tồn chưa bán. Đơn chưa gắn sản phẩm không có giá vốn và được báo rõ.
+- **Giao diện:** mục "Kho & chi phí" (Kho hàng / Nhập hàng / Chi phí). Điện thoại chỉ đọc sổ sách (3 lệnh `biz_*_list` trong danh sách cho phép); sửa sổ ở máy tính.
+- **Chưa có:** hoàn/hủy hàng, thuế, phí nền tảng theo %, nhiều kho.
+
+## 23. Hãng vận chuyển
+
+`carriers/registry.ts`, `pages/CarriersPage.tsx`: ECPay (cổng gộp 7-11/全家/萊爾富/OK/黑貓/郵局), 7-ELEVEN 賣貨便, 全家 好賣+, 蝦皮店到店, 黑貓宅急便, 新竹物流, 中華郵政. Mỗi hãng khai báo cách kết nối (Excel/API/đăng nhập) và các trường cần có; thông tin lưu trong kho khóa hệ điều hành theo ô `carrier-<hãng>-<trường>` (chỉ ghi/xóa, không đọc lại). Trạng thái chỉ là "Chưa kết nối / Còn thiếu / Đã lưu thông tin / Xuất Excel sẵn sàng", không bao giờ "Đã kết nối" khi chưa kiểm tra thật với hãng. Logo là nhãn hiệu của hãng nên app dùng ký hiệu trung tính; người bán thêm file logo chính thức vào từng thẻ. **Chưa làm:** gọi API từng hãng để tạo vận đơn (cần tài khoản/hợp đồng và khóa thật để thử).

@@ -9,6 +9,8 @@ const paths: Record<PageId | "more", string> = {
   orders: "M5 4h14v16H5zM9 9h6M9 13h6",
   flow: "M5 6h4v4H5zM15 14h4v4h-4zM9 8h4a2 2 0 0 1 2 2v4",
   ship: "M3 7h11v9H3zM14 10h4l3 3v3h-7zM7 19a1.5 1.5 0 1 0 0-.01M17 19a1.5 1.5 0 1 0 0-.01",
+  inventory: "M4 8l8-4 8 4v8l-8 4-8-4zM4 8l8 4 8-4M12 12v8",
+  carriers: "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16M4 12h16M12 4c3 3 3 13 0 16",
   replies: "M10 8L5 12l5 4M5 12h9a5 5 0 0 1 5 5",
   overlay: "M12 4l8 4-8 4-8-4zM4 12l8 4 8-4M4 16l8 4 8-4",
   report: "M5 20V10M12 20V4M19 20v-7",

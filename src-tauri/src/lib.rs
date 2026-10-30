@@ -2,6 +2,7 @@
 // so the same source builds on macOS and Windows.
 
 mod ai;
+mod biz;
 mod commands;
 mod data;
 mod db;
@@ -94,6 +95,15 @@ pub fn run() {
             commands::ship_export_xlsx,
             commands::ship_order_save,
             commands::ship_order_delete,
+            commands::biz_stock_list,
+            commands::biz_stock_save,
+            commands::biz_stock_delete,
+            commands::biz_purchase_list,
+            commands::biz_purchase_add,
+            commands::biz_purchase_delete,
+            commands::biz_expense_list,
+            commands::biz_expense_save,
+            commands::biz_expense_delete,
             commands::ship_order_exported,
             commands::ship_customers,
             commands::ship_customer_save,

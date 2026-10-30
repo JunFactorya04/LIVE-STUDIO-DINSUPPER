@@ -3,14 +3,14 @@ import { useI18n } from "../i18n";
 import {
   SECRET_SLOTS,
   createSecretsClient,
-  type SecretSlot,
+  type FixedSecretSlot,
   type SecretsClient,
 } from "../secrets/client";
 
 // The seller registers their own API keys here. A key is written to the OS keychain and never
 // shown again: this UI only knows "set" or "not set".
 
-function KeyRow({ slot, client }: { slot: SecretSlot; client: SecretsClient }) {
+function KeyRow({ slot, client }: { slot: FixedSecretSlot; client: SecretsClient }) {
   const { t } = useI18n();
   const [isSet, setIsSet] = useState<boolean>();
   const [value, setValue] = useState("");

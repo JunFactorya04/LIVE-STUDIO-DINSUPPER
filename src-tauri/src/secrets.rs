@@ -13,8 +13,18 @@ const SERVICE: &str = "vn.livestudio.app";
 /// `connector` is the key of the comment-source provider.
 pub const SLOTS: &[&str] = &["claude", "openai", "gemini", "deepseek", "connector"];
 
+/// Shipping-carrier credentials are stored as `carrier-<carrier>-<field>` (lower-case letters,
+/// digits and dashes only), so each carrier can have the fields its own login or API asks for.
 pub fn valid_slot(slot: &str) -> bool {
     SLOTS.contains(&slot)
+        || slot.strip_prefix("carrier-").is_some_and(|rest| {
+            (3..=40).contains(&rest.len())
+                && rest
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+                && !rest.starts_with('-')
+                && !rest.ends_with('-')
+        })
 }
 
 pub trait SecretStore: Send + Sync {
@@ -110,6 +120,17 @@ mod tests {
         assert_eq!(s.get("claude").unwrap().as_deref(), Some("sk-test"));
         remove_secret(&s, "claude").unwrap();
         assert!(!secret_exists(&s, "claude").unwrap());
+    }
+
+    #[test]
+    fn carrier_slots_are_checked() {
+        assert!(valid_slot("carrier-ecpay-hashkey"));
+        assert!(valid_slot("carrier-tcat-token"));
+        assert!(!valid_slot("carrier-"));
+        assert!(!valid_slot("carrier-A/b"));
+        assert!(!valid_slot("carrier--x-"));
+        assert!(!valid_slot("carrier-../x"));
+        assert!(!valid_slot("other-ecpay-key"));
     }
 
     #[test]

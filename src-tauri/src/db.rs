@@ -151,6 +151,39 @@ CREATE TABLE buyer_flow (
 );
 ";
 
+const MIGRATION_7: &str = "
+ALTER TABLE ship_orders ADD COLUMN sku TEXT NOT NULL DEFAULT '';
+ALTER TABLE ship_orders ADD COLUMN qty INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE ship_orders ADD COLUMN unit_cost INTEGER NOT NULL DEFAULT 0;
+CREATE TABLE biz_stock (
+    sku        TEXT PRIMARY KEY,
+    cost       INTEGER NOT NULL DEFAULT 0,
+    stock      INTEGER NOT NULL DEFAULT 0,
+    min_stock  INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE biz_purchases (
+    id         TEXT PRIMARY KEY,
+    sku        TEXT NOT NULL,
+    qty        INTEGER NOT NULL,
+    unit_cost  INTEGER NOT NULL,
+    supplier   TEXT NOT NULL DEFAULT '',
+    note       TEXT NOT NULL DEFAULT '',
+    at         TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE INDEX biz_purchases_at ON biz_purchases(at);
+CREATE TABLE biz_expenses (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    amount     INTEGER NOT NULL,
+    kind       TEXT NOT NULL CHECK (kind IN ('FIXED','ONCE')),
+    at         TEXT NOT NULL,
+    active     INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL
+);
+";
+
 fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -191,6 +224,11 @@ pub fn migrate(conn: &Connection) -> Result<()> {
             "BEGIN;{MIGRATION_6}PRAGMA user_version = 6;COMMIT;"
         ))?;
     }
+    if version < 7 {
+        conn.execute_batch(&format!(
+            "BEGIN;{MIGRATION_7}PRAGMA user_version = 7;COMMIT;"
+        ))?;
+    }
     Ok(())
 }
 
@@ -221,7 +259,7 @@ mod tests {
         let v: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 6);
+        assert_eq!(v, 7);
     }
 
     #[test]

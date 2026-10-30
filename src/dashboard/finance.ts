@@ -42,7 +42,7 @@ export function bucketStart(d: Date, period: Period): Date {
   return x;
 }
 
-function step(d: Date, period: Period, n: number): Date {
+export function step(d: Date, period: Period, n: number): Date {
   const x = new Date(d);
   if (period === "day") x.setDate(x.getDate() + n);
   else if (period === "week") x.setDate(x.getDate() + 7 * n);

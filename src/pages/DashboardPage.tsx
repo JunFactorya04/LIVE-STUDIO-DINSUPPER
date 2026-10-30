@@ -10,6 +10,14 @@ import {
   type ShipCustomer,
   type ShipOrder,
 } from "../ship/client";
+import {
+  createBizClient,
+  type BizClient,
+  type Expense,
+  type Purchase,
+  type StockItem,
+} from "../biz/client";
+import { ProfitPanel } from "./ProfitPanel";
 import { FinancePanel } from "./FinancePanel";
 import { workReport } from "../ship/flow";
 import { useLiveSession } from "../live/useLiveSession";
@@ -23,10 +31,12 @@ import { createReportClient, type ReportClient, type SessionSummary } from "../r
 export function DashboardPage({
   client,
   shipClient,
+  bizClient,
   onNavigate,
 }: {
   client?: ReportClient;
   shipClient?: ShipClient;
+  bizClient?: BizClient;
   onNavigate: (page: PageId) => void;
 }) {
   const { t, fmt, locale } = useI18n();
@@ -43,6 +53,26 @@ export function DashboardPage({
     flow: FlowRecord[];
   }>({ orders: [], customers: [], flow: [] });
   const [copied, setCopied] = useState(false);
+  const [biz] = useState(() => bizClient ?? createBizClient());
+  const [books, setBooks] = useState<{
+    purchases: Purchase[];
+    expenses: Expense[];
+    stock: StockItem[];
+  }>({
+    purchases: [],
+    expenses: [],
+    stock: [],
+  });
+  useEffect(() => {
+    if (!biz.available) return;
+    let alive = true;
+    Promise.all([biz.purchases(), biz.expenses(), biz.stock()])
+      .then(([purchases, expenses, stock]) => alive && setBooks({ purchases, expenses, stock }))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [biz]);
 
   useEffect(() => {
     if (!ship.available) return;
@@ -140,6 +170,7 @@ export function DashboardPage({
   return (
     <div className="page page--no-inspector orders">
       <FinancePanel orders={follow.orders} />
+      {biz.available && <ProfitPanel orders={follow.orders} {...books} />}
       <section className="box">
         <h2 className="section-title">{d.currentTitle}</h2>
         <div className="kpi-grid">

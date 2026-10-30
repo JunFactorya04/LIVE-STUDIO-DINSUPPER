@@ -40,6 +40,9 @@ export interface ShipForm {
   note: string;
   amount: string;
   fee: string;
+  /** Optional catalog sku and units, so stock and cost follow the order. */
+  sku: string;
+  qty: string;
 }
 
 export const EMPTY_SHIP_FORM: ShipForm = {
@@ -53,10 +56,21 @@ export const EMPTY_SHIP_FORM: ShipForm = {
   note: "",
   amount: "",
   fee: String(DEFAULT_FEE),
+  sku: "",
+  qty: "1",
 };
 
 export type FormError =
-  "phone" | "name" | "storeCode" | "product" | "amount" | "fee" | "codMin" | "tiktokId" | "note";
+  | "phone"
+  | "name"
+  | "storeCode"
+  | "product"
+  | "amount"
+  | "fee"
+  | "codMin"
+  | "tiktokId"
+  | "note"
+  | "qty";
 
 const int = (s: string): number | undefined => (/^\d{1,7}$/.test(s.trim()) ? Number(s) : undefined);
 
@@ -75,5 +89,6 @@ export function firstError(f: ShipForm): FormError | undefined {
   if (amount + fee < MIN_TOTAL || amount + fee > 20_000) return "codMin";
   if (f.tiktokId.trim() && !cleanTikTokId(f.tiktokId)) return "tiktokId";
   if (f.note.trim().length > 200) return "note";
+  if (f.sku.trim() && !/^[1-9]\d{0,4}$/.test(f.qty.trim())) return "qty";
   return undefined;
 }

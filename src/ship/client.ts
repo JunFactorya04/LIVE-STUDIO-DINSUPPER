@@ -22,6 +22,11 @@ export interface ShipOrder {
   cod: number;
   exported: boolean;
   createdAt: string;
+  /** Catalog sku sold and units; "" and 0 when the order is not tracked in stock. */
+  sku: string;
+  qty: number;
+  /** Cost per unit when the order was saved (computed by the backend). */
+  unitCost: number;
 }
 
 export interface ShipCustomer {
@@ -88,7 +93,7 @@ class TauriShipClient implements ShipClient {
     return this.call<ShipOrder>("ship_order_save", { order, remember, now: this.now() });
   }
   async deleteOrder(id: string) {
-    await this.call<number>("ship_order_delete", { id });
+    await this.call<number>("ship_order_delete", { id, now: this.now() });
   }
   async setExported(ids: string[], exported: boolean) {
     await this.call<number>("ship_order_exported", { ids, exported });

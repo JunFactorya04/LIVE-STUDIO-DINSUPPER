@@ -23,6 +23,9 @@ const order = (day: number, amount: number): ShipOrder => ({
   cod: amount + 38,
   exported: false,
   createdAt: new Date(2026, 9, day, 9).toISOString(),
+  sku: "",
+  qty: 0,
+  unitCost: 0,
 });
 const view = (orders: ShipOrder[]) =>
   render(

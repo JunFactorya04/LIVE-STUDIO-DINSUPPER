@@ -12,6 +12,8 @@ import {
   firstError,
   EMPTY_SHIP_FORM,
 } from "../ship/validate";
+import { LiveSessionStore } from "../live/sessionStore";
+import { LiveSessionProvider } from "../live/useLiveSession";
 import { ShipPage } from "./ShipPage";
 
 afterEach(cleanup);
@@ -31,6 +33,9 @@ const order = (over: Partial<ShipOrder> = {}): ShipOrder => ({
   cod: 338,
   exported: false,
   createdAt: "2026-10-30T02:00:00.000Z",
+  sku: "",
+  qty: 0,
+  unitCost: 0,
   ...over,
 });
 
@@ -59,7 +64,9 @@ function fake(over: Partial<ShipClient> = {}, orders = [order()], customers: Shi
 const mount = (c: ShipClient) =>
   render(
     <I18nProvider initial="zh-TW">
-      <ShipPage client={c} />
+      <LiveSessionProvider store={new LiveSessionStore()}>
+        <ShipPage client={c} />
+      </LiveSessionProvider>
     </I18nProvider>,
   );
 

@@ -569,8 +569,12 @@ pub fn ship_order_save(
 }
 
 #[tauri::command]
-pub fn ship_order_delete(state: State<'_, DbState>, id: String) -> Result<usize, String> {
-    let n = ship::order_delete(&*db(&state)?, &id).map_err(err)?;
+pub fn ship_order_delete(
+    state: State<'_, DbState>,
+    id: String,
+    now: String,
+) -> Result<usize, String> {
+    let n = ship::order_delete(&*db(&state)?, &id, &now).map_err(err)?;
     log(&state, "SHIP_DELETED", "");
     Ok(n)
 }
@@ -761,4 +765,81 @@ pub fn share_set_printer(
         })
     };
     share::set_printer(&state, cfg)
+}
+
+// ---- shop books (stock, purchases, expenses) ----
+
+#[tauri::command]
+pub fn biz_stock_list(state: State<'_, DbState>) -> Result<Vec<crate::biz::StockDto>, String> {
+    crate::biz::stock_list(&*db(&state)?).map_err(err)
+}
+
+#[tauri::command]
+pub fn biz_stock_save(
+    state: State<'_, DbState>,
+    item: crate::biz::StockDto,
+    now: String,
+) -> Result<(), String> {
+    crate::biz::stock_save(&*db(&state)?, &item, &now).map_err(err)?;
+    log(&state, "BIZ_SAVED", "stock");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn biz_stock_delete(state: State<'_, DbState>, sku: String) -> Result<usize, String> {
+    let n = crate::biz::stock_delete(&*db(&state)?, &sku).map_err(err)?;
+    log(&state, "BIZ_DELETED", "stock");
+    Ok(n)
+}
+
+#[tauri::command]
+pub fn biz_purchase_list(
+    state: State<'_, DbState>,
+) -> Result<Vec<crate::biz::PurchaseDto>, String> {
+    crate::biz::purchase_list(&*db(&state)?).map_err(err)
+}
+
+#[tauri::command]
+pub fn biz_purchase_add(
+    state: State<'_, DbState>,
+    purchase: crate::biz::PurchaseDto,
+    now: String,
+) -> Result<(), String> {
+    crate::biz::purchase_add(&*db(&state)?, &purchase, &now).map_err(err)?;
+    log(&state, "BIZ_SAVED", "purchase");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn biz_purchase_delete(
+    state: State<'_, DbState>,
+    id: String,
+    now: String,
+) -> Result<usize, String> {
+    let n = crate::biz::purchase_delete(&*db(&state)?, &id, &now).map_err(err)?;
+    log(&state, "BIZ_DELETED", "purchase");
+    Ok(n)
+}
+
+#[tauri::command]
+pub fn biz_expense_list(state: State<'_, DbState>) -> Result<Vec<crate::biz::ExpenseDto>, String> {
+    crate::biz::expense_list(&*db(&state)?).map_err(err)
+}
+
+#[tauri::command]
+pub fn biz_expense_save(
+    state: State<'_, DbState>,
+    expense: crate::biz::ExpenseDto,
+    now: String,
+) -> Result<(), String> {
+    crate::biz::expense_save(&*db(&state)?, &expense, &now).map_err(err)?;
+    log(&state, "BIZ_SAVED", "expense");
+    Ok(())
+}
+
+#[tauri::command]
+pub fn biz_expense_delete(state: State<'_, DbState>, id: String) -> Result<usize, String> {
+    let n = crate::biz::expense_delete(&*db(&state)?, &id).map_err(err)?;
+    log(&state, "BIZ_DELETED", "expense");
+    Ok(n)
 }

@@ -16,6 +16,8 @@ import { ReportPage } from "./pages/ReportPage";
 import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
+import { InventoryPage } from "./pages/InventoryPage";
+import { CarriersPage } from "./pages/CarriersPage";
 import { ShipPage } from "./pages/ShipPage";
 import { SetupPage } from "./pages/SetupPage";
 
@@ -71,6 +73,10 @@ function PageBody({
       return <WorkflowPage onNavigate={onNavigate} />;
     case "ship":
       return <ShipPage />;
+    case "inventory":
+      return <InventoryPage />;
+    case "carriers":
+      return <CarriersPage />;
     case "report":
       return <ReportPage />;
     case "settings":

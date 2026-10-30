@@ -310,6 +310,14 @@ pub struct ShipOrderDto {
     pub exported: bool,
     #[serde(default)]
     pub created_at: String,
+    /// Catalog sku sold (empty = not tracked in stock) and how many units.
+    #[serde(default)]
+    pub sku: String,
+    #[serde(default)]
+    pub qty: i64,
+    /// Cost per unit when the order was saved; computed. Ignored on input.
+    #[serde(default)]
+    pub unit_cost: i64,
 }
 
 /// Validate and store (insert or update) one shipping order. Returns the stored form.
@@ -357,15 +365,43 @@ pub fn order_save(
     if !(MIN_TOTAL..=MAX_TOTAL).contains(&cod) {
         return Err(bad("cod_min"));
     }
+    let sku = o.sku.trim().to_string();
+    if sku.chars().count() > 40 || sku.chars().any(|c| c.is_control()) {
+        return Err(bad("sku"));
+    }
+    let qty = if sku.is_empty() { 0 } else { o.qty };
+    if !(0..=10_000).contains(&qty) || (!sku.is_empty() && qty == 0) {
+        return Err(bad("qty"));
+    }
+    let conn_outer = conn;
+    let tx = conn.unchecked_transaction()?;
+    let conn = &*tx;
+    // Stock follows the order: give back what this order took before, then take what it takes now.
+    let before: Option<(String, i64, i64)> = conn
+        .query_row(
+            "SELECT sku, qty, unit_cost FROM ship_orders WHERE id = ?1",
+            [&o.id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .optional()?;
+    if let Some((old_sku, old_qty, _)) = &before {
+        crate::biz::stock_adjust(conn, old_sku, *old_qty, now)?;
+    }
+    crate::biz::stock_adjust(conn, &sku, -qty, now)?;
+    let unit_cost = match &before {
+        Some((old_sku, _, old_cost)) if *old_sku == sku && !sku.is_empty() => *old_cost,
+        _ => crate::biz::unit_cost(conn, &sku)?,
+    };
     conn.execute(
         "INSERT INTO ship_orders
             (id, tiktok_id, recipient_name, phone, temperature, store_code, store_name,
-             product, note, amount, shipping_fee, cod, exported, created_at, updated_at)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,0,?13,?13)
+             product, note, amount, shipping_fee, cod, exported, created_at, updated_at,
+             sku, qty, unit_cost)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,0,?13,?13,?14,?15,?16)
          ON CONFLICT(id) DO UPDATE SET
             tiktok_id=?2, recipient_name=?3, phone=?4, temperature=?5, store_code=?6,
             store_name=?7, product=?8, note=?9, amount=?10, shipping_fee=?11, cod=?12,
-            updated_at=?13",
+            updated_at=?13, sku=?14, qty=?15, unit_cost=?16",
         params![
             o.id,
             tiktok,
@@ -379,9 +415,14 @@ pub fn order_save(
             o.amount,
             o.shipping_fee,
             cod,
-            now
+            now,
+            sku,
+            qty,
+            unit_cost
         ],
     )?;
+    tx.commit()?;
+    let conn = conn_outer;
     if remember && !tiktok.is_empty() {
         customer_save(
             conn,
@@ -415,11 +456,14 @@ fn map_order(r: &rusqlite::Row<'_>) -> Result<ShipOrderDto> {
         cod: r.get(11)?,
         exported: r.get::<_, i64>(12)? != 0,
         created_at: r.get(13)?,
+        sku: r.get(14)?,
+        qty: r.get(15)?,
+        unit_cost: r.get(16)?,
     })
 }
 
 const ORDER_COLS: &str = "id, tiktok_id, recipient_name, phone, temperature, store_code, \
-    store_name, product, note, amount, shipping_fee, cod, exported, created_at";
+    store_name, product, note, amount, shipping_fee, cod, exported, created_at, sku, qty, unit_cost";
 
 pub fn order_get(conn: &Connection, id: &str) -> Result<Option<ShipOrderDto>> {
     conn.query_row(
@@ -449,8 +493,21 @@ pub fn order_set_exported(conn: &Connection, ids: &[String], exported: bool) -> 
     Ok(n)
 }
 
-pub fn order_delete(conn: &Connection, id: &str) -> Result<usize> {
-    conn.execute("DELETE FROM ship_orders WHERE id = ?1", [id])
+pub fn order_delete(conn: &Connection, id: &str, now: &str) -> Result<usize> {
+    let tx = conn.unchecked_transaction()?;
+    let row: Option<(String, i64)> = tx
+        .query_row(
+            "SELECT sku, qty FROM ship_orders WHERE id = ?1",
+            [id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .optional()?;
+    if let Some((sku, qty)) = row {
+        crate::biz::stock_adjust(&tx, &sku, qty, now)?;
+    }
+    let n = tx.execute("DELETE FROM ship_orders WHERE id = ?1", [id])?;
+    tx.commit()?;
+    Ok(n)
 }
 
 // ---------- buyer flow (which steps of the A-Z routine are done for a buyer) ----------
@@ -602,6 +659,9 @@ mod tests {
             cod: 0,
             exported: false,
             created_at: String::new(),
+            sku: String::new(),
+            qty: 0,
+            unit_cost: 0,
         }
     }
 
@@ -629,6 +689,52 @@ mod tests {
         let cs = customer_list(&c).unwrap();
         assert_eq!(cs.len(), 1);
         assert_eq!(cs[0].store_code, "131386");
+    }
+
+    #[test]
+    fn orders_take_stock_and_give_it_back() {
+        let c = open_in_memory().unwrap();
+        crate::biz::stock_save(
+            &c,
+            &crate::biz::StockDto {
+                sku: "A12".into(),
+                cost: 120,
+                stock: 10,
+                min_stock: 2,
+                updated_at: String::new(),
+            },
+            "t",
+        )
+        .unwrap();
+        let stock = |c: &Connection| crate::biz::stock_list(c).unwrap()[0].stock;
+        let mut o = sample("o1");
+        o.sku = "A12".into();
+        o.qty = 3;
+        let saved = order_save(&c, &o, false, "t").unwrap();
+        assert_eq!((saved.qty, saved.unit_cost), (3, 120));
+        assert_eq!(stock(&c), 7);
+        // editing the quantity only moves the difference, and the cost stays what it was
+        crate::biz::stock_save(
+            &c,
+            &crate::biz::StockDto {
+                sku: "A12".into(),
+                cost: 999,
+                stock: 7,
+                min_stock: 2,
+                updated_at: String::new(),
+            },
+            "t",
+        )
+        .unwrap();
+        o.qty = 5;
+        let again = order_save(&c, &o, false, "t").unwrap();
+        assert_eq!(again.unit_cost, 120);
+        assert_eq!(stock(&c), 5);
+        order_delete(&c, "o1", "t").unwrap();
+        assert_eq!(stock(&c), 10);
+        // a sku needs a quantity
+        o.qty = 0;
+        assert!(order_save(&c, &o, false, "t").is_err());
     }
 
     #[test]
@@ -760,7 +866,7 @@ mod tests {
         let saved = order_save(&c, &o, false, "t2").unwrap();
         assert!(saved.exported);
         assert_eq!(saved.cod, 538);
-        assert_eq!(order_delete(&c, "o1").unwrap(), 1);
+        assert_eq!(order_delete(&c, "o1", "t").unwrap(), 1);
     }
 
     #[test]

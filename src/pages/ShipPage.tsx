@@ -1,3 +1,4 @@
+import { useLiveSession } from "../live/useLiveSession";
 import { StoreSearch } from "./StoreSearch";
 import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
 import { EmptyState, ErrorState, LoadingState } from "../components/States";
@@ -43,6 +44,8 @@ const fromOrder = (o: ShipOrder): ShipForm => ({
   note: o.note,
   amount: String(o.amount),
   fee: String(o.shippingFee),
+  sku: o.sku,
+  qty: o.qty ? String(o.qty) : "1",
 });
 
 const fromCustomer = (c: ShipCustomer): ShipForm => ({
@@ -430,6 +433,7 @@ function ShipFormView({
     code: useId(),
     storeName: useId(),
     product: useId(),
+    sku: useId(),
     note: useId(),
     amount: useId(),
     fee: useId(),
@@ -438,6 +442,20 @@ function ShipFormView({
   const set = <K extends keyof ShipForm>(k: K, v: ShipForm[K]) =>
     setForm((prev) => ({ ...prev, [k]: v }));
   const sum = total(form);
+  const { catalog } = useLiveSession();
+
+  // Choosing a catalog product tracks its stock; its name and price fill the form as a start.
+  const pickSku = (sku: string, qty: string) => {
+    const item = catalog.find((c) => c.sku === sku);
+    const n = Number(qty) || 0;
+    setForm((prev) => ({
+      ...prev,
+      sku,
+      qty: qty || "1",
+      product: item && !prev.product.trim() ? item.name : prev.product,
+      amount: item?.price && n > 0 ? String(item.price * n) : prev.amount,
+    }));
+  };
 
   // Look the store number up in the imported list; fill the name only when it is still empty.
   useEffect(() => {
@@ -499,6 +517,9 @@ function ShipFormView({
           cod: 0,
           exported: false,
           createdAt: "",
+          sku: form.sku.trim(),
+          qty: form.sku.trim() ? Number(form.qty) : 0,
+          unitCost: 0,
         },
         remember,
       );
@@ -591,6 +612,35 @@ function ShipFormView({
           onChange={(e) => set("storeName", e.target.value)}
         />
       </div>
+      {catalog.length > 0 && (
+        <div className="field ship__pick">
+          <label htmlFor={ids.sku}>{f.pickProduct}</label>
+          <div className="ship__search">
+            <select
+              id={ids.sku}
+              className="input"
+              value={form.sku}
+              onChange={(e) => pickSku(e.target.value, form.qty)}
+            >
+              <option value="">{f.pickNone}</option>
+              {catalog.map((c) => (
+                <option key={c.sku} value={c.sku}>
+                  {c.sku} · {c.name}
+                  {c.price ? ` · NT$ ${c.price}` : ""}
+                </option>
+              ))}
+            </select>
+            <input
+              className="input ship__qty"
+              inputMode="numeric"
+              aria-label={f.qty}
+              disabled={!form.sku}
+              value={form.qty}
+              onChange={(e) => pickSku(form.sku, e.target.value.replace(/\D/g, ""))}
+            />
+          </div>
+        </div>
+      )}
       <div className="field">
         <label htmlFor={ids.product}>{f.product} *</label>
         <input

@@ -39,6 +39,9 @@ const order = (id: string, user: string, over: Partial<ShipOrder> = {}): ShipOrd
   cod: 138,
   exported: false,
   createdAt: "2026-10-30T03:00:00Z",
+  sku: "",
+  qty: 0,
+  unitCost: 0,
   ...over,
 });
 const rec = (id: string, over: Partial<FlowRecord> = {}): FlowRecord => ({

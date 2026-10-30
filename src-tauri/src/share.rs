@@ -41,6 +41,9 @@ pub const ALLOWED: &[&str] = &[
     "reply_list",
     "reply_update",
     "report_sessions",
+    "biz_stock_list",
+    "biz_purchase_list",
+    "biz_expense_list",
     "ship_orders",
     "ship_order_save",
     "ship_order_delete",
@@ -219,12 +222,20 @@ async fn dispatch(
             arg(a, "remember")?,
             arg(a, "now")?,
         )),
-        "ship_order_delete" => out(commands::ship_order_delete(app.state(), arg(a, "id")?)),
+        "ship_order_delete" => out(commands::ship_order_delete(
+            app.state(),
+            arg(a, "id")?,
+            arg(a, "now")?,
+        )),
         "ship_order_exported" => out(commands::ship_order_exported(
             app.state(),
             arg(a, "ids")?,
             arg(a, "exported")?,
         )),
+        // The books can be read from a phone (dashboard); changing them stays on the computer.
+        "biz_stock_list" => out(commands::biz_stock_list(app.state())),
+        "biz_purchase_list" => out(commands::biz_purchase_list(app.state())),
+        "biz_expense_list" => out(commands::biz_expense_list(app.state())),
         "ship_customers" => out(commands::ship_customers(app.state())),
         "ship_customer_save" => out(commands::ship_customer_save(
             app.state(),
@@ -582,6 +593,12 @@ mod tests {
             "ship_stores_import",
             "overlay_set",
             "share_start",
+            "biz_stock_save",
+            "biz_purchase_add",
+            "biz_purchase_delete",
+            "biz_expense_save",
+            "biz_expense_delete",
+            "secret_exists",
         ] {
             assert!(
                 !ALLOWED.contains(&cmd),

@@ -17,6 +17,9 @@ const o = (createdAt: string, amount: number, over: Partial<ShipOrder> = {}): Sh
   cod: amount + 38,
   exported: false,
   createdAt,
+  sku: "",
+  qty: 0,
+  unitCost: 0,
   ...over,
 });
 
