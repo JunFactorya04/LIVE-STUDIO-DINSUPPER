@@ -14,6 +14,7 @@ export const zhTW = {
     overlay: "商品浮層",
     dashboard: "總覽",
     ship: "出貨單",
+    flow: "買家流程",
     report: "場次報告",
     settings: "設定",
   },
@@ -28,6 +29,7 @@ export const zhTW = {
     overlay: { title: "商品浮層", subtitle: "供直播軟體的瀏覽器來源使用" },
     dashboard: { title: "總覽", subtitle: "目前場次與待處理事項" },
     ship: { title: "出貨單", subtitle: "7-ELEVEN 取貨與客戶資料" },
+    flow: { title: "買家流程", subtitle: "從留言到出貨，逐步完成" },
     report: { title: "場次報告", subtitle: "單場直播統計" },
     settings: { title: "設定", subtitle: "語言與外觀" },
   },
@@ -336,6 +338,30 @@ export const zhTW = {
     desktopOnly: "浮層服務只能在桌面版應用程式使用；瀏覽器預覽模式只有預覽。",
     help: "在 OBS 等支援「瀏覽器來源」的直播軟體新增瀏覽器來源並貼上網址。網址只能從這台電腦存取。不確定直播軟體是否支援時，請先確認再使用。",
   },
+  flow: {
+    notice:
+      "每位買家的流程：確認訂單 → 列印暫存單 → 索取資料 → 收到資料 → 建立出貨單。App 不會自動傳送訊息；「複製訊息」後請自行貼到 TikTok 傳送。",
+    emptyTitle: "還沒有買家",
+    emptyHint: "在「直播訂單」確認訂單後，買家會出現在這裡。",
+    noName: "尚未取得姓名",
+    noDraft: "找不到這位買家的訂單草稿。",
+    ready: "可出貨",
+    exported: "已匯出",
+    steps: {
+      order: "已確認訂單",
+      slip: "已印暫存單",
+      ask: "已索取資料",
+      info: "已收到資料",
+      ship: "已建出貨單",
+    },
+    actions: {
+      order: "確認訂單",
+      slip: "列印暫存單",
+      ask: "複製索取資料訊息",
+      info: "填寫收件資料",
+      ship: "建立出貨單",
+    },
+  },
   ship: {
     notice:
       "收件人姓名、手機與門市由您輸入（買家提供後再填），App 不會自動產生。訂單保持草稿，直到您自行確認；「已匯出」只是手動標記。",
@@ -462,6 +488,20 @@ export const zhTW = {
     },
   },
   dashboard: {
+    work: {
+      title: "今日工作報告",
+      comments: "留言（目前場次）",
+      confirmed: "已確認訂單",
+      slips: "已印暫存單",
+      asks: "已索取資料",
+      infos: "已收到資料",
+      shipOrders: "已建出貨單",
+      exported: "已匯出出貨單",
+      pending: "未匯出出貨單",
+      pendingLine: "尚有 {n} 筆出貨單未匯出，代收款合計 NT$ {cod}。",
+      copy: "複製報告",
+      copied: "已複製。",
+    },
     currentTitle: "目前場次",
     allTitle: "所有場次",
     kpi: {

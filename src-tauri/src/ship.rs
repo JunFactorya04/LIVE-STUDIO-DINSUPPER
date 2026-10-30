@@ -454,6 +454,49 @@ pub fn order_delete(conn: &Connection, id: &str) -> Result<usize> {
     conn.execute("DELETE FROM ship_orders WHERE id = ?1", [id])
 }
 
+// ---------- buyer flow (which steps of the A-Z routine are done for a buyer) ----------
+
+pub const FLOW_STEPS: &[&str] = &["SLIP_PRINTED", "ASK_COPIED"];
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct FlowDto {
+    pub tiktok_id: String,
+    pub slip_printed_at: Option<String>,
+    pub ask_copied_at: Option<String>,
+}
+
+/// Record that a step was done for a buyer (only timestamps; the first time is kept).
+pub fn flow_mark(conn: &Connection, tiktok_id: &str, step: &str, now: &str) -> Result<()> {
+    let id = clean_tiktok_id(tiktok_id).ok_or_else(|| bad("tiktok_id"))?;
+    let col = match step {
+        "SLIP_PRINTED" => "slip_printed_at",
+        "ASK_COPIED" => "ask_copied_at",
+        _ => return Err(bad("step")),
+    };
+    conn.execute(
+        &format!(
+            "INSERT INTO buyer_flow (tiktok_id, {col}, created_at, updated_at) VALUES (?1, ?2, ?2, ?2)
+             ON CONFLICT(tiktok_id) DO UPDATE SET {col} = COALESCE({col}, ?2), updated_at = ?2"
+        ),
+        params![id, now],
+    )?;
+    Ok(())
+}
+
+pub fn flow_list(conn: &Connection) -> Result<Vec<FlowDto>> {
+    let mut stmt =
+        conn.prepare("SELECT tiktok_id, slip_printed_at, ask_copied_at FROM buyer_flow")?;
+    let rows = stmt.query_map([], |r| {
+        Ok(FlowDto {
+            tiktok_id: r.get(0)?,
+            slip_printed_at: r.get(1)?,
+            ask_copied_at: r.get(2)?,
+        })
+    })?;
+    rows.collect()
+}
+
 // ---------- Excel export (賣貨便 order import, template v1.5) ----------
 
 fn xml_escape(s: &str) -> String {
@@ -683,6 +726,20 @@ mod tests {
         stores_cache(&c, &hits).unwrap();
         assert!(store_lookup(&c, "111111").unwrap().is_some());
         assert!(store_lookup(&c, "222222").unwrap().is_none());
+    }
+
+    #[test]
+    fn flow_marks_keep_the_first_time() {
+        let c = open_in_memory().unwrap();
+        flow_mark(&c, "@Mai", "SLIP_PRINTED", "t1").unwrap();
+        flow_mark(&c, "mai", "SLIP_PRINTED", "t2").unwrap();
+        flow_mark(&c, "mai", "ASK_COPIED", "t3").unwrap();
+        assert!(flow_mark(&c, "mai", "NOPE", "t").is_err());
+        assert!(flow_mark(&c, "bad id", "ASK_COPIED", "t").is_err());
+        let f = flow_list(&c).unwrap();
+        assert_eq!(f.len(), 1);
+        assert_eq!(f[0].slip_printed_at.as_deref(), Some("t1"));
+        assert_eq!(f[0].ask_copied_at.as_deref(), Some("t3"));
     }
 
     #[test]

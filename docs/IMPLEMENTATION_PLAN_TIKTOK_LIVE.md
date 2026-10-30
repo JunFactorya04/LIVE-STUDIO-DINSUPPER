@@ -283,3 +283,11 @@ Học theo taodonnhanh.com, làm đúng theo file mẫu `訂單匯入` v1.5 củ
 - **Xuất Excel**: điền thẳng vào file mẫu (giữ sheet 填寫說明 và số phiên bản), ô dạng văn bản, tối đa 500 dòng, lưu vào Downloads, tùy chọn tự đánh dấu "đã xuất".
 - **In phiếu ship** qua máy in mạng; dữ liệu cá nhân (tên/SĐT) nằm trong bảng `ship_*`, tuân theo thời hạn lưu giữ và nút xóa tất cả. Migration 5.
 - Chưa kiểm chứng: file Excel đã qua bước "驗證" thật trên trang 賣貨便 chưa (cần bạn thử tải lên).
+
+## 17. Quy trình A–Z, thẻ bình luận, báo cáo công việc
+
+- **Live Console**: mỗi bình luận là một thẻ (avatar màu, User ID, giờ, nội dung, nguồn, AI) với nút **Tạo đơn** (tạo đơn nháp từ chính bình luận đó, chỉ có người mua + bình luận, không tự điền tên/SĐT/địa chỉ) và **In tem tạm** (cần máy in IP ở Cài đặt).
+- **Quy trình A–Z** (`pages/WorkflowPage.tsx`, logic thuần `ship/flow.ts`): mỗi người mua có 5 bước: đã chốt đơn → đã in tem tạm → đã xin thông tin → đã có thông tin → đã tạo đơn ship, và một nút cho bước kế tiếp. Các mốc "đã in" / "đã copy tin nhắn" lưu trong bảng `buyer_flow` (migration 6, chỉ TikTok ID + thời điểm; chịu thời hạn lưu giữ và nút xóa tất cả).
+- **Không tự gửi tin nhắn**: app chỉ soạn sẵn và copy; người bán tự dán vào TikTok (spec: không lưu mật khẩu/cookie TikTok, không tự gửi).
+- **Báo cáo công việc** (Tổng quan): số đơn đã chốt, tem tạm đã in, đã xin/nhận thông tin, đơn ship tạo/xuất hôm nay, đơn chưa xuất và COD; nút Copy báo cáo.
+- **Khóa zoom** trên điện thoại: viewport `user-scalable=no`, chặn gesture pinch / double-tap, `overscroll-behavior`.

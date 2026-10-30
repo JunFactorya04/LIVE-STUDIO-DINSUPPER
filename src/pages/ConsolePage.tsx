@@ -7,7 +7,7 @@ import type { CommentIntent, LiveCommentEvent } from "../live/types";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
 import { getPrintService } from "../print/service";
 import { isConfigured, loadPrinter } from "../print/settings";
-import { tempSlip } from "../print/slip";
+import { printTempSlip } from "../print/tempPrint";
 import { usePrintStatus } from "../print/usePrint";
 import { ReplyCard } from "./ReplyCard";
 
@@ -148,7 +148,7 @@ export function ConsolePage() {
     const draft = store.draftFromComment(c.eventId);
     if (!draft || !print) return;
     setPrintedIds((prev) => new Set(prev).add(c.eventId));
-    void printer.print(tempSlip(draft, s.comments, t.print.slip));
+    void printTempSlip(draft, s.comments, t.print.slip);
   };
 
   const onRowKey = (e: KeyboardEvent<HTMLTableRowElement>, index: number) => {

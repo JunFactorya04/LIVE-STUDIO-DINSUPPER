@@ -209,7 +209,7 @@ pub fn purge_older_than(conn: &Connection, days: u32) -> Result<usize> {
     }
     let cutoff = format!("-{days} days");
     // Shipping data holds names and phone numbers, so it follows the same retention.
-    for table in ["ship_orders", "ship_customers"] {
+    for table in ["ship_orders", "ship_customers", "buyer_flow"] {
         conn.execute(
             &format!(
                 "DELETE FROM {table}
@@ -230,6 +230,7 @@ pub fn delete_all(conn: &Connection, include_catalog: bool) -> Result<usize> {
     let n = conn.execute("DELETE FROM live_sessions", [])?;
     conn.execute("DELETE FROM ship_orders", [])?;
     conn.execute("DELETE FROM ship_customers", [])?;
+    conn.execute("DELETE FROM buyer_flow", [])?;
     if include_catalog {
         conn.execute("DELETE FROM catalog_items", [])?;
     }

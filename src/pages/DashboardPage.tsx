@@ -3,6 +3,14 @@ import { loadAiConfig } from "../ai/config";
 import { confirmedBars, countAiErrors, todoItems, totals } from "../dashboard/metrics";
 import { useI18n } from "../i18n";
 import { topAsked } from "../orders/insights";
+import {
+  createShipClient,
+  type ShipClient,
+  type FlowRecord,
+  type ShipCustomer,
+  type ShipOrder,
+} from "../ship/client";
+import { workReport } from "../ship/flow";
 import { useLiveSession } from "../live/useLiveSession";
 import type { PageId } from "../navigation";
 import { createReportClient, type ReportClient, type SessionSummary } from "../report/client";
@@ -13,9 +21,11 @@ import { createReportClient, type ReportClient, type SessionSummary } from "../r
 
 export function DashboardPage({
   client,
+  shipClient,
   onNavigate,
 }: {
   client?: ReportClient;
+  shipClient?: ShipClient;
   onNavigate: (page: PageId) => void;
 }) {
   const { t, fmt, locale } = useI18n();
@@ -25,6 +35,24 @@ export function DashboardPage({
   const [sessions, setSessions] = useState<SessionSummary[]>();
   const [aiErrors, setAiErrors] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [ship] = useState(() => shipClient ?? createShipClient());
+  const [follow, setFollow] = useState<{
+    orders: ShipOrder[];
+    customers: ShipCustomer[];
+    flow: FlowRecord[];
+  }>({ orders: [], customers: [], flow: [] });
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!ship.available) return;
+    let alive = true;
+    Promise.all([ship.orders(), ship.customers(), ship.flow()])
+      .then(([orders, customers, flow]) => alive && setFollow({ orders, customers, flow }))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [ship]);
 
   useEffect(() => {
     if (!api.available) return;
@@ -58,6 +86,32 @@ export function DashboardPage({
     };
   }, [s.comments, s.drafts, s.replies]);
 
+  const report = useMemo(
+    () => workReport({ comments: s.comments, drafts: s.drafts, ...follow }),
+    [s.comments, s.drafts, follow],
+  );
+  const reportText = useMemo(() => {
+    const r = d.work;
+    return [
+      r.title,
+      `${r.comments}: ${report.comments}`,
+      `${r.confirmed}: ${report.confirmed}`,
+      `${r.slips}: ${report.slips}`,
+      `${r.asks}: ${report.asks}`,
+      `${r.infos}: ${report.infos}`,
+      `${r.shipOrders}: ${report.shipOrders}`,
+      `${r.exported}: ${report.exported}`,
+      `${r.pending}: ${report.pending} (NT$ ${report.codPending})`,
+    ].join("\n");
+  }, [report, d.work]);
+  const copyReport = async () => {
+    try {
+      await navigator.clipboard.writeText(reportText);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
   const asked = useMemo(() => topAsked(s.comments, s.catalog), [s.comments, s.catalog]);
 
   const todo = todoItems({
@@ -91,6 +145,31 @@ export function DashboardPage({
           {kpi(d.kpi.review, now.needsReview)}
           {kpi(d.kpi.confirmed, now.confirmed)}
           {kpi(d.kpi.copied, now.copied)}
+        </div>
+      </section>
+
+      <section className="box">
+        <h2 className="section-title">{d.work.title}</h2>
+        <div className="kpi-grid">
+          {kpi(d.work.confirmed, report.confirmed)}
+          {kpi(d.work.slips, report.slips)}
+          {kpi(d.work.asks, report.asks)}
+          {kpi(d.work.infos, report.infos)}
+          {kpi(d.work.shipOrders, report.shipOrders)}
+          {kpi(d.work.exported, report.exported)}
+        </div>
+        <p className="caption">
+          {fmt(d.work.pendingLine, { n: report.pending, cod: report.codPending })}
+        </p>
+        <div className="actions">
+          <button type="button" className="btn" onClick={() => void copyReport()}>
+            {d.work.copy}
+          </button>
+          {copied && (
+            <span className="caption" role="status">
+              {d.work.copied}
+            </span>
+          )}
         </div>
       </section>
 

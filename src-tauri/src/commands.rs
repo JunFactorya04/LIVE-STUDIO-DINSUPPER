@@ -702,3 +702,18 @@ pub async fn ship_store_search(
     ship::stores_cache(&*db(&state)?, &hits).map_err(err)?;
     Ok(hits)
 }
+
+#[tauri::command]
+pub fn flow_list(state: State<'_, DbState>) -> Result<Vec<ship::FlowDto>, String> {
+    ship::flow_list(&*db(&state)?).map_err(err)
+}
+
+#[tauri::command]
+pub fn flow_mark(
+    state: State<'_, DbState>,
+    tiktok_id: String,
+    step: String,
+    now: String,
+) -> Result<(), String> {
+    ship::flow_mark(&*db(&state)?, &tiktok_id, &step, &now).map_err(err)
+}

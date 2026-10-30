@@ -33,6 +33,14 @@ export interface ShipCustomer {
   updatedAt: string;
 }
 
+export interface FlowRecord {
+  tiktokId: string;
+  slipPrintedAt: string | null;
+  askCopiedAt: string | null;
+}
+
+export type FlowMark = "SLIP_PRINTED" | "ASK_COPIED";
+
 export interface Store {
   code: string;
   name: string;
@@ -57,6 +65,9 @@ export interface ShipClient {
   importStores(body: string): Promise<{ imported: number; skipped: number }>;
   lookupStore(code: string): Promise<Store | undefined>;
   storesCount(): Promise<number>;
+  /** Which steps of the A-Z routine were done for each buyer. */
+  flow(): Promise<FlowRecord[]>;
+  markFlow(tiktokId: string, step: FlowMark): Promise<void>;
   /** Search 7-ELEVEN's public map by number, name or address (needs the internet). */
   searchStores(query: string): Promise<StoreHit[]>;
   /** Writes the 7-ELEVEN order-import workbook to Downloads and returns its path. */
@@ -101,6 +112,12 @@ class TauriShipClient implements ShipClient {
   storesCount() {
     return this.call<number>("ship_stores_count");
   }
+  flow() {
+    return this.call<FlowRecord[]>("flow_list");
+  }
+  async markFlow(tiktokId: string, step: FlowMark) {
+    await this.call<null>("flow_mark", { tiktokId, step, now: this.now() });
+  }
   searchStores(query: string) {
     return this.call<StoreHit[]>("ship_store_search", { query });
   }
@@ -124,6 +141,8 @@ class UnavailableShipClient implements ShipClient {
   importStores = () => this.no();
   lookupStore = () => this.no();
   storesCount = () => this.no();
+  flow = () => this.no();
+  markFlow = () => this.no();
   searchStores = () => this.no();
   exportXlsx = () => this.no();
 }

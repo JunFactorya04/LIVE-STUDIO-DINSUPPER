@@ -13,6 +13,7 @@ export const vi: Messages = {
     overlay: "Overlay sản phẩm",
     dashboard: "Tổng quan",
     ship: "Đơn ship",
+    flow: "Quy trình",
     report: "Báo cáo phiên",
     settings: "Cài đặt",
   },
@@ -27,6 +28,7 @@ export const vi: Messages = {
     overlay: { title: "Overlay sản phẩm", subtitle: "Dùng cho Browser Source của phần mềm phát" },
     dashboard: { title: "Tổng quan", subtitle: "Phiên hiện tại và việc cần xử lý" },
     ship: { title: "Đơn ship", subtitle: "Giao 7-ELEVEN và danh sách khách" },
+    flow: { title: "Quy trình A–Z", subtitle: "Từ bình luận đến đơn ship, từng người mua" },
     report: { title: "Báo cáo phiên", subtitle: "Thống kê từng phiên Live" },
     settings: { title: "Cài đặt", subtitle: "Ngôn ngữ và giao diện" },
   },
@@ -355,6 +357,30 @@ export const vi: Messages = {
       "Dịch vụ overlay chỉ dùng được trong app desktop; chế độ trình duyệt chỉ xem trước.",
     help: "Trong OBS hoặc phần mềm hỗ trợ “Browser Source”, thêm một Browser Source và dán địa chỉ này. Địa chỉ chỉ truy cập được từ máy này. Nếu chưa chắc phần mềm livestream của bạn có hỗ trợ, hãy kiểm tra trước khi dùng.",
   },
+  flow: {
+    notice:
+      "Quy trình từng người mua: chốt đơn → in tem tạm → xin thông tin → nhận thông tin → tạo đơn ship. App không tự gửi tin nhắn; sau khi bấm “Copy tin nhắn”, bạn tự dán vào TikTok để gửi.",
+    emptyTitle: "Chưa có người mua",
+    emptyHint: "Sau khi bạn chốt đơn ở “Đơn từ Live”, người mua sẽ xuất hiện ở đây.",
+    noName: "Chưa có tên",
+    noDraft: "Không tìm thấy đơn nháp của người mua này.",
+    ready: "Sẵn sàng giao",
+    exported: "Đã xuất",
+    steps: {
+      order: "Đã chốt đơn",
+      slip: "Đã in tem tạm",
+      ask: "Đã xin thông tin",
+      info: "Đã có thông tin",
+      ship: "Đã tạo đơn ship",
+    },
+    actions: {
+      order: "Chốt đơn",
+      slip: "In tem tạm",
+      ask: "Copy tin nhắn xin thông tin",
+      info: "Nhập thông tin nhận hàng",
+      ship: "Tạo đơn ship",
+    },
+  },
   ship: {
     notice:
       "Tên, SĐT và cửa hàng người nhận do bạn tự nhập (sau khi khách gửi thông tin), app không tự tạo. Đơn giữ nguyên là nháp cho đến khi bạn xác nhận; “Đã xuất” chỉ là dấu đánh dấu thủ công.",
@@ -482,6 +508,20 @@ export const vi: Messages = {
     },
   },
   dashboard: {
+    work: {
+      title: "Báo cáo công việc hôm nay",
+      comments: "Bình luận (phiên hiện tại)",
+      confirmed: "Đơn đã chốt",
+      slips: "Tem tạm đã in",
+      asks: "Đã xin thông tin",
+      infos: "Đã nhận thông tin",
+      shipOrders: "Đơn ship đã tạo",
+      exported: "Đơn ship đã xuất",
+      pending: "Đơn ship chưa xuất",
+      pendingLine: "Còn {n} đơn ship chưa xuất, COD tổng NT$ {cod}.",
+      copy: "Copy báo cáo",
+      copied: "Đã copy.",
+    },
     currentTitle: "Phiên hiện tại",
     allTitle: "Tất cả các phiên",
     kpi: {

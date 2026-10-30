@@ -8,7 +8,7 @@ import { canTransition } from "../orders/engine";
 import { duplicateDraftIds } from "../orders/insights";
 import { getPrintService } from "../print/service";
 import { isConfigured, loadPrinter } from "../print/settings";
-import { tempSlip } from "../print/slip";
+import { printTempSlip } from "../print/tempPrint";
 import { usePrintStatus } from "../print/usePrint";
 import type { CatalogItem, OrderStatus } from "../orders/types";
 
@@ -212,9 +212,7 @@ function DraftsTab() {
                             type="button"
                             className="btn"
                             disabled={printStatus.printing}
-                            onClick={() =>
-                              void printer.print(tempSlip(d, s.comments, t.print.slip))
-                            }
+                            onClick={() => void printTempSlip(d, s.comments, t.print.slip)}
                           >
                             {t.print.button}
                           </button>{" "}

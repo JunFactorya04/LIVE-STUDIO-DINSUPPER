@@ -12,6 +12,7 @@ import {
   type Store,
   type StoreHit,
 } from "../ship/client";
+import { takeShipPrefill } from "../ship/prefill";
 import { shipSlip } from "../ship/slip";
 import {
   EMPTY_SHIP_FORM,
@@ -82,6 +83,16 @@ export function ShipPage({ client }: { client?: ShipClient }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Coming from the A-Z routine: open the form for that buyer once their data is loaded.
+  const [prefill] = useState(takeShipPrefill);
+  useEffect(() => {
+    if (!prefill || !orders) return;
+    const c = customers.find((x) => x.tiktokId === prefill);
+    setTab("orders");
+    setDraft(c ? fromCustomer(c) : { ...EMPTY_SHIP_FORM, tiktokId: prefill });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill, orders === undefined]);
 
   const openForm = (form: ShipForm, id?: string) => {
     setTab("orders");
@@ -757,6 +768,7 @@ function CustomersTab({
   const copyAsk = async (id: string) => {
     try {
       await navigator.clipboard.writeText(fmt(t.ship.askMessage, { id: `@${id}` }));
+      void api.markFlow(id, "ASK_COPIED").catch(() => undefined);
       onNote({ text: c.copied, error: false });
     } catch {
       onNote({ text: c.copyFailed, error: true });

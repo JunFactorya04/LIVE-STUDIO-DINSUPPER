@@ -83,6 +83,8 @@ pub fn run() {
             commands::data_purge_older,
             commands::data_delete_all,
             commands::ship_orders,
+            commands::flow_list,
+            commands::flow_mark,
             commands::ship_export_xlsx,
             commands::ship_order_save,
             commands::ship_order_delete,

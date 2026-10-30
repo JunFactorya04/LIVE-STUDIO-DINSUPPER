@@ -47,6 +47,8 @@ function fake(over: Partial<ShipClient> = {}, orders = [order()], customers: Shi
     importStores: vi.fn(async () => ({ imported: 1, skipped: 0 })),
     lookupStore: async () => undefined,
     storesCount: async () => 0,
+    flow: async () => [],
+    markFlow: vi.fn(async () => undefined),
     searchStores: vi.fn(async () => []),
     exportXlsx: vi.fn(async () => "/Downloads/x.xlsx"),
     ...over,

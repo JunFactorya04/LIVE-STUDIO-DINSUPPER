@@ -13,6 +13,7 @@ import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { ReportPage } from "./pages/ReportPage";
 import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { WorkflowPage } from "./pages/WorkflowPage";
 import { ShipPage } from "./pages/ShipPage";
 import { SetupPage } from "./pages/SetupPage";
 
@@ -63,6 +64,8 @@ function PageBody({
       return <OverlayPage />;
     case "orders":
       return <OrdersPage />;
+    case "flow":
+      return <WorkflowPage onNavigate={onNavigate} />;
     case "ship":
       return <ShipPage />;
     case "report":

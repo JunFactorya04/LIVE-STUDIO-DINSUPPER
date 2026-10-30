@@ -6,6 +6,7 @@ export type PageId =
   | "console"
   | "dashboard"
   | "orders"
+  | "flow"
   | "ship"
   | "replies"
   | "overlay"
@@ -26,6 +27,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "console", section: "main", tab: true },
   { id: "dashboard", section: "manage", tab: false },
   { id: "orders", section: "manage", tab: true },
+  { id: "flow", section: "manage", tab: false },
   { id: "ship", section: "manage", tab: false },
   { id: "replies", section: "manage", tab: true },
   { id: "overlay", section: "manage", tab: false },

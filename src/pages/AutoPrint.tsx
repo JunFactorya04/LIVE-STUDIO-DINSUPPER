@@ -3,7 +3,7 @@ import { useI18n } from "../i18n";
 import { useLiveSession } from "../live/useLiveSession";
 import { getPrintService, type PrintService } from "../print/service";
 import { isConfigured, loadPrinter } from "../print/settings";
-import { tempSlip } from "../print/slip";
+import { printTempSlip } from "../print/tempPrint";
 
 /**
  * Prints a temporary slip once for each order draft created after the app opened, when the
@@ -25,7 +25,7 @@ export function AutoPrint({ service }: { service?: PrintService }) {
         continue;
       }
       done.current.add(d.id);
-      void svc.print(tempSlip(d, s.comments, t.print.slip));
+      void printTempSlip(d, s.comments, t.print.slip, { service: svc });
     }
   }, [s.drafts, s.comments, t, service]);
 
