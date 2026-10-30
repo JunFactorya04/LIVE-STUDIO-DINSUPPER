@@ -357,3 +357,21 @@ bản phát hành không có file Mac; để 3 job macOS/Windows tự publish so
 chấp tạo release cùng lúc nên gộp vào một job riêng. Ứng dụng macOS chưa ký (không có Apple
 Developer certificate trả phí) nên người dùng phải tự gỡ cách ly Gatekeeper lần đầu (chuột phải →
 Mở, hoặc `xattr -cr`).
+
+## 27. Sửa bản phát hành macOS: build "universal" thay vì build chéo Intel riêng
+
+Lỗi: Mac Intel thật báo `"LIVE STUDIO" is not supported on this Mac` khi mở file
+`LIVE-STUDIO-x86_64-apple-darwin.dmg`. Nguyên nhân tìm được: GitHub đã ngừng máy Mac Intel thật
+cho runner `macos-15-intel` (log CI cho thấy `Image: macos-15`, tức là chạy trên máy Apple Silicon
+giống hệt job còn lại), nên "build cho Intel" thực chất là build chéo trên máy ARM. Kiểm tra trực
+tiếp file Mach-O trong `.dmg` đã build (tải về, giải nén bằng `7z`, đọc load command bằng Python)
+cho thấy kiến trúc đúng là `x86_64` nhưng **hoàn toàn không có `LC_CODE_SIGNATURE`** — không hề
+được ký, kể cả ký ad-hoc. Build chéo kiểu `--target x86_64-apple-darwin` trên máy ARM không tự ký
+giống như Xcode build xuôi (native) vẫn làm.
+
+Sửa: `.github/workflows/build.yml` đổi job macOS còn một job duy nhất trên `macos-latest`, build
+`--target universal-apple-darwin` (cài cả hai Rust target `aarch64-apple-darwin` và
+`x86_64-apple-darwin` qua `dtolnay/rust-toolchain`). Đây là cách Tauri tự hỗ trợ: build cả hai
+kiến trúc rồi gộp bằng `lipo` và ký trong cùng một lệnh `tauri build`, cho ra một file `.dmg` duy
+nhất (`LIVE-STUDIO-macOS.dmg`) chạy được trên cả Apple Silicon và Intel — cũng đỡ người dùng phải
+phân biệt tải file nào. Bỏ job `macos-15-intel` (vốn không chạy trên máy Intel thật).

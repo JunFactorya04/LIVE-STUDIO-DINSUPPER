@@ -96,11 +96,17 @@ npm run tauri:build    # macOS: .dmg/.app · Windows: .msi/.exe
 ## Bản phát hành (GitHub Release)
 
 Mỗi lần push lên `main` (và mỗi tag `v*`), GitHub Actions (`.github/workflows/build.yml`) tự build
-cả 3 nền tảng (macOS Apple Silicon, macOS Intel, Windows) và gộp vào **một** bản phát hành ở tab
-Releases của repo: `LIVE-STUDIO-aarch64-apple-darwin.dmg`, `LIVE-STUDIO-x86_64-apple-darwin.dmg`,
-`LIVE-STUDIO.exe` (portable) và `...-setup.exe`. Không cần cài gì thêm hay bấm nút nào trên
-GitHub; bản mới nhất luôn nằm ở đầu trang Releases. Tag `build-<số lần chạy>` cho mỗi lần push
-thường, tag `v1.2.3` (khớp đúng version trong `package.json`) cho bản chính thức.
+và gộp vào **một** bản phát hành ở tab Releases của repo: `LIVE-STUDIO-macOS.dmg` (chạy được trên
+cả Apple Silicon lẫn Intel, 1 file duy nhất — bản "universal"), `LIVE-STUDIO.exe` (portable) và
+`...-setup.exe` cho Windows. Không cần cài gì thêm hay bấm nút nào trên GitHub; bản mới nhất luôn
+nằm ở đầu trang Releases. Tag `build-<số lần chạy>` cho mỗi lần push thường, tag `v1.2.3` (khớp
+đúng version trong `package.json`) cho bản chính thức.
+
+GitHub không còn máy Mac Intel thật để build nữa (loại đó đã bị ngừng), nên build "cho Intel" thực
+chất luôn là build chéo trên máy Apple Silicon. Build chéo kiểu đơn giản (chỉ x86_64) từng cho ra
+file không có chữ ký, khiến Mac Intel thật báo "not supported on this Mac" khi mở. Nay dùng kiểu
+build "universal" của Tauri (gộp cả 2 kiến trúc, build cùng lúc, ký đúng cách) nên chỉ có 1 file
+`.dmg` và chạy được trên mọi Mac.
 
 Mở file `.dmg` trên Mac: macOS chưa ký ứng dụng (code signing trả phí) nên Gatekeeper sẽ chặn lần
 đầu ("không thể mở vì không rõ nhà phát triển"). Chuột phải vào app → **Mở**, chọn **Mở** lần nữa

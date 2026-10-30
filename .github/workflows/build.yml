@@ -16,10 +16,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # GitHub no longer runs hosted macOS builds on real Intel hardware (that machine type
+          # was retired); every macOS runner is Apple Silicon now, so building "for Intel" here
+          # means cross-compiling. A plain cross-compiled x86_64 binary built this way came out
+          # unsigned (no LC_CODE_SIGNATURE at all) and real Intel Macs refused to open it
+          # ("...is not supported on this Mac"). Tauri's own answer to this is a *universal*
+          # build: both architectures are compiled and lipo-merged into one signed binary by the
+          # same `tauri build` step, which is the path Tauri tests for exactly this CI setup.
           - os: macos-latest
-            target: aarch64-apple-darwin
-          - os: macos-15-intel
-            target: x86_64-apple-darwin
+            target: universal-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
@@ -34,7 +39,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          # A universal build needs both Apple Silicon and Intel std libs on the one (arm64)
+          # runner; Cargo picks the right one per `--target` passed to `tauri build` below.
+          targets: ${{ matrix.target == 'universal-apple-darwin' && 'aarch64-apple-darwin,x86_64-apple-darwin' || matrix.target }}
 
       - uses: swatinem/rust-cache@v2
         with:
@@ -73,8 +80,7 @@ jobs:
           cp "src-tauri/target/${{ matrix.target }}/release/live-studio.exe" release-files/LIVE-STUDIO.exe
           cp src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*-setup.exe release-files/ || true
 
-      # macOS: the .dmg installer, one per architecture (Apple Silicon and Intel), renamed so
-      # both can sit in the same release without clashing.
+      # macOS: one universal .dmg that opens on both Apple Silicon and Intel Macs.
       - name: Collect the macOS dmg
         if: runner.os == 'macOS'
         shell: bash
@@ -82,7 +88,7 @@ jobs:
           mkdir -p release-files
           src="src-tauri/target/${{ matrix.target }}/release/bundle/dmg"
           dmg=$(ls "$src"/*.dmg | head -n1)
-          cp "$dmg" "release-files/LIVE-STUDIO-${{ matrix.target }}.dmg"
+          cp "$dmg" "release-files/LIVE-STUDIO-macOS.dmg"
 
       - name: Upload release files
         if: matrix.os == 'windows-latest' || runner.os == 'macOS'
