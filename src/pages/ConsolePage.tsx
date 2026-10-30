@@ -2,12 +2,20 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 
 import { EmptyState } from "../components/States";
 import { StatusChip } from "../components/StatusChip";
 import { useI18n } from "../i18n";
-import type { LiveCommentEvent } from "../live/types";
+import type { CommentIntent, LiveCommentEvent } from "../live/types";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
 
 const FILTERS = ["all", "questions", "purchase", "product", "spam", "review"] as const;
 type Filter = (typeof FILTERS)[number];
 const VISIBLE_LIMIT = 200;
+
+const INTENT_TONE: Record<CommentIntent, string> = {
+  QUESTION: "tone-blue",
+  PURCHASE: "tone-green",
+  PRODUCT_QUESTION: "tone-purple",
+  SPAM: "tone-red",
+  OTHER: "tone-gray",
+};
 
 const SOURCE_TONE: Record<LiveCommentEvent["source"], string> = {
   DEMO: "tone-orange",
@@ -56,15 +64,47 @@ export function ConsolePage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Comments that sit behind an order draft the seller still has to review.
+  const reviewIds = useMemo(
+    () =>
+      new Set(
+        s.drafts
+          .filter((d) => d.status === "NEEDS_REVIEW")
+          .flatMap((d) => d.evidence.map((e) => e.eventId)),
+      ),
+    [s.drafts],
+  );
+
   const matching = useMemo(() => {
-    if (filter !== "all") return [];
     const q = query.trim().toLowerCase();
-    if (!q) return s.comments;
-    return s.comments.filter(
-      (c) =>
-        c.commentText.toLowerCase().includes(q) || (c.username ?? "").toLowerCase().includes(q),
-    );
-  }, [s.comments, filter, query]);
+    return s.comments.filter((c) => {
+      if (
+        q &&
+        !c.commentText.toLowerCase().includes(q) &&
+        !(c.username ?? "").toLowerCase().includes(q)
+      ) {
+        return false;
+      }
+      switch (filter) {
+        case "all":
+          return true;
+        case "questions":
+          return c.intent === "QUESTION";
+        case "purchase":
+          return c.intent === "PURCHASE";
+        case "product":
+          return c.intent === "PRODUCT_QUESTION";
+        case "spam":
+          return c.intent === "SPAM";
+        case "review":
+          return (
+            reviewIds.has(c.eventId) ||
+            (c.intentConfidence !== undefined && c.intentConfidence < 0.6)
+          );
+      }
+    });
+  }, [s.comments, filter, query, reviewIds]);
+  const unclassified = s.comments.filter((c) => !c.intent).length;
 
   // Newest first; only the latest VISIBLE_LIMIT rows are put in the DOM.
   const rows = useMemo(() => matching.slice(-VISIBLE_LIMIT).reverse(), [matching]);
@@ -182,6 +222,11 @@ export function ConsolePage() {
             {t.statusReason[s.statusReason as keyof typeof t.statusReason] ?? t.statusReason.OTHER}
           </p>
         )}
+        {s.aiError && (
+          <p className="banner banner--error" role="alert">
+            {s.aiError === "NO_PROVIDER" ? t.console.aiNoProvider : t.settings.ai.errors[s.aiError]}
+          </p>
+        )}
         {s.status === "MANUAL" && <PasteBox running={running} />}
         <div className="feed-tools">
           <input
@@ -193,6 +238,15 @@ export function ConsolePage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
+          <button
+            type="button"
+            className="btn"
+            disabled={s.classifying || unclassified === 0}
+            title={t.console.classifyHint}
+            onClick={() => void store.classifyPending()}
+          >
+            {s.classifying ? t.console.classifying : fmt(t.console.classify, { n: unclassified })}
+          </button>
           <div className="segmented" role="group" aria-label={t.console.feedLabel}>
             {FILTERS.map((f) => (
               <button
@@ -207,14 +261,15 @@ export function ConsolePage() {
           </div>
         </div>
 
-        {filter !== "all" ? (
-          <EmptyState title={t.console.filters[filter]} hint={t.console.filterNeedsAi} />
-        ) : noSource ? (
+        {noSource ? (
           <EmptyState title={t.console.noSource} hint={t.console.noSourceHint} />
         ) : s.comments.length === 0 ? (
           <EmptyState title={t.console.emptyFeed} hint={t.console.emptyFeedHint} />
         ) : rows.length === 0 ? (
-          <EmptyState title={t.console.noMatch} hint="" />
+          <EmptyState
+            title={t.console.noMatch}
+            hint={filter !== "all" && filter !== "review" ? t.console.filterNeedsAi : ""}
+          />
         ) : (
           <div className="feed-scroll">
             {/* Explicit ARIA roles: on phones the table is laid out as cards (display: block),
@@ -263,8 +318,17 @@ export function ConsolePage() {
                         {t.console.sources[c.source]}
                       </span>
                     </td>
-                    <td role="gridcell" className="cell-ai muted">
-                      {t.console.unclassified}
+                    <td role="gridcell" className="cell-ai">
+                      {c.intent ? (
+                        <span
+                          className={`chip ${INTENT_TONE[c.intent]}`}
+                          title={`${Math.round((c.intentConfidence ?? 0) * 100)}%`}
+                        >
+                          {t.console.intents[c.intent]}
+                        </span>
+                      ) : (
+                        <span className="muted">{t.console.unclassified}</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -296,9 +360,13 @@ export function ConsolePage() {
               </span>
             </dd>
             <dt>{t.insight.aiStatus}</dt>
-            <dd>{t.console.unclassified}</dd>
+            <dd>{selected.intent ? t.console.intents[selected.intent] : t.console.unclassified}</dd>
             <dt>{t.insight.confidence}</dt>
-            <dd>{selected.sourceConfidence ?? t.common.none}</dd>
+            <dd className="num">
+              {selected.intentConfidence === undefined
+                ? t.common.none
+                : `${Math.round(selected.intentConfidence * 100)}%`}
+            </dd>
           </dl>
         ) : (
           <p className="muted">{t.insight.empty}</p>

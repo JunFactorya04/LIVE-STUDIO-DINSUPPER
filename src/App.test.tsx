@@ -6,7 +6,7 @@ import { I18nProvider } from "./i18n";
 import { zhTW } from "./i18n/zh-TW";
 import { vi as viMessages } from "./i18n/vi";
 import { DemoLiveCommentProvider } from "./live/demoProvider";
-import { LiveSessionStore } from "./live/sessionStore";
+import { LiveSessionStore, type StoreDeps } from "./live/sessionStore";
 import { LiveSessionProvider } from "./live/useLiveSession";
 import type { LiveCommentEvent } from "./live/types";
 import { AiError, unavailableAi, type AiClient } from "./ai/client";
@@ -14,11 +14,15 @@ import { AiSection } from "./pages/AiSection";
 import { ApiKeysSection } from "./pages/ApiKeysSection";
 import type { SecretsClient } from "./secrets/client";
 
-function setup(initialPage?: "setup" | "console" | "orders" | "settings") {
+function setup(
+  initialPage?: "setup" | "console" | "orders" | "settings",
+  deps: Partial<StoreDeps> = {},
+) {
   let n = 0;
   const store = new LiveSessionStore({
     newId: () => `sess-${++n}`,
     createDemoProvider: () => new DemoLiveCommentProvider({ intervalMs: 3_600_000 }),
+    ...deps,
   });
   render(
     <I18nProvider initial="zh-TW">
@@ -133,10 +137,43 @@ describe("Live Assistant UI", () => {
     await act(async () => store.dispose());
   });
 
-  it("AI-only filters say they need Phase 3 instead of showing fake results", async () => {
-    setup("console");
+  it("AI filters are empty until comments are classified, then use the AI labels", async () => {
+    const store = setup("console", {
+      ai: {
+        available: true,
+        complete: async () =>
+          '[{"i":0,"intent":"PURCHASE","confidence":0.9},{"i":1,"intent":"QUESTION","confidence":0.8}]',
+      },
+      loadAiConfig: () => ({ provider: "claude", models: {} }),
+    });
+    await act(async () => {
+      await store.connectSource();
+      store.startSession();
+      store.submitManual("amy: A12 x2\nbob: 多少錢?");
+    });
     fireEvent.click(screen.getByRole("button", { name: zhTW.console.filters.purchase }));
     expect(screen.getByText(zhTW.console.filterNeedsAi)).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "AI 分類（2）" }));
+    });
+    const grid = await screen.findByRole("grid");
+    expect(within(grid).getByText("A12 x2")).toBeInTheDocument();
+    expect(within(grid).queryByText("多少錢?")).not.toBeInTheDocument();
+    expect(within(grid).getByText(zhTW.console.intents.PURCHASE)).toBeInTheDocument();
+  });
+
+  it("asks for an AI service in Settings when none is chosen", async () => {
+    const store = setup("console", { loadAiConfig: () => ({ models: {} }) });
+    await act(async () => {
+      await store.connectSource();
+      store.startSession();
+      store.submitManual("amy: hi");
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "AI 分類（1）" }));
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(zhTW.console.aiNoProvider);
   });
 
   it("Ctrl+F focuses the feed search", () => {

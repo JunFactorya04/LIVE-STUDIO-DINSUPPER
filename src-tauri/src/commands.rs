@@ -273,3 +273,12 @@ pub async fn ai_complete(
     .await
     .map_err(|e| e.code().to_string())
 }
+
+#[tauri::command]
+pub fn live_set_intents(
+    state: State<'_, DbState>,
+    session_id: String,
+    items: Vec<live::IntentDto>,
+) -> Result<usize, String> {
+    live::set_intents(&mut *db(&state)?, &session_id, &items).map_err(err)
+}

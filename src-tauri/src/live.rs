@@ -47,6 +47,22 @@ pub struct CommentDto {
     pub comment_timestamp: String,
     pub received_at: String,
     pub source: String,
+    /// Set by the AI classifier (see `set_intents`); absent until then.
+    #[serde(default)]
+    pub intent: Option<String>,
+    #[serde(default)]
+    pub intent_confidence: Option<f64>,
+}
+
+pub const INTENTS: &[&str] = &["QUESTION", "PURCHASE", "PRODUCT_QUESTION", "SPAM", "OTHER"];
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct IntentDto {
+    pub event_id: String,
+    pub source: String,
+    pub intent: String,
+    pub confidence: f64,
 }
 
 pub fn create_session(conn: &Connection, s: &NewSession) -> Result<()> {
@@ -131,7 +147,7 @@ pub fn ingest_comments(conn: &mut Connection, batch: &[CommentDto]) -> Result<us
 pub fn list_comments(conn: &Connection, session_id: &str, limit: usize) -> Result<Vec<CommentDto>> {
     let mut stmt = conn.prepare(
         "SELECT provider_event_id, session_id, username, comment_text,
-                comment_timestamp, received_at, source
+                comment_timestamp, received_at, source, intent, confidence
          FROM (SELECT * FROM live_comments WHERE session_id = ?1 ORDER BY id DESC LIMIT ?2)
          ORDER BY id ASC",
     )?;
@@ -144,9 +160,41 @@ pub fn list_comments(conn: &Connection, session_id: &str, limit: usize) -> Resul
             comment_timestamp: r.get(4)?,
             received_at: r.get(5)?,
             source: r.get(6)?,
+            intent: r.get(7)?,
+            intent_confidence: r.get(8)?,
         })
     })?;
     rows.collect()
+}
+
+/// Store the AI's label for comments of a session. Unknown intents or confidences outside 0..1
+/// are rejected, so a malformed model answer can never be saved. Returns rows updated.
+pub fn set_intents(conn: &mut Connection, session_id: &str, items: &[IntentDto]) -> Result<usize> {
+    if items
+        .iter()
+        .any(|i| !INTENTS.contains(&i.intent.as_str()) || !(0.0..=1.0).contains(&i.confidence))
+    {
+        return Err(rusqlite::Error::InvalidParameterName("intent".into()));
+    }
+    let tx = conn.transaction()?;
+    let mut n = 0;
+    {
+        let mut stmt = tx.prepare(
+            "UPDATE live_comments SET intent = ?4, confidence = ?5, processing_status = 'CLASSIFIED'
+             WHERE session_id = ?1 AND provider_event_id = ?2 AND source = ?3",
+        )?;
+        for i in items.iter().take(MAX_BATCH) {
+            n += stmt.execute(params![
+                session_id,
+                i.event_id,
+                i.source,
+                i.intent,
+                i.confidence
+            ])?;
+        }
+    }
+    tx.commit()?;
+    Ok(n)
 }
 
 pub fn delete_comments(conn: &Connection, session_id: &str) -> Result<usize> {
@@ -184,6 +232,8 @@ mod tests {
             comment_timestamp: "2026-10-30T02:00:00Z".into(),
             received_at: "2026-10-30T02:00:00Z".into(),
             source: "MANUAL".into(),
+            intent: None,
+            intent_confidence: None,
         }
     }
 
@@ -276,6 +326,41 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM live_comments", [], |r| r.get(0))
             .unwrap();
         assert_eq!(left, 0);
+    }
+
+    #[test]
+    fn intents_are_validated_saved_and_listed() {
+        let mut c = open_in_memory().unwrap();
+        create_session(&c, &session("s1")).unwrap();
+        ingest_comments(
+            &mut c,
+            &[comment("s1", "e1", "多少錢?"), comment("s1", "e2", "hi")],
+        )
+        .unwrap();
+        let ok = IntentDto {
+            event_id: "e1".into(),
+            source: "MANUAL".into(),
+            intent: "QUESTION".into(),
+            confidence: 0.9,
+        };
+        assert_eq!(set_intents(&mut c, "s1", &[ok.clone()]).unwrap(), 1);
+        let rows = list_comments(&c, "s1", 10).unwrap();
+        assert_eq!(rows[0].intent.as_deref(), Some("QUESTION"));
+        assert_eq!(rows[0].intent_confidence, Some(0.9));
+        assert_eq!(rows[1].intent, None);
+
+        let bad_intent = IntentDto {
+            intent: "BUY_NOW".into(),
+            ..ok.clone()
+        };
+        let bad_conf = IntentDto {
+            confidence: 1.5,
+            ..ok.clone()
+        };
+        assert!(set_intents(&mut c, "s1", &[bad_intent]).is_err());
+        assert!(set_intents(&mut c, "s1", &[bad_conf]).is_err());
+        // Another session's comment with the same event id is untouched.
+        assert_eq!(set_intents(&mut c, "other", &[ok]).unwrap(), 0);
     }
 
     #[test]

@@ -12,6 +12,9 @@ export type LiveCommentSource =
   /** Third-party service that is not TikTok (currently Euler Stream). */
   | "UNOFFICIAL_CONNECTOR";
 
+/** What a comment is about, as labelled by the seller's AI (Phase 3b). */
+export type CommentIntent = "QUESTION" | "PURCHASE" | "PRODUCT_QUESTION" | "SPAM" | "OTHER";
+
 export interface LiveSessionConfig {
   sessionId: string;
   liveUrl?: string;
@@ -31,4 +34,7 @@ export interface LiveCommentEvent {
   source: LiveCommentSource;
   sourceConfidence?: number;
   rawPayloadRef?: string;
+  /** Set after AI classification; undefined until then. */
+  intent?: CommentIntent;
+  intentConfidence?: number;
 }

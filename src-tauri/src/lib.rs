@@ -40,6 +40,7 @@ pub fn run() {
             commands::live_ingest_comments,
             commands::live_list_comments,
             commands::live_delete_comments,
+            commands::live_set_intents,
             commands::live_delete_session,
             commands::secret_set,
             commands::secret_exists,

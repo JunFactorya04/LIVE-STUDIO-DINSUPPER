@@ -1,4 +1,4 @@
-import type { LiveCommentEvent, LiveCommentSource } from "./types";
+import type { CommentIntent, LiveCommentEvent, LiveCommentSource } from "./types";
 
 // Persistence boundary. In the desktop app it is SQLite behind Tauri commands; in a plain
 // browser (npm run dev) and in tests it is an in-memory copy with the same behaviour.
@@ -28,6 +28,15 @@ export interface LiveRepository {
   ingest(events: readonly LiveCommentEvent[]): Promise<number>;
   listComments(sessionId: string, limit: number): Promise<LiveCommentEvent[]>;
   deleteComments(sessionId: string): Promise<void>;
+  setIntents(
+    sessionId: string,
+    items: readonly {
+      eventId: string;
+      source: string;
+      intent: CommentIntent;
+      confidence: number;
+    }[],
+  ): Promise<void>;
 }
 
 export class MemoryLiveRepository implements LiveRepository {
@@ -72,6 +81,21 @@ export class MemoryLiveRepository implements LiveRepository {
   async deleteComments(sessionId: string): Promise<void> {
     this.comments = this.comments.filter((c) => c.sessionId !== sessionId);
   }
+
+  async setIntents(
+    sessionId: string,
+    items: Parameters<LiveRepository["setIntents"]>[1],
+  ): Promise<void> {
+    for (const i of items) {
+      const c = this.comments.find(
+        (x) => x.sessionId === sessionId && x.eventId === i.eventId && x.source === i.source,
+      );
+      if (c) {
+        c.intent = i.intent;
+        c.intentConfidence = i.confidence;
+      }
+    }
+  }
 }
 
 interface CommentDto {
@@ -82,6 +106,8 @@ interface CommentDto {
   commentTimestamp: string;
   receivedAt: string;
   source: string;
+  intent?: string | null;
+  intentConfidence?: number | null;
 }
 
 interface SessionDto {
@@ -148,11 +174,20 @@ export class TauriLiveRepository implements LiveRepository {
       commentTimestamp: r.commentTimestamp,
       receivedAt: r.receivedAt,
       source: r.source as LiveCommentSource,
+      intent: opt(r.intent) as CommentIntent | undefined,
+      intentConfidence: opt(r.intentConfidence),
     }));
   }
 
   async deleteComments(sessionId: string): Promise<void> {
     await this.call<number>("live_delete_comments", { sessionId });
+  }
+
+  async setIntents(
+    sessionId: string,
+    items: Parameters<LiveRepository["setIntents"]>[1],
+  ): Promise<void> {
+    await this.call<number>("live_set_intents", { sessionId, items });
   }
 }
 

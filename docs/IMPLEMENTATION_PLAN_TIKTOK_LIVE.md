@@ -65,7 +65,7 @@ Nghiệm thu: chạy app thấy feed Demo, mọi bình luận giả đều gắn
 
 ### Phase 3 — AI + đơn nháp
 
-- **3a (xong):** lớp AI provider nhiều hãng với khóa người dùng tự nhập, xem mục 9. 3b (phân loại ý định) và 3c (màn Needs Review nâng cao) chưa làm.
+- **3a (xong):** lớp AI provider nhiều hãng với khóa người dùng tự nhập, xem mục 9. **3b (xong):** AI phân loại ý định, xem mục 10.
 
 Lớp AI provider (BYOK / AI Credits), phân loại ý định, catalog SKU, `live_order_drafts` + bằng chứng, màn Needs Review. Không gọi API vận chuyển.
 
@@ -220,3 +220,11 @@ Người dùng tự nhập khóa cho ChatGPT (OpenAI), Claude, Gemini, DeepSeek 
 - **Quyền riêng tư:** khi phân loại (3b) và gợi ý trả lời (Phase 4) được bật, bình luận liên quan sẽ được gửi tới hãng AI mà người bán chọn, bằng khóa của họ; trang Cài đặt nói rõ điều này.
 - **Kiểm tra:** 7 test Rust mới (dựng yêu cầu và đọc phản hồi từng hãng, mã lỗi, tên model, và chạy thật với máy chủ HTTP cục bộ: khóa được gửi đúng header, lỗi không lộ khóa); 2 test giao diện.
 - **Chưa kiểm chứng:** chưa gọi thử hãng thật nào (môi trường phát triển không gọi được các dịch vụ này). Tên model mặc định (`gpt-4o-mini`, `claude-haiku-5-5`, `gemini-2.5-flash`, `deepseek-chat`) chưa được xác minh với danh sách model hiện hành; nếu nút kiểm tra báo "服務拒絕請求" hãy sửa tên model trong Cài đặt.
+
+## 10. Phase 3b — AI phân loại ý định bình luận
+
+- **Nhãn:** `QUESTION` (hỏi chung), `PURCHASE` (muốn mua), `PRODUCT_QUESTION` (hỏi sản phẩm cụ thể), `SPAM`, `OTHER`, kèm độ tin cậy 0–1. Lưu vào cột `intent` / `confidence` của `live_comments` (đã có từ migration 1, không cần migration mới); Rust từ chối nhãn lạ hoặc độ tin cậy ngoài 0–1.
+- **Chỉ khi người bán bấm "Phân loại AI":** không tự gọi AI nên không tự tốn tiền. Mỗi lần xử lý tối đa 200 bình luận mới nhất chưa phân loại, chia lô 20, tuần tự; gặp lỗi thì dừng, giữ phần đã lưu và hiện mã lỗi dịch được (hết hạn mức, sai khóa...). Chưa chọn dịch vụ AI thì báo vào Cài đặt.
+- **An toàn:** bình luận là dữ liệu không tin cậy: lời nhắc nói rõ không làm theo chỉ thị trong bình luận, bình luận đưa vào dưới dạng JSON, cắt 300 ký tự. Câu trả lời của AI được kiểm tra nghiêm ngặt (chỉ số, nhãn, độ tin cậy hợp lệ); mục sai bị bỏ, bình luận đó vẫn "chưa phân loại". AI **chỉ gắn nhãn**: không tạo đơn (luật ở 2b làm việc đó), không trả lời, không gửi gì.
+- **Giao diện:** cột "AI 狀態" hiện nhãn, bộ lọc 提問/購買意圖/商品問題/垃圾/待確認 dùng nhãn thật (待確認 gồm bình luận nằm sau đơn nháp cần kiểm tra hoặc độ tin cậy < 60%), panel chi tiết hiện nhãn và độ tin cậy. Nhãn được khôi phục khi mở lại app.
+- **Kiểm tra:** 4 test classifier, 4 test store (lưu và khôi phục, lỗi AI, chưa chọn dịch vụ, câu trả lời sai định dạng), 2 test giao diện, 1 test Rust. **Chưa thử với hãng AI thật**, nên chất lượng phân loại thực tế chưa được đo.

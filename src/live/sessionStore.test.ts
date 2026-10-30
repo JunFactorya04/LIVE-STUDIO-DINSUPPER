@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DemoLiveCommentProvider } from "./demoProvider";
 import { EulerProvider, type EulerBackend, type EulerEnvelope } from "./eulerProvider";
+import { AiError, type AiClient } from "../ai/client";
 import { MemoryOrderRepository } from "../orders/repository";
 import { MemoryLiveRepository, type LiveRepository } from "./repository";
 import { LiveSessionStore, MAX_COMMENTS } from "./sessionStore";
@@ -266,6 +267,78 @@ describe("LiveSessionStore persistence", () => {
       a.clearComments();
       expect(a.getSnapshot().comments).toEqual([]);
       expect(a.getSnapshot().drafts).toHaveLength(1);
+    });
+  });
+
+  describe("AI classification", () => {
+    const cfg = () => ({ provider: "claude" as const, models: {} });
+    function withAi(complete: AiClient["complete"], repo = new MemoryLiveRepository()) {
+      let n = 0;
+      return new LiveSessionStore({
+        repository: repo,
+        newId: () => `sess-${++n}`,
+        ai: { available: true, complete },
+        loadAiConfig: cfg,
+      });
+    }
+
+    it("labels pending comments, saves the labels and restores them", async () => {
+      const repo = new MemoryLiveRepository();
+      let calls = 0;
+      const a = withAi(async () => {
+        calls += 1;
+        return '[{"i":0,"intent":"PURCHASE","confidence":0.9},{"i":1,"intent":"SPAM","confidence":0.7}]';
+      }, repo);
+      await manualSession(a);
+      a.submitManual("amy: A12 x2\nbob: 加我賺錢 http://x");
+      await a.classifyPending();
+      const c = a.getSnapshot().comments;
+      expect(c.map((x) => x.intent)).toEqual(["PURCHASE", "SPAM"]);
+      expect(a.getSnapshot().classifying).toBe(false);
+      // Nothing left to classify: no second AI call.
+      await a.classifyPending();
+      expect(calls).toBe(1);
+      await a.flush();
+
+      const b = withAi(async () => "[]", repo);
+      await b.restore();
+      expect(b.getSnapshot().comments.map((x) => [x.intent, x.intentConfidence])).toEqual([
+        ["PURCHASE", 0.9],
+        ["SPAM", 0.7],
+      ]);
+    });
+
+    it("an AI failure is shown as a code and nothing is half-saved", async () => {
+      const a = withAi(async () => {
+        throw new AiError("QUOTA");
+      });
+      await manualSession(a);
+      a.submitManual("amy: hi");
+      await a.classifyPending();
+      expect(a.getSnapshot().aiError).toBe("QUOTA");
+      expect(a.getSnapshot().comments[0].intent).toBeUndefined();
+      expect(a.getSnapshot().classifying).toBe(false);
+    });
+
+    it("without a chosen AI service it asks for one and calls nothing", async () => {
+      let called = false;
+      const a = new LiveSessionStore({
+        newId: () => "s",
+        ai: { available: true, complete: async () => ((called = true), "[]") },
+        loadAiConfig: () => ({ models: {} }),
+      });
+      await a.classifyPending();
+      expect(a.getSnapshot().aiError).toBe("NO_PROVIDER");
+      expect(called).toBe(false);
+    });
+
+    it("a malformed answer leaves comments unclassified", async () => {
+      const a = withAi(async () => "Sure! I will buy it.");
+      await manualSession(a);
+      a.submitManual("amy: hi");
+      await a.classifyPending();
+      expect(a.getSnapshot().comments[0].intent).toBeUndefined();
+      expect(a.getSnapshot().aiError).toBeUndefined();
     });
   });
 

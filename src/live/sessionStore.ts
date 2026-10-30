@@ -5,6 +5,9 @@ import { EulerProvider, createEulerBackend } from "./eulerProvider";
 import type { LiveCommentProvider } from "./provider";
 import { createRepository, type LiveRepository } from "./repository";
 import type { LiveCommentEvent, LiveProviderStatus } from "./types";
+import { classifyBatch, BATCH_SIZE, MAX_PER_RUN } from "../ai/classifier";
+import { createAiClient, type AiClient, type AiErrorCode } from "../ai/client";
+import { loadAiConfig, type AiConfig } from "../ai/config";
 import { applyComment, canTransition } from "../orders/engine";
 import { createOrderRepository, type OrderRepository } from "../orders/repository";
 import type { CatalogItem, OrderDraft, OrderStatus } from "../orders/types";
@@ -51,6 +54,10 @@ export interface LiveSessionSnapshot {
   dropped: number;
   /** True when this session was loaded from storage after a restart. */
   restored: boolean;
+  /** True while the AI is labelling comments. */
+  classifying: boolean;
+  /** Why the last AI run stopped early; NO_PROVIDER = no AI service chosen in Settings. */
+  aiError: AiErrorCode | "NO_PROVIDER" | undefined;
   /** True when a write to storage failed; the comments on screen may not be saved. */
   persistError: boolean;
 }
@@ -58,6 +65,8 @@ export interface LiveSessionSnapshot {
 export interface StoreDeps {
   repository?: LiveRepository;
   orders?: OrderRepository;
+  ai?: AiClient;
+  loadAiConfig?: () => AiConfig;
   newDraftId?: () => string;
   createDemoProvider?: () => LiveCommentProvider;
   createLiveProvider?: () => LiveCommentProvider;
@@ -344,6 +353,54 @@ export class LiveSessionStore {
     return accepted.length;
   }
 
+  // ---- AI classification (opt-in: only when the seller presses the button) ----
+
+  /** Label the newest unclassified comments (up to MAX_PER_RUN) with the seller's AI. */
+  async classifyPending(): Promise<void> {
+    if (this.snapshot.classifying) return;
+    const config = (this.deps.loadAiConfig ?? loadAiConfig)();
+    if (!config.provider) {
+      this.set({ aiError: "NO_PROVIDER" });
+      return;
+    }
+    const { sessionId } = this.snapshot;
+    const pending = this.snapshot.comments.filter((c) => !c.intent).slice(-MAX_PER_RUN);
+    if (pending.length === 0) return;
+    const ai = (this.deps.ai ??= createAiClient());
+    this.set({ classifying: true, aiError: undefined });
+    try {
+      for (let i = 0; i < pending.length; i += BATCH_SIZE) {
+        const batch = pending.slice(i, i + BATCH_SIZE);
+        let labels;
+        try {
+          labels = await classifyBatch(ai, config, batch, this.snapshot.catalog);
+        } catch (e) {
+          const code = (e as { code?: AiErrorCode }).code;
+          this.set({ aiError: code ?? "NETWORK" });
+          break;
+        }
+        if (this.snapshot.sessionId !== sessionId) break; // a new session started meanwhile
+        const items = [...labels].map(([idx, l]) => ({
+          eventId: batch[idx].eventId,
+          source: batch[idx].source,
+          intent: l.intent,
+          confidence: l.confidence,
+        }));
+        if (items.length === 0) continue;
+        const byKey = new Map(items.map((x) => [`${x.source}|${x.eventId}`, x]));
+        this.set({
+          comments: this.snapshot.comments.map((c) => {
+            const hit = byKey.get(`${c.source}|${c.eventId}`);
+            return hit ? { ...c, intent: hit.intent, intentConfidence: hit.confidence } : c;
+          }),
+        });
+        this.persist(() => this.repo.setIntents(sessionId, items));
+      }
+    } finally {
+      this.set({ classifying: false });
+    }
+  }
+
   // ---- catalog ----
 
   saveCatalogItem(item: CatalogItem): void {
@@ -412,6 +469,8 @@ export class LiveSessionStore {
       duplicates: 0,
       dropped: 0,
       restored: false,
+      classifying: false,
+      aiError: undefined,
       persistError: false,
     };
   }
