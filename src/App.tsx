@@ -13,6 +13,7 @@ import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { ReportPage } from "./pages/ReportPage";
 import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { ShipPage } from "./pages/ShipPage";
 import { SetupPage } from "./pages/SetupPage";
 
 export function App({ initialPage = "setup" }: { initialPage?: PageId }) {
@@ -62,6 +63,8 @@ function PageBody({
       return <OverlayPage />;
     case "orders":
       return <OrdersPage />;
+    case "ship":
+      return <ShipPage />;
     case "report":
       return <ReportPage />;
     case "settings":

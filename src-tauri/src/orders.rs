@@ -273,6 +273,20 @@ pub fn order_set_status(conn: &Connection, id: &str, status: &str, now: &str) ->
         "UPDATE live_order_drafts SET status = ?2, updated_at = ?3 WHERE id = ?1",
         params![id, status, now],
     )?;
+    if status == "CONFIRMED" {
+        // Remember the buyer's TikTok ID for the shipping form (ID only, nothing generated).
+        let user: Option<String> = conn
+            .query_row(
+                "SELECT username FROM live_order_drafts WHERE id = ?1",
+                [id],
+                |r| r.get(0),
+            )
+            .optional()?
+            .flatten();
+        if let Some(u) = user {
+            crate::ship::remember_buyer(conn, &u, now)?;
+        }
+    }
     Ok(true)
 }
 

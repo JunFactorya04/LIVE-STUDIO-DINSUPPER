@@ -104,6 +104,43 @@ CREATE TABLE audit_log (
 );
 ";
 
+const MIGRATION_5: &str = "
+CREATE TABLE ship_customers (
+    tiktok_id  TEXT PRIMARY KEY,
+    name       TEXT NOT NULL DEFAULT '',
+    phone      TEXT NOT NULL DEFAULT '',
+    store_code TEXT NOT NULL DEFAULT '',
+    store_name TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE ship_orders (
+    id             TEXT PRIMARY KEY,
+    tiktok_id      TEXT NOT NULL DEFAULT '',
+    recipient_name TEXT NOT NULL,
+    phone          TEXT NOT NULL,
+    temperature    TEXT NOT NULL,
+    store_code     TEXT NOT NULL,
+    store_name     TEXT NOT NULL DEFAULT '',
+    product        TEXT NOT NULL,
+    note           TEXT NOT NULL DEFAULT '',
+    amount         INTEGER NOT NULL,
+    shipping_fee   INTEGER NOT NULL,
+    cod            INTEGER NOT NULL,
+    exported       INTEGER NOT NULL DEFAULT 0,
+    created_at     TEXT NOT NULL,
+    updated_at     TEXT NOT NULL
+);
+CREATE INDEX ix_ship_orders_created ON ship_orders(created_at);
+
+CREATE TABLE ship_stores (
+    code    TEXT PRIMARY KEY,
+    name    TEXT NOT NULL,
+    address TEXT NOT NULL DEFAULT ''
+);
+";
+
 fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -132,6 +169,11 @@ pub fn migrate(conn: &Connection) -> Result<()> {
     if version < 4 {
         conn.execute_batch(&format!(
             "BEGIN;{MIGRATION_4}PRAGMA user_version = 4;COMMIT;"
+        ))?;
+    }
+    if version < 5 {
+        conn.execute_batch(&format!(
+            "BEGIN;{MIGRATION_5}PRAGMA user_version = 5;COMMIT;"
         ))?;
     }
     Ok(())
@@ -164,7 +206,7 @@ mod tests {
         let v: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 4);
+        assert_eq!(v, 5);
     }
 
     #[test]

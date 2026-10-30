@@ -7,6 +7,7 @@ const paths: Record<PageId | "more", string> = {
   console: "M4 5h16v11H10l-4 3v-3H4z",
   dashboard: "M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z",
   orders: "M5 4h14v16H5zM9 9h6M9 13h6",
+  ship: "M3 7h11v9H3zM14 10h4l3 3v3h-7zM7 19a1.5 1.5 0 1 0 0-.01M17 19a1.5 1.5 0 1 0 0-.01",
   replies: "M10 8L5 12l5 4M5 12h9a5 5 0 0 1 5 5",
   overlay: "M12 4l8 4-8 4-8-4zM4 12l8 4 8-4M4 16l8 4 8-4",
   report: "M5 20V10M12 20V4M19 20v-7",

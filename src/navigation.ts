@@ -2,7 +2,15 @@
 // Labels are looked up in the i18n catalogue by id: t.nav[id], t.pages[id].
 
 export type PageId =
-  "setup" | "console" | "dashboard" | "orders" | "replies" | "overlay" | "report" | "settings";
+  | "setup"
+  | "console"
+  | "dashboard"
+  | "orders"
+  | "ship"
+  | "replies"
+  | "overlay"
+  | "report"
+  | "settings";
 
 export interface NavItem {
   id: PageId;
@@ -18,6 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "console", section: "main", tab: true },
   { id: "dashboard", section: "manage", tab: false },
   { id: "orders", section: "manage", tab: true },
+  { id: "ship", section: "manage", tab: false },
   { id: "replies", section: "manage", tab: true },
   { id: "overlay", section: "manage", tab: false },
   { id: "report", section: "manage", tab: false },

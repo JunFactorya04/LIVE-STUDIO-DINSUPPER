@@ -12,6 +12,7 @@ mod overlay;
 mod printer;
 mod replies;
 mod secrets;
+mod ship;
 
 use std::sync::Mutex;
 use tauri::Manager;
@@ -81,6 +82,18 @@ pub fn run() {
             commands::data_backup,
             commands::data_purge_older,
             commands::data_delete_all,
+            commands::ship_orders,
+            commands::ship_export_xlsx,
+            commands::ship_order_save,
+            commands::ship_order_delete,
+            commands::ship_order_exported,
+            commands::ship_customers,
+            commands::ship_customer_save,
+            commands::ship_customer_delete,
+            commands::ship_stores_import,
+            commands::ship_store_lookup,
+            commands::ship_store_search,
+            commands::ship_stores_count,
         ])
         .run(tauri::generate_context!())
         .expect("error while running LIVE STUDIO");

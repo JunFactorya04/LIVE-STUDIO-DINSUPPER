@@ -402,6 +402,7 @@ pub fn overlay_info(state: State<'_, OverlayState>) -> OverlayInfo {
 // ---- Hardening: report, export, retention, backup, wipe ----
 
 use crate::data::{self, AuditDto, SessionSummary};
+use crate::ship;
 use tauri::Manager;
 
 #[tauri::command]
@@ -546,4 +547,158 @@ pub async fn printer_print(
 pub async fn printer_probe(host: String, port: u16) -> Result<(), String> {
     let addr = printer::parse_target(&host, port).map_err(|e| e.code().to_string())?;
     printer::probe(addr).await.map_err(|e| e.code().to_string())
+}
+
+// ---- shipping orders (7-ELEVEN pickup) and saved customers ----
+
+#[tauri::command]
+pub fn ship_orders(state: State<'_, DbState>) -> Result<Vec<ship::ShipOrderDto>, String> {
+    ship::order_list(&*db(&state)?).map_err(err)
+}
+
+#[tauri::command]
+pub fn ship_order_save(
+    state: State<'_, DbState>,
+    order: ship::ShipOrderDto,
+    remember: bool,
+    now: String,
+) -> Result<ship::ShipOrderDto, String> {
+    let saved = ship::order_save(&*db(&state)?, &order, remember, &now).map_err(err)?;
+    log(&state, "SHIP_SAVED", "");
+    Ok(saved)
+}
+
+#[tauri::command]
+pub fn ship_order_delete(state: State<'_, DbState>, id: String) -> Result<usize, String> {
+    let n = ship::order_delete(&*db(&state)?, &id).map_err(err)?;
+    log(&state, "SHIP_DELETED", "");
+    Ok(n)
+}
+
+#[tauri::command]
+pub fn ship_order_exported(
+    state: State<'_, DbState>,
+    ids: Vec<String>,
+    exported: bool,
+) -> Result<usize, String> {
+    let n = ship::order_set_exported(&*db(&state)?, &ids, exported).map_err(err)?;
+    log(&state, "SHIP_EXPORTED", &format!("count={n}"));
+    Ok(n)
+}
+
+#[tauri::command]
+pub fn ship_customers(state: State<'_, DbState>) -> Result<Vec<ship::CustomerDto>, String> {
+    ship::customer_list(&*db(&state)?).map_err(err)
+}
+
+#[tauri::command]
+pub fn ship_customer_save(
+    state: State<'_, DbState>,
+    customer: ship::CustomerDto,
+    now: String,
+) -> Result<ship::CustomerDto, String> {
+    ship::customer_save(&*db(&state)?, &customer, &now).map_err(err)
+}
+
+#[tauri::command]
+pub fn ship_customer_delete(state: State<'_, DbState>, tiktok_id: String) -> Result<usize, String> {
+    ship::customer_delete(&*db(&state)?, &tiktok_id).map_err(err)
+}
+
+/// Import 7-ELEVEN stores from text (`code,name,address` per line). Returns (imported, skipped).
+#[tauri::command]
+pub fn ship_stores_import(
+    state: State<'_, DbState>,
+    body: String,
+) -> Result<(usize, usize), String> {
+    let r = ship::stores_import(&mut *db(&state)?, &body).map_err(err)?;
+    log(&state, "SHIP_STORES_IMPORT", &format!("count={}", r.0));
+    Ok(r)
+}
+
+#[tauri::command]
+pub fn ship_store_lookup(
+    state: State<'_, DbState>,
+    code: String,
+) -> Result<Option<ship::StoreDto>, String> {
+    ship::store_lookup(&*db(&state)?, &code).map_err(err)
+}
+
+#[tauri::command]
+pub fn ship_stores_count(state: State<'_, DbState>) -> Result<i64, String> {
+    ship::stores_count(&*db(&state)?).map_err(err)
+}
+
+/// Write the selected shipping orders (or every pending one when `ids` is empty) into the
+/// 7-ELEVEN order-import workbook in Downloads. Optionally marks them as exported.
+#[tauri::command]
+pub fn ship_export_xlsx(
+    app: AppHandle,
+    state: State<'_, DbState>,
+    ids: Vec<String>,
+    mark: bool,
+) -> Result<String, String> {
+    let (bytes, used) = {
+        let conn = db(&state)?;
+        let all = ship::order_list(&conn).map_err(err)?;
+        let mut chosen: Vec<_> = if ids.is_empty() {
+            all.into_iter().filter(|o| !o.exported).collect()
+        } else {
+            all.into_iter().filter(|o| ids.contains(&o.id)).collect()
+        };
+        chosen.reverse(); // oldest first
+        let bytes = ship::export_xlsx(&chosen)?;
+        (bytes, chosen.into_iter().map(|o| o.id).collect::<Vec<_>>())
+    };
+    let path = out_dir(&app)?.join(format!("7-eleven-orders-{}.xlsx", stamp()));
+    if path.exists() {
+        return Err("EXISTS".into());
+    }
+    std::fs::write(&path, bytes).map_err(err)?;
+    if mark {
+        ship::order_set_exported(&*db(&state)?, &used, true).map_err(err)?;
+    }
+    log(
+        &state,
+        "SHIP_EXPORTED",
+        &format!("xlsx rows={}", used.len()),
+    );
+    Ok(path.display().to_string())
+}
+
+/// Look a 7-ELEVEN store up by number, name or address, using the public map page of 7-ELEVEN
+/// (the same request its own store picker makes). Called only when the seller types a search;
+/// usable results are kept locally so the number works offline next time.
+#[tauri::command]
+pub async fn ship_store_search(
+    state: State<'_, DbState>,
+    query: String,
+) -> Result<Vec<ship::StoreHit>, String> {
+    let q = ship::clean_search(&query).ok_or("BAD_QUERY")?;
+    let body = url::form_urlencoded::Serializer::new(String::new())
+        .append_pair("searchKey", &q)
+        .append_pair("cate", "")
+        .append_pair("eshopid", "")
+        .append_pair("eshopparid", "")
+        .append_pair("multiple_type", "")
+        .finish();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(8))
+        .build()
+        .map_err(|_| "NETWORK")?;
+    let resp = client
+        .post(ship::SEARCH_URL)
+        .header("Content-Type", "application/x-www-form-urlencoded;")
+        .body(body)
+        .send()
+        .await
+        .map_err(|_| "NETWORK")?;
+    if !resp.status().is_success() {
+        return Err("NETWORK".into());
+    }
+    let text = resp.text().await.map_err(|_| "NETWORK")?;
+    let mut hits = ship::parse_store_lines(&text);
+    hits.truncate(ship::MAX_HITS);
+    ship::stores_cache(&*db(&state)?, &hits).map_err(err)?;
+    Ok(hits)
 }

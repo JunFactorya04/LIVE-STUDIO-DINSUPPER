@@ -25,6 +25,8 @@ reqwest = { version = "0.12", default-features = false, features = ["native-tls"
 tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
 futures-util = "0.3"
 url = "2"
+# Reads/writes the 7-ELEVEN order-import template (an .xlsx is a zip of XML files).
+zip = { version = "2", default-features = false, features = ["deflate"] }
 
 # OS secret stores (Keychain on macOS, Credential Manager on Windows). Linux is for development only.
 [target.'cfg(target_os = "macos")'.dependencies]

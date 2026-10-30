@@ -125,3 +125,7 @@ docs/           yêu cầu, kế hoạch, hướng dẫn cài đặt đồng b�
 - Không đưa secret vào frontend, repo hoặc log; không tự gửi bình luận lên TikTok.
 
 Hướng dẫn cài công cụ, đồng bộ giữa Windows và Mac, và dùng Graphify: [`docs/SETUP.md`](docs/SETUP.md).
+
+## Đơn ship 7-ELEVEN
+
+Mục **Đơn ship**: danh sách khách (tự thêm TikTok ID khi chốt đơn), form tạo đơn, tra mã cửa hàng 7-ELEVEN, in phiếu ship, xuất Excel theo mẫu 賣貨便 v1.5. Chi tiết: `docs/IMPLEMENTATION_PLAN_TIKTOK_LIVE.md` §16.

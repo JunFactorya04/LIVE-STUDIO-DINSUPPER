@@ -31,6 +31,10 @@ pub const AUDIT_ACTIONS: &[&str] = &[
     "DELETE_ALL",
     "PRINT_OK",
     "PRINT_ERROR",
+    "SHIP_SAVED",
+    "SHIP_DELETED",
+    "SHIP_EXPORTED",
+    "SHIP_STORES_IMPORT",
 ];
 
 fn bad(msg: &str) -> rusqlite::Error {
@@ -203,16 +207,29 @@ pub fn purge_older_than(conn: &Connection, days: u32) -> Result<usize> {
     if days == 0 {
         return Ok(0);
     }
+    let cutoff = format!("-{days} days");
+    // Shipping data holds names and phone numbers, so it follows the same retention.
+    for table in ["ship_orders", "ship_customers"] {
+        conn.execute(
+            &format!(
+                "DELETE FROM {table}
+                 WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ','now', ?1)"
+            ),
+            [&cutoff],
+        )?;
+    }
     conn.execute(
         "DELETE FROM live_sessions
          WHERE created_at < strftime('%Y-%m-%dT%H:%M:%fZ','now', ?1)",
-        [format!("-{days} days")],
+        [&cutoff],
     )
 }
 
 /// Delete every session and its data. The catalog is kept unless asked for.
 pub fn delete_all(conn: &Connection, include_catalog: bool) -> Result<usize> {
     let n = conn.execute("DELETE FROM live_sessions", [])?;
+    conn.execute("DELETE FROM ship_orders", [])?;
+    conn.execute("DELETE FROM ship_customers", [])?;
     if include_catalog {
         conn.execute("DELETE FROM catalog_items", [])?;
     }

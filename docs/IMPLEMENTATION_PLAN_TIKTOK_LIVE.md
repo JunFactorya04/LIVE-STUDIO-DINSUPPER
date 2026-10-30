@@ -272,3 +272,14 @@ Người dùng tự nhập khóa cho ChatGPT (OpenAI), Claude, Gemini, DeepSeek 
 - **Kiểm tra:** 6 test Rust (chỉ IP nội bộ, tiêu đề lệnh ESC/POS, chia dải, kích thước sai, gửi đúng từng byte qua socket loopback, cổng đóng) và 14 test giao diện (nội dung phiếu, ngắt dòng CJK, đóng gói bit, hàng đợi, lỗi).
 - **Chưa kiểm chứng (quan trọng):** chưa thử trên máy in thật. Giả định máy in nhận RAW TCP cổng 9100 và lệnh ESC/POS raster `GS v 0` (đa số máy in nhiệt có cổng mạng đều hỗ trợ; máy dùng ngôn ngữ riêng như ZPL/TSPL/CPCL thì không in được). Chưa có việc vẽ canvas được kiểm thử tự động (jsdom không có canvas).
 - **Chưa làm:** phiếu ship (cần địa chỉ, SĐT, đơn vị vận chuyển do người bán nhập tay) và tin nhắn xin thông tin soạn sẵn. Đang chờ ảnh form tạo đơn và file mẫu 7-11 từ tool taodonnhanh.com, vì tài liệu yêu cầu hiện chỉ ghi "Shipping Adapter later" và không liệt kê đơn vị vận chuyển hay định dạng phiếu.
+
+## 16. Đơn ship 7-ELEVEN (賣貨便) và danh sách khách
+
+Học theo taodonnhanh.com, làm đúng theo file mẫu `訂單匯入` v1.5 của 7-ELEVEN (đã lưu trong `src-tauri/resources/`).
+
+- **Khách hàng**: khi chốt đơn ở "Đơn từ Live", TikTok ID của người mua tự vào danh sách khách (chỉ ID; tên/SĐT/cửa hàng do bạn nhập sau). Tab Khách hàng có nút "Copy tin nhắn xin thông tin" (bạn tự dán vào TikTok; app không tự gửi) và "Tạo đơn ship".
+- **Đơn ship**: form như taodonnhanh (SĐT, tên, nhiệt độ, mã cửa hàng, sản phẩm, ghi chú, tiền hàng, phí ship mặc định 38, COD = tiền hàng + phí, TikTok ID). Luật theo file mẫu: tên 2–10 ký tự không số/ký hiệu; SĐT 10 số; mã cửa hàng 6 số; tiền hàng 0–20.000; phí ship 0–100; COD tối thiểu 58 (taodonnhanh; file mẫu ghi 55), tối đa 20.000; ghi chú/sản phẩm ≤ 200.
+- **Mã cửa hàng**: tra theo mã/tên/địa chỉ qua trang bản đồ công khai của 7-ELEVEN (`emap.pcsc.com.tw/mobilemap/Id/Data.aspx`, cùng request của ô chọn cửa hàng của họ; không phải API có cam kết). Chỉ gọi khi người dùng bấm tìm hoặc nhập đủ 6 số; kết quả dùng được được lưu cục bộ để lần sau offline. Có thể nhập danh sách cửa hàng từ CSV.
+- **Xuất Excel**: điền thẳng vào file mẫu (giữ sheet 填寫說明 và số phiên bản), ô dạng văn bản, tối đa 500 dòng, lưu vào Downloads, tùy chọn tự đánh dấu "đã xuất".
+- **In phiếu ship** qua máy in mạng; dữ liệu cá nhân (tên/SĐT) nằm trong bảng `ship_*`, tuân theo thời hạn lưu giữ và nút xóa tất cả. Migration 5.
+- Chưa kiểm chứng: file Excel đã qua bước "驗證" thật trên trang 賣貨便 chưa (cần bạn thử tải lên).
