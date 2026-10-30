@@ -343,3 +343,17 @@ Cài đặt → Chung: Theo hệ thống (mặc định) / Sáng / Tối, nhớ 
 - **HTTPS và chứng chỉ iOS:** `src-tauri/src/cert.rs`. App tự tạo CA cục bộ (lưu trong thư mục dữ liệu app, khóa chỉ chủ sở hữu đọc được trên Unix) với NameConstraints chỉ cho địa chỉ mạng nội bộ (10/8, 172.16/12, 192.168/16, link-local, loopback), và mỗi lần bật chia sẻ tạo chứng chỉ máy chủ 800 ngày cho IP của máy (iOS từ chối quá 825 ngày). Cổng HTTPS 47900+ chạy song song cổng HTTP (rustls, ring), cùng bộ lệnh; chỉ máy trong mạng nội bộ mới được bắt tay TLS. `/ca.mobileconfig` (hồ sơ iOS, chưa ký nên iOS báo "Chưa được ký") và `/ca.crt` (Android) là chứng chỉ công khai, không cần mã bí mật. Cài đặt → Điện thoại hiện QR chứng chỉ, QR link HTTPS và 4 bước cài/tin cậy. Có test bắt tay TLS thật với client chỉ tin CA này. Nếu tạo chứng chỉ lỗi thì link HTTP thường vẫn chạy.
 - **Máy in từ iPhone:** Safari không có TCP thô nên không nối thẳng máy in; điện thoại in qua máy tính (`printer_print`). Máy chủ chia sẻ giờ giữ hai máy in (hóa đơn và tem, `Printers`), lệnh `printer_print`/`printer_config` nhận `kind`; điện thoại nhận cả hai cấu hình khi mở, tem in sang máy in tem thay vì nhầm sang máy hóa đơn. Tab "Quét gửi PC" có khung hiển thị hai máy in và nút in thử.
 - **Chưa thử trên thiết bị thật:** in tem trên máy in thật, chia sẻ/HTTPS qua mạng LAN thật, cài chứng chỉ trên iPhone thật.
+
+
+## 26. Bản phát hành macOS trên GitHub Actions
+
+`.github/workflows/build.yml`: job `build` build cả 3 nền tảng như trước (macOS Apple Silicon,
+macOS Intel, Windows) nhưng không tự publish nữa — mỗi nền tảng chỉ gom file cài đặt của mình
+(`release-files/`: `.dmg` đổi tên theo target cho macOS, `.exe`/`-setup.exe` cho Windows) rồi
+upload làm artifact `LIVE-STUDIO-release-<target>`. Một job `release` riêng (chạy sau, trên
+`ubuntu-latest`) tải tất cả artifact đó và gọi `softprops/action-gh-release` **một lần duy nhất**,
+nên chỉ có một bản phát hành cho mỗi lần push, đủ cả 3 file — trước đó chỉ job Windows publish nên
+bản phát hành không có file Mac; để 3 job macOS/Windows tự publish song song từng job rủi ro tranh
+chấp tạo release cùng lúc nên gộp vào một job riêng. Ứng dụng macOS chưa ký (không có Apple
+Developer certificate trả phí) nên người dùng phải tự gỡ cách ly Gatekeeper lần đầu (chuột phải →
+Mở, hoặc `xattr -cr`).

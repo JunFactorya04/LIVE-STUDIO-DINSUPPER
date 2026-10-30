@@ -93,6 +93,22 @@ cargo test --manifest-path src-tauri/Cargo.toml   # test Rust (SQLite, kho khóa
 npm run tauri:build    # macOS: .dmg/.app · Windows: .msi/.exe
 ```
 
+## Bản phát hành (GitHub Release)
+
+Mỗi lần push lên `main` (và mỗi tag `v*`), GitHub Actions (`.github/workflows/build.yml`) tự build
+cả 3 nền tảng (macOS Apple Silicon, macOS Intel, Windows) và gộp vào **một** bản phát hành ở tab
+Releases của repo: `LIVE-STUDIO-aarch64-apple-darwin.dmg`, `LIVE-STUDIO-x86_64-apple-darwin.dmg`,
+`LIVE-STUDIO.exe` (portable) và `...-setup.exe`. Không cần cài gì thêm hay bấm nút nào trên
+GitHub; bản mới nhất luôn nằm ở đầu trang Releases. Tag `build-<số lần chạy>` cho mỗi lần push
+thường, tag `v1.2.3` (khớp đúng version trong `package.json`) cho bản chính thức.
+
+Mở file `.dmg` trên Mac: macOS chưa ký ứng dụng (code signing trả phí) nên Gatekeeper sẽ chặn lần
+đầu ("không thể mở vì không rõ nhà phát triển"). Chuột phải vào app → **Mở**, chọn **Mở** lần nữa
+ở hộp thoại, hoặc chạy `xattr -cr /Applications/LIVE\ STUDIO.app` trong Terminal. Chỉ cần làm một
+lần; không cần cài Xcode hay bất cứ gì khác để **chạy** app đã build sẵn — Xcode Command Line Tools
+chỉ cần khi bạn tự `npm run tauri:build` trên máy mình.
+```
+
 Bản build chính thức do GitHub Actions tạo (`.github/workflows/build.yml`).
 
 ## Cấu trúc
