@@ -1,3 +1,4 @@
+import { modules } from "../barcode/code128";
 import { PrintError, type Bitmap } from "./client";
 import type { Slip, SlipLine } from "./slip";
 
@@ -70,6 +71,12 @@ export function layout(slip: Slip, width: number, measureFor: (l: SlipLine) => M
       y += 8 + LINE_GAP;
       continue;
     }
+    if (line.barcode) {
+      const h = line.px ?? 64;
+      placed.push({ line, text: line.barcode, y, h });
+      y += h + LINE_GAP;
+      continue;
+    }
     const h = dotsOf(line);
     for (const text of wrapText(line.text, width - 2 * MARGIN, measureFor(line))) {
       placed.push({ line, text, y, h });
@@ -77,6 +84,32 @@ export function layout(slip: Slip, width: number, measureFor: (l: SlipLine) => M
     }
   }
   return { placed, height: y + MARGIN };
+}
+
+/** Bars centred on the page, with the widest whole-dot module that fits (and a quiet zone). */
+export function drawBars(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  y: number,
+  h: number,
+  width: number,
+  align: "left" | "center" = "center",
+): void {
+  const mods = modules(text);
+  const quiet = 10;
+  const unit = Math.max(1, Math.floor((width - 2 * MARGIN) / (mods.length + 2 * quiet)));
+  const x0 = align === "left" ? MARGIN + quiet : Math.floor((width - mods.length * unit) / 2);
+  let i = 0;
+  while (i < mods.length) {
+    if (!mods[i]) {
+      i++;
+      continue;
+    }
+    let j = i;
+    while (j < mods.length && mods[j]) j++;
+    ctx.fillRect(x0 + i * unit, y, (j - i) * unit, h);
+    i = j;
+  }
 }
 
 const fontOf = (l: SlipLine) => `${l.bold ? "700 " : ""}${dotsOf(l)}px ${FONT_FAMILY}`;
@@ -104,6 +137,10 @@ export function renderSlip(slip: Slip, width: number): Bitmap {
   ctx.fillStyle = "#000";
   ctx.textBaseline = "top";
   for (const p of placed) {
+    if (p.line.barcode) {
+      drawBars(ctx, p.line.barcode, p.y, p.h, width, p.line.align === "left" ? "left" : "center");
+      continue;
+    }
     if (p.line.rule) {
       ctx.fillRect(MARGIN, p.y + 3, width - 2 * MARGIN, 2);
       continue;

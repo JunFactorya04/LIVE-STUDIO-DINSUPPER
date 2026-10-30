@@ -17,6 +17,7 @@ import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
 import { InventoryPage } from "./pages/InventoryPage";
+import { WarehousePage } from "./pages/WarehousePage";
 import { CarriersPage } from "./pages/CarriersPage";
 import { ShipPage } from "./pages/ShipPage";
 import { SetupPage } from "./pages/SetupPage";
@@ -75,6 +76,8 @@ function PageBody({
       return <ShipPage />;
     case "inventory":
       return <InventoryPage />;
+    case "warehouse":
+      return <WarehousePage />;
     case "carriers":
       return <CarriersPage />;
     case "report":

@@ -1,19 +1,35 @@
 import { useId, useState } from "react";
 import { useI18n } from "../i18n";
-import { PAPER_WIDTHS, loadPrinter, savePrinter, type PrinterSettings } from "../print/settings";
+import {
+  LABEL_WIDTHS,
+  loadLabelPrinter,
+  loadPrinter,
+  saveLabelPrinter,
+  savePrinter,
+  type PrinterSettings,
+} from "../print/settings";
+import { unitLabel } from "../print/label";
 import { testSlip } from "../print/slip";
-import { getPrintService, type PrintService } from "../print/service";
+import { getLabelService, getPrintService, type PrintService } from "../print/service";
 import { usePrintStatus } from "../print/usePrint";
 import type { PrintErrorCode } from "../print/client";
 import { createShareClient } from "../share/client";
 
 // Where the receipt printer is on the network, plus a connection check and a test print.
 
-export function PrinterSection({ service }: { service?: PrintService }) {
+export function PrinterSection({
+  service,
+  kind = "receipt",
+}: {
+  service?: PrintService;
+  /** "label" is the second printer, for barcode labels. */
+  kind?: "receipt" | "label";
+}) {
   const { t } = useI18n();
-  const [svc] = useState(() => service ?? getPrintService());
+  const label = kind === "label";
+  const [svc] = useState(() => service ?? (label ? getLabelService() : getPrintService()));
   const status = usePrintStatus(svc);
-  const [cfg, setCfg] = useState<PrinterSettings>(loadPrinter);
+  const [cfg, setCfg] = useState<PrinterSettings>(label ? loadLabelPrinter : loadPrinter);
   const [note, setNote] = useState<{ text: string; error: boolean }>();
   const [busy, setBusy] = useState(false);
   const hostId = useId();
@@ -23,10 +39,14 @@ export function PrinterSection({ service }: { service?: PrintService }) {
 
   const update = (next: PrinterSettings) => {
     setCfg(next);
-    savePrinter(next);
-    void createShareClient()
-      .syncPrinter()
-      .catch(() => undefined);
+    if (label) {
+      saveLabelPrinter(next);
+    } else {
+      savePrinter(next);
+      void createShareClient()
+        .syncPrinter()
+        .catch(() => undefined);
+    }
     setNote(undefined);
   };
   const fail = (code: PrintErrorCode) => setNote({ text: p.errors[code], error: true });
@@ -42,7 +62,11 @@ export function PrinterSection({ service }: { service?: PrintService }) {
   const test = async () => {
     setBusy(true);
     setNote(undefined);
-    const ok = await svc.print(testSlip(p.slip.testTitle, p.slip.testBody));
+    const ok = await svc.print(
+      label
+        ? unitLabel({ code: "TEST-000001", sku: "TEST", price: 123 })
+        : testSlip(p.slip.testTitle, p.slip.testBody),
+    );
     setBusy(false);
     if (ok) setNote({ text: p.testOk, error: false });
     else fail(svc.getSnapshot().error ?? "UNREACHABLE");
@@ -50,8 +74,8 @@ export function PrinterSection({ service }: { service?: PrintService }) {
 
   return (
     <section className="box">
-      <h2 className="section-title">{p.title}</h2>
-      <p className="caption">{p.help}</p>
+      <h2 className="section-title">{label ? p.labelTitle : p.title}</h2>
+      <p className="caption">{label ? p.labelHelp : p.help}</p>
       {!svc.available && <p className="note">{p.desktopOnly}</p>}
       <div className="field">
         <label htmlFor={hostId}>{p.host}</label>
@@ -86,22 +110,36 @@ export function PrinterSection({ service }: { service?: PrintService }) {
           className="input"
           value={cfg.widthDots}
           onChange={(e) =>
-            update({ ...cfg, widthDots: Number(e.target.value) as (typeof PAPER_WIDTHS)[number] })
+            update({ ...cfg, widthDots: Number(e.target.value) as PrinterSettings["widthDots"] })
           }
         >
-          <option value={384}>{p.width58}</option>
-          <option value={576}>{p.width80}</option>
+          {label ? (
+            LABEL_WIDTHS.map((w) => (
+              <option key={w} value={w}>
+                {p.labelWidths[w]}
+              </option>
+            ))
+          ) : (
+            <>
+              <option value={384}>{p.width58}</option>
+              <option value={576}>{p.width80}</option>
+            </>
+          )}
         </select>
       </div>
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={cfg.autoTemp}
-          onChange={(e) => update({ ...cfg, autoTemp: e.target.checked })}
-        />
-        {p.autoTemp}
-      </label>
-      <p className="caption">{p.autoTempHelp}</p>
+      {!label && (
+        <>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={cfg.autoTemp}
+              onChange={(e) => update({ ...cfg, autoTemp: e.target.checked })}
+            />
+            {p.autoTemp}
+          </label>
+          <p className="caption">{p.autoTempHelp}</p>
+        </>
+      )}
       <div className="actions">
         <button
           type="button"

@@ -18,7 +18,7 @@ use serde_json::{json, Value};
 use std::net::{IpAddr, SocketAddr};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Notify;
@@ -44,6 +44,13 @@ pub const ALLOWED: &[&str] = &[
     "biz_stock_list",
     "biz_purchase_list",
     "biz_expense_list",
+    "scan_push",
+    "wh_unit_get",
+    "wh_units_list",
+    "wh_ship",
+    "wh_move",
+    "wh_count_apply",
+    "wh_moves_list",
     "ship_orders",
     "ship_order_save",
     "ship_order_delete",
@@ -196,6 +203,16 @@ async fn dispatch(
             arg(a, "sessionId")?,
             arg(a, "limit")?,
         )),
+        "scan_push" => {
+            // Realtime relay: the phone scanned a code, the computer's open screen handles it.
+            let code: String = arg(a, "code")?;
+            let code = code.trim().to_string();
+            if !crate::wh::valid_scan_code(&code) {
+                return Err("BAD_CODE".into());
+            }
+            app.emit("remote-scan", code).map_err(|e| e.to_string())?;
+            Ok(Value::Null)
+        }
         "catalog_list" => out(commands::catalog_list(app.state())),
         "order_save" => out(commands::order_save(app.state(), arg(a, "draft")?)),
         "order_list" => out(commands::order_list(app.state(), arg(a, "sessionId")?)),
@@ -236,6 +253,33 @@ async fn dispatch(
         "biz_stock_list" => out(commands::biz_stock_list(app.state())),
         "biz_purchase_list" => out(commands::biz_purchase_list(app.state())),
         "biz_expense_list" => out(commands::biz_expense_list(app.state())),
+        // Scanning in the warehouse works from a phone; receiving, voiding and returns stay on the computer.
+        "wh_unit_get" => out(commands::wh_unit_get(app.state(), arg(a, "code")?)),
+        "wh_units_list" => out(commands::wh_units_list(
+            app.state(),
+            arg(a, "status")?,
+            arg(a, "limit")?,
+        )),
+        "wh_ship" => out(commands::wh_ship(
+            app.state(),
+            arg(a, "codes")?,
+            arg(a, "orderId")?,
+            arg(a, "stockHandled")?,
+            arg(a, "now")?,
+        )),
+        "wh_move" => out(commands::wh_move(
+            app.state(),
+            arg(a, "code")?,
+            arg(a, "location")?,
+            arg(a, "now")?,
+        )),
+        "wh_count_apply" => out(commands::wh_count_apply(
+            app.state(),
+            arg(a, "location")?,
+            arg(a, "scanned")?,
+            arg(a, "now")?,
+        )),
+        "wh_moves_list" => out(commands::wh_moves_list(app.state(), arg(a, "limit")?)),
         "ship_customers" => out(commands::ship_customers(app.state())),
         "ship_customer_save" => out(commands::ship_customer_save(
             app.state(),
@@ -599,6 +643,9 @@ mod tests {
             "biz_expense_save",
             "biz_expense_delete",
             "secret_exists",
+            "wh_receive",
+            "wh_void",
+            "wh_restock",
             "ecpay_check",
             "ecpay_create",
             "ecpay_query",

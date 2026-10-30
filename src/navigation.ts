@@ -9,6 +9,7 @@ export type PageId =
   | "flow"
   | "ship"
   | "inventory"
+  | "warehouse"
   | "carriers"
   | "replies"
   | "overlay"
@@ -33,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "ship", section: "manage", tab: false },
   { id: "carriers", section: "manage", tab: false },
   { id: "inventory", section: "manage", tab: false },
+  { id: "warehouse", section: "manage", tab: false },
   { id: "replies", section: "manage", tab: true },
   { id: "overlay", section: "manage", tab: false },
   { id: "report", section: "manage", tab: false },
@@ -46,6 +48,7 @@ const REMOTE_PAGES: ReadonlySet<PageId> = new Set([
   "orders",
   "flow",
   "ship",
+  "warehouse",
   "replies",
   "report",
 ]);

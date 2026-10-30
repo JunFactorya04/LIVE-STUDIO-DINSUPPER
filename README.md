@@ -137,3 +137,7 @@ Cài đặt → **Chia sẻ cho điện thoại** → Bật chia sẻ → quét 
 ## Hãng vận chuyển và thu chi
 
 Mục **Hãng vận chuyển** có logo 7 hãng đóng gói sẵn. ECPay là hãng duy nhất app gọi API trực tiếp (kiểm tra khóa, tạo vận đơn 7-ELEVEN/FamilyMart ở môi trường thử hoặc thật); các hãng khác mở trang đăng nhập/tra đơn chính thức. Mục **Kho & chi phí** có 13 nhóm chi phí và khoản tính theo % doanh thu; thu nhập thực tế trừ hết các khoản này.
+
+## Kho mã vạch
+
+Tab **Kho mã vạch**: nhập hàng → in tem (chỉ giá bán; có tuỳ chọn số tem, căn lề, cỡ chữ), quét xuất để in biên nhận và trừ kho, kiểm kê, **Phân tích** kho (ABC-XYZ, điểm đặt hàng, tuổi hàng). Mã quét xuất được tính vào lợi nhuận ở Tổng quan. Điện thoại ở cùng Wi-Fi có thể quét và gửi mã lên PC theo thời gian thực (tab "Quét gửi PC"). Chi tiết: `docs/IMPLEMENTATION_PLAN_TIKTOK_LIVE.md` §25.

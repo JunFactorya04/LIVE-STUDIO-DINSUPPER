@@ -12,6 +12,8 @@ export interface SlipLine {
   align?: "left" | "center";
   /** A thin line is drawn instead of text. */
   rule?: boolean;
+  /** Code 128 text drawn as bars; `px` is the bar height in dots. */
+  barcode?: string;
 }
 
 export interface Slip {

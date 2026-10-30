@@ -895,3 +895,104 @@ pub async fn ecpay_query(
 pub fn open_carrier_page(url: String) -> Result<(), String> {
     crate::browser::open_carrier(&url)
 }
+
+// ---------- warehouse (barcode per unit) ----------
+
+#[tauri::command]
+pub fn wh_receive(
+    state: State<'_, DbState>,
+    req: crate::wh::ReceiveReq,
+    now: String,
+) -> Result<Vec<crate::wh::UnitDto>, String> {
+    let units = crate::wh::receive(&*db(&state)?, &req, &now)?;
+    log(&state, "WH_RECEIVED", &format!("units={}", units.len()));
+    Ok(units)
+}
+
+#[tauri::command]
+pub fn wh_ship(
+    state: State<'_, DbState>,
+    codes: Vec<String>,
+    order_id: String,
+    stock_handled: bool,
+    now: String,
+) -> Result<crate::wh::ShipResult, String> {
+    let r = crate::wh::ship(&*db(&state)?, &codes, &order_id, stock_handled, &now)?;
+    log(&state, "WH_SHIPPED", &format!("units={}", r.units.len()));
+    Ok(r)
+}
+
+#[tauri::command]
+pub fn wh_unit_get(
+    state: State<'_, DbState>,
+    code: String,
+) -> Result<Option<crate::wh::UnitDto>, String> {
+    crate::wh::unit_get(&*db(&state)?, &code)
+}
+
+#[tauri::command]
+pub fn wh_units_list(
+    state: State<'_, DbState>,
+    status: String,
+    limit: i64,
+) -> Result<Vec<crate::wh::UnitDto>, String> {
+    crate::wh::units_list(&*db(&state)?, &status, limit)
+}
+
+#[tauri::command]
+pub fn wh_move(
+    state: State<'_, DbState>,
+    code: String,
+    location: String,
+    now: String,
+) -> Result<crate::wh::UnitDto, String> {
+    crate::wh::move_to(&*db(&state)?, &code, &location, &now)
+}
+
+#[tauri::command]
+pub fn wh_void(
+    state: State<'_, DbState>,
+    code: String,
+    reason: String,
+    now: String,
+) -> Result<crate::wh::UnitDto, String> {
+    let u = crate::wh::void(&*db(&state)?, &code, &reason, &now)?;
+    log(&state, "WH_ADJUSTED", "void");
+    Ok(u)
+}
+
+#[tauri::command]
+pub fn wh_restock(
+    state: State<'_, DbState>,
+    code: String,
+    location: String,
+    now: String,
+) -> Result<crate::wh::UnitDto, String> {
+    let u = crate::wh::restock(&*db(&state)?, &code, &location, &now)?;
+    log(&state, "WH_ADJUSTED", "restock");
+    Ok(u)
+}
+
+#[tauri::command]
+pub fn wh_count_apply(
+    state: State<'_, DbState>,
+    location: String,
+    scanned: Vec<String>,
+    now: String,
+) -> Result<crate::wh::CountResult, String> {
+    let r = crate::wh::count_apply(&*db(&state)?, &location, &scanned, &now)?;
+    log(
+        &state,
+        "WH_ADJUSTED",
+        &format!("count missing={}", r.missing.len()),
+    );
+    Ok(r)
+}
+
+#[tauri::command]
+pub fn wh_moves_list(
+    state: State<'_, DbState>,
+    limit: i64,
+) -> Result<Vec<crate::wh::MoveDto>, String> {
+    crate::wh::moves_list(&*db(&state)?, limit)
+}

@@ -1662,3 +1662,438 @@
     border-radius: 18px;
   }
 }
+
+/* ---- Warehouse: scan field, lists, label options ---- */
+.scanbox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.scanbox__input {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-title2);
+  height: var(--ctl-h-lg);
+}
+.wh-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.wh-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--mac-row-alt);
+  font-variant-numeric: tabular-nums;
+}
+.wh-total {
+  font-size: var(--fs-large-title);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.wh-steps {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+.input--tiny {
+  width: 64px;
+  text-align: center;
+}
+.lbl-opts {
+  border: 0.5px solid var(--mac-border);
+  border-radius: var(--box-radius);
+  padding: 10px 12px;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.lbl-opts legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+.lbl-opts__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.lbl-opts__name {
+  min-width: 120px;
+  color: var(--mac-label-2);
+}
+.lbl-opts__checks {
+  gap: 14px;
+}
+.lbl-opts__checks label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* ---- Warehouse analysis: a dark control-room panel in both themes ---- */
+.wha {
+  --w-bg: #0b0f17;
+  --w-card: #121826;
+  --w-line: rgba(255, 255, 255, 0.09);
+  --w-text: rgba(255, 255, 255, 0.9);
+  --w-dim: rgba(255, 255, 255, 0.55);
+  --w-a: #32d74b;
+  --w-b: #0a84ff;
+  --w-c: #ff9f0a;
+  --w-bad: #ff453a;
+  --w-info: #64d2ff;
+  background: var(--w-bg);
+  color: var(--w-text);
+  border-radius: 16px;
+  padding: 16px;
+  display: grid;
+  gap: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.wha h2 {
+  margin: 0;
+  font-size: var(--fs-title1);
+}
+.wha__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.wha__head p,
+.wha__foot {
+  margin: 2px 0 0;
+  color: var(--w-dim);
+  font-size: var(--fs-callout);
+}
+.wha__ctl {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.wha__seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--w-dim);
+  font-size: var(--fs-callout);
+}
+.wha__seg button {
+  min-width: 36px;
+  height: var(--ctl-h);
+  border-radius: 7px;
+  border: 0.5px solid var(--w-line);
+  background: transparent;
+  color: var(--w-text);
+  cursor: pointer;
+}
+.wha__seg button[aria-pressed="true"] {
+  background: var(--sys-blue);
+  border-color: transparent;
+}
+.wha__kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.wha__kpi {
+  background: var(--w-card);
+  border: 0.5px solid var(--w-line);
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 2px;
+  border-top: 2px solid var(--k, var(--w-info));
+}
+.wha__kpi--ok {
+  --k: var(--w-a);
+}
+.wha__kpi--bad {
+  --k: var(--w-bad);
+}
+.wha__kpi--warn {
+  --k: var(--w-c);
+}
+.wha__kpi--info {
+  --k: var(--w-info);
+}
+.wha__kpi span,
+.wha__kpi small {
+  color: var(--w-dim);
+  font-size: var(--fs-subhead);
+}
+.wha__kpi strong {
+  font-size: var(--fs-title1);
+}
+.wha__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+}
+.wha__card {
+  margin: 0;
+  background: var(--w-card);
+  border: 0.5px solid var(--w-line);
+  border-radius: 12px;
+  padding: 12px;
+  min-width: 0;
+}
+.wha__card figcaption {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.wha__matrix {
+  display: grid;
+  grid-template-columns: 84px repeat(3, 1fr);
+  gap: 6px;
+}
+.wha__axis {
+  color: var(--w-dim);
+  font-size: var(--fs-subhead);
+  align-self: center;
+}
+.wha__axis small {
+  display: block;
+  font-size: var(--fs-caption);
+}
+.wha__mcell {
+  border-radius: 10px;
+  padding: 8px;
+  display: grid;
+  gap: 1px;
+  background: color-mix(in srgb, var(--m, var(--w-b)) 18%, transparent);
+  border: 0.5px solid color-mix(in srgb, var(--m, var(--w-b)) 45%, transparent);
+  min-height: 92px;
+}
+.wha__mcell b {
+  color: var(--m);
+}
+.wha__mcell strong {
+  font-size: var(--fs-title1);
+}
+.wha__mcell span {
+  color: var(--w-dim);
+  font-size: var(--fs-subhead);
+}
+.wha__mcell small {
+  color: var(--w-dim);
+  font-size: var(--fs-caption);
+}
+.wha__mcell--AX,
+.wha__mcell--AY,
+.wha__mcell--AZ {
+  --m: var(--w-a);
+}
+.wha__mcell--BX,
+.wha__mcell--BY,
+.wha__mcell--BZ {
+  --m: var(--w-b);
+}
+.wha__mcell--CX,
+.wha__mcell--CY,
+.wha__mcell--CZ {
+  --m: var(--w-c);
+}
+.wha__pareto {
+  position: relative;
+  height: 180px;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding-top: 8px;
+}
+.wha__pareto svg {
+  position: absolute;
+  inset: 0 0 18px 0;
+  width: 100%;
+  height: calc(100% - 18px);
+  pointer-events: none;
+}
+.wha__ref {
+  stroke: var(--w-dim);
+  stroke-dasharray: 3 3;
+  stroke-width: 0.5;
+  vector-effect: non-scaling-stroke;
+}
+.wha__cum {
+  fill: none;
+  stroke: var(--w-info);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+.wha__col {
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+.wha__col span {
+  height: 18px;
+  font-size: var(--fs-caption);
+  color: var(--w-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+.wha__bar {
+  display: block;
+  border-radius: 4px 4px 0 0;
+  background: var(--w-c);
+}
+.wha__bar--A {
+  background: var(--w-a);
+}
+.wha__bar--B {
+  background: var(--w-b);
+}
+.wha__scroll {
+  overflow-x: auto;
+}
+.wha__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-callout);
+}
+.wha__table th,
+.wha__table td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 0.5px solid var(--w-line);
+  white-space: nowrap;
+}
+.wha__table thead th {
+  color: var(--w-dim);
+  font-weight: 500;
+}
+.wha__strong {
+  font-weight: 700;
+  color: var(--w-c);
+}
+.wha__tag {
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--w-line);
+}
+.wha__tag--A {
+  color: var(--w-a);
+}
+.wha__tag--B {
+  color: var(--w-b);
+}
+.wha__tag--C {
+  color: var(--w-c);
+}
+.wha__badge {
+  padding: 1px 7px;
+  border-radius: 5px;
+  font-size: var(--fs-subhead);
+  background: var(--w-line);
+}
+.wha__badge--ok {
+  color: var(--w-a);
+}
+.wha__badge--bad {
+  color: var(--w-bad);
+}
+.wha__badge--warn {
+  color: var(--w-c);
+}
+.wha__badge--info {
+  color: var(--w-info);
+}
+.wha__badge--dim {
+  color: var(--w-dim);
+}
+.wha__stack {
+  display: flex;
+  height: 18px;
+  border-radius: 9px;
+  overflow: hidden;
+  gap: 2px;
+}
+.wha__stack .wha__age {
+  display: block;
+  min-width: 2px;
+}
+.wha__age--d30 {
+  background: var(--w-a);
+}
+.wha__age--d60 {
+  background: var(--w-b);
+}
+.wha__age--d90 {
+  background: var(--w-c);
+}
+.wha__age--d90p {
+  background: var(--w-bad);
+}
+.wha__legend {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: grid;
+  gap: 4px;
+  font-size: var(--fs-callout);
+}
+.wha__legend span {
+  color: var(--w-dim);
+}
+.wha__dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.wha__heat {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: 6px;
+}
+.wha__cell {
+  border-radius: 8px;
+  padding: 8px;
+  display: grid;
+  background: color-mix(in srgb, var(--w-bad) calc(var(--heat) * 70%), var(--w-line));
+}
+.wha__cell span {
+  font-size: var(--fs-title2);
+  font-weight: 700;
+}
+@media (max-width: 760px) {
+  .wha {
+    padding: 12px;
+    border-radius: 14px;
+  }
+  .wha__matrix {
+    grid-template-columns: 56px repeat(3, 1fr);
+  }
+  .wha__mcell small {
+    display: none;
+  }
+}
+
+/* Warehouse on a phone: the tab strip scrolls instead of widening the page. */
+.wh { min-width: 0; }
+.wh > .segmented { max-width: 100%; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; }
+.wh > .segmented::-webkit-scrollbar { display: none; }
+.wh > .segmented button { flex: 0 0 auto; white-space: nowrap; }
+.lbl-opts { min-width: 0; }
+.lbl-opts .segmented { max-width: 100%; }
+@media (max-width: 760px) {
+  .lbl-opts__name { min-width: 100%; }
+  .lbl-opts .segmented { flex: 1; }
+}

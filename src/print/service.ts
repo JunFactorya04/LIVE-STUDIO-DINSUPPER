@@ -6,7 +6,7 @@ import {
   type PrintErrorCode,
 } from "./client";
 import { renderSlip } from "./raster";
-import { isConfigured, loadPrinter, type PrinterSettings } from "./settings";
+import { isConfigured, loadLabelPrinter, loadPrinter, type PrinterSettings } from "./settings";
 import type { Slip } from "./slip";
 
 // One queue for all printing: slips go out one at a time, and the outcome is kept so the
@@ -93,3 +93,8 @@ export class PrintService {
 
 let shared: PrintService | undefined;
 export const getPrintService = (): PrintService => (shared ??= new PrintService());
+
+let sharedLabel: PrintService | undefined;
+/** The second printer (barcode labels): same queue and error handling, its own settings. */
+export const getLabelService = (): PrintService =>
+  (sharedLabel ??= new PrintService({ loadSettings: loadLabelPrinter }));

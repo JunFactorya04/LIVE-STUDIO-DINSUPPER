@@ -76,6 +76,7 @@ export function SettingsPage() {
       {tab === "printing" && (
         <>
           <PrinterSection />
+          <PrinterSection kind="label" />
           <StickerSection />
         </>
       )}

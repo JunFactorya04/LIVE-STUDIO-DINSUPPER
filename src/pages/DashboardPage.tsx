@@ -18,6 +18,8 @@ import {
   type StockItem,
 } from "../biz/client";
 import { ProfitPanel } from "./ProfitPanel";
+import { createWarehouseClient, type Unit, type WarehouseClient } from "../warehouse/client";
+import { unitSales } from "../warehouse/sales";
 import { FinancePanel } from "./FinancePanel";
 import { workReport } from "../ship/flow";
 import { useLiveSession } from "../live/useLiveSession";
@@ -32,11 +34,13 @@ export function DashboardPage({
   client,
   shipClient,
   bizClient,
+  warehouseClient,
   onNavigate,
 }: {
   client?: ReportClient;
   shipClient?: ShipClient;
   bizClient?: BizClient;
+  warehouseClient?: WarehouseClient;
   onNavigate: (page: PageId) => void;
 }) {
   const { t, fmt, locale } = useI18n();
@@ -63,6 +67,24 @@ export function DashboardPage({
     expenses: [],
     stock: [],
   });
+  const [wh] = useState(() => warehouseClient ?? createWarehouseClient());
+  const [sold, setSold] = useState<Unit[]>([]);
+  useEffect(() => {
+    if (!wh.available) return;
+    let alive = true;
+    wh.units("SHIPPED")
+      .then((u) => alive && setSold(u))
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [wh]);
+  // Ship orders plus units scanned out of the warehouse: one list of sales for every panel.
+  const sales = useMemo(
+    () => [...follow.orders, ...unitSales(sold, follow.orders)],
+    [follow.orders, sold],
+  );
+
   useEffect(() => {
     if (!biz.available) return;
     let alive = true;
@@ -169,8 +191,8 @@ export function DashboardPage({
 
   return (
     <div className="page page--no-inspector orders">
-      <FinancePanel orders={follow.orders} />
-      {biz.available && <ProfitPanel orders={follow.orders} {...books} />}
+      <FinancePanel orders={sales} />
+      {biz.available && <ProfitPanel orders={sales} {...books} />}
       <section className="box">
         <h2 className="section-title">{d.currentTitle}</h2>
         <div className="kpi-grid">

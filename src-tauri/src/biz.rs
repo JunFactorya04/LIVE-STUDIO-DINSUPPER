@@ -129,6 +129,13 @@ pub struct PurchaseDto {
 /// Record a purchase: stock goes up and the unit cost becomes the weighted average of what was
 /// in stock and what just arrived (stock that is zero or negative takes the new price).
 pub fn purchase_add(conn: &Connection, p: &PurchaseDto, now: &str) -> Result<()> {
+    let tx = conn.unchecked_transaction()?;
+    purchase_apply(&tx, p, now)?;
+    tx.commit()
+}
+
+/// The body of `purchase_add`, for a caller that already holds a transaction.
+pub fn purchase_apply(tx: &Connection, p: &PurchaseDto, now: &str) -> Result<()> {
     if p.id.is_empty() || p.id.len() > 64 {
         return Err(bad("id"));
     }
@@ -142,7 +149,6 @@ pub fn purchase_add(conn: &Connection, p: &PurchaseDto, now: &str) -> Result<()>
     let supplier = clean(&p.supplier, 60).ok_or_else(|| bad("supplier"))?;
     let note = clean(&p.note, 200).ok_or_else(|| bad("note"))?;
     let at = date(&p.at)?;
-    let tx = conn.unchecked_transaction()?;
     let (cost, stock): (i64, i64) = tx
         .query_row(
             "SELECT cost, stock FROM biz_stock WHERE sku = ?1",
@@ -167,7 +173,7 @@ pub fn purchase_add(conn: &Connection, p: &PurchaseDto, now: &str) -> Result<()>
          VALUES (?1,?2,?3,?4,?5,?6,?7,?8)",
         params![p.id, s, p.qty, p.unit_cost, supplier, note, at, now],
     )?;
-    tx.commit()
+    Ok(())
 }
 
 pub fn purchase_list(conn: &Connection) -> Result<Vec<PurchaseDto>> {

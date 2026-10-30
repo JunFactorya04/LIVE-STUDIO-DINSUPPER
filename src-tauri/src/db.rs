@@ -204,6 +204,32 @@ DROP TABLE biz_expenses;
 ALTER TABLE biz_expenses_new RENAME TO biz_expenses;
 ";
 
+const MIGRATION_9: &str = "
+CREATE TABLE wh_units (
+    code        TEXT PRIMARY KEY,
+    sku         TEXT NOT NULL,
+    serial      INTEGER NOT NULL,
+    price       INTEGER NOT NULL,
+    cost        INTEGER NOT NULL,
+    location    TEXT NOT NULL DEFAULT '',
+    status      TEXT NOT NULL CHECK (status IN ('IN_STOCK','SHIPPED','VOID')),
+    received_at TEXT NOT NULL,
+    shipped_at  TEXT NOT NULL DEFAULT '',
+    order_id    TEXT NOT NULL DEFAULT ''
+);
+CREATE UNIQUE INDEX wh_units_serial ON wh_units(sku, serial);
+CREATE INDEX wh_units_status ON wh_units(status, sku);
+CREATE TABLE wh_moves (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    at       TEXT NOT NULL,
+    kind     TEXT NOT NULL,
+    code     TEXT NOT NULL,
+    sku      TEXT NOT NULL,
+    location TEXT NOT NULL DEFAULT '',
+    note     TEXT NOT NULL DEFAULT ''
+);
+";
+
 fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -254,6 +280,11 @@ pub fn migrate(conn: &Connection) -> Result<()> {
             "BEGIN;{MIGRATION_8}PRAGMA user_version = 8;COMMIT;"
         ))?;
     }
+    if version < 9 {
+        conn.execute_batch(&format!(
+            "BEGIN;{MIGRATION_9}PRAGMA user_version = 9;COMMIT;"
+        ))?;
+    }
     Ok(())
 }
 
@@ -284,7 +315,7 @@ mod tests {
         let v: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 8);
+        assert_eq!(v, 9);
     }
 
     #[test]

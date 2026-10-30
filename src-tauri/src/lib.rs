@@ -17,6 +17,7 @@ mod replies;
 mod secrets;
 mod share;
 mod ship;
+mod wh;
 
 use std::sync::Mutex;
 use tauri::Manager;
@@ -97,6 +98,15 @@ pub fn run() {
             commands::ship_export_xlsx,
             commands::ship_order_save,
             commands::ship_order_delete,
+            commands::wh_receive,
+            commands::wh_ship,
+            commands::wh_unit_get,
+            commands::wh_units_list,
+            commands::wh_move,
+            commands::wh_void,
+            commands::wh_restock,
+            commands::wh_count_apply,
+            commands::wh_moves_list,
             commands::ecpay_check,
             commands::ecpay_create,
             commands::ecpay_query,

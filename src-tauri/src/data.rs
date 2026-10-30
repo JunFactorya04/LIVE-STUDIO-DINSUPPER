@@ -41,6 +41,9 @@ pub const AUDIT_ACTIONS: &[&str] = &[
     "BIZ_DELETED",
     "WAYBILL_CREATED",
     "WAYBILL_FAILED",
+    "WH_RECEIVED",
+    "WH_SHIPPED",
+    "WH_ADJUSTED",
 ];
 
 fn bad(msg: &str) -> rusqlite::Error {
@@ -237,7 +240,13 @@ pub fn delete_all(conn: &Connection, include_catalog: bool) -> Result<usize> {
     conn.execute("DELETE FROM ship_orders", [])?;
     conn.execute("DELETE FROM ship_customers", [])?;
     conn.execute("DELETE FROM buyer_flow", [])?;
-    for table in ["biz_stock", "biz_purchases", "biz_expenses"] {
+    for table in [
+        "biz_stock",
+        "biz_purchases",
+        "biz_expenses",
+        "wh_units",
+        "wh_moves",
+    ] {
         conn.execute(&format!("DELETE FROM {table}"), [])?;
     }
     if include_catalog {
