@@ -10,9 +10,10 @@ stop() {
 }
 
 echo "=== LIVE STUDIO ==="
-command -v node >/dev/null 2>&1 || stop "Chua cai Node.js 20 tro len. Tai tai https://nodejs.org roi chay lai."
-command -v cargo >/dev/null 2>&1 || stop "Chua cai Rust. Mo Terminal chay: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-xcode-select -p >/dev/null 2>&1 || stop "Chua cai Xcode Command Line Tools. Mo Terminal chay: xcode-select --install"
+if ! command -v node >/dev/null 2>&1 || ! command -v cargo >/dev/null 2>&1 || ! xcode-select -p >/dev/null 2>&1; then
+  echo "[!] May chua du cong cu (Node.js, Rust, Xcode CLT). Dang mo trinh cai dat..."
+  exec bash "$(dirname "$0")/Cai-dat-LIVE-STUDIO.command"
+fi
 
 if command -v git >/dev/null 2>&1; then
   echo "Dang cap nhat tu GitHub..."

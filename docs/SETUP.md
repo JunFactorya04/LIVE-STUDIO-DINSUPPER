@@ -46,6 +46,10 @@ Mac: nếu nhấp đúp không chạy, mở Terminal một lần: `chmod +x Chay
 
 Muốn tạo bộ cài để cài như app thường: `npm run tauri:build` (kết quả trong `src-tauri/target/release/bundle`).
 
+## 2b-1. Máy mới chưa có gì: chạy một file là đủ
+
+Sau `git clone`, nhấp đúp `Cai-dat-LIVE-STUDIO.bat` (Windows) hoặc `Cai-dat-LIVE-STUDIO.command` (Mac). File tự cài phần còn thiếu: Git, Node.js, Rust, Microsoft C++ Build Tools (Windows, dùng winget) hoặc Xcode Command Line Tools, Homebrew, Node, Rust (Mac). Cái nào đã có thì bỏ qua. Cài xong mở cửa sổ mới rồi nhấp đúp `Chay-LIVE-STUDIO`. `Chay-LIVE-STUDIO` cũng tự gọi file cài đặt nếu thấy thiếu Node hoặc Rust. Chưa thử trên máy Windows/Mac sạch thật; Windows sẽ hỏi quyền quản trị khi cài C++ Build Tools. Muốn không cài gì: dùng file .exe tạo sẵn (mục 2c).
+
 ## 2c. File .exe cho Windows
 
 Có hai cách để có file chạy luôn, không cần mở terminal:

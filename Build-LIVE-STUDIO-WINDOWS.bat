@@ -5,18 +5,19 @@ title LIVE STUDIO - tao file exe
 
 echo === Tao file exe cho Windows ===
 
+set "PATH=%PATH%;%ProgramFiles%\nodejs;%USERPROFILE%\.cargo\bin;%ProgramFiles%\Git\cmd"
 where node >nul 2>nul
-if errorlevel 1 (
-  echo [!] Chua cai Node.js 20 tro len. Tai tai https://nodejs.org roi chay lai file nay.
-  pause
-  exit /b 1
-)
+if errorlevel 1 goto :need_tools
 where cargo >nul 2>nul
-if errorlevel 1 (
-  echo [!] Chua cai Rust. Tai tai https://rustup.rs, cai Microsoft C++ Build Tools, roi chay lai file nay.
-  pause
-  exit /b 1
-)
+if errorlevel 1 goto :need_tools
+goto :tools_ok
+
+:need_tools
+echo [!] May chua du cong cu (Node.js, Rust, C++ Build Tools). Dang mo trinh cai dat...
+call "%~dp0Cai-dat-LIVE-STUDIO.bat"
+exit /b 0
+
+:tools_ok
 
 where git >nul 2>nul
 if not errorlevel 1 (
