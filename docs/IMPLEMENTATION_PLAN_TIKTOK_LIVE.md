@@ -228,3 +228,11 @@ Người dùng tự nhập khóa cho ChatGPT (OpenAI), Claude, Gemini, DeepSeek 
 - **An toàn:** bình luận là dữ liệu không tin cậy: lời nhắc nói rõ không làm theo chỉ thị trong bình luận, bình luận đưa vào dưới dạng JSON, cắt 300 ký tự. Câu trả lời của AI được kiểm tra nghiêm ngặt (chỉ số, nhãn, độ tin cậy hợp lệ); mục sai bị bỏ, bình luận đó vẫn "chưa phân loại". AI **chỉ gắn nhãn**: không tạo đơn (luật ở 2b làm việc đó), không trả lời, không gửi gì.
 - **Giao diện:** cột "AI 狀態" hiện nhãn, bộ lọc 提問/購買意圖/商品問題/垃圾/待確認 dùng nhãn thật (待確認 gồm bình luận nằm sau đơn nháp cần kiểm tra hoặc độ tin cậy < 60%), panel chi tiết hiện nhãn và độ tin cậy. Nhãn được khôi phục khi mở lại app.
 - **Kiểm tra:** 4 test classifier, 4 test store (lưu và khôi phục, lỗi AI, chưa chọn dịch vụ, câu trả lời sai định dạng), 2 test giao diện, 1 test Rust. **Chưa thử với hãng AI thật**, nên chất lượng phân loại thực tế chưa được đo.
+
+## 11. Phase 4a — gợi ý trả lời (người bán duyệt, không tự gửi)
+
+- **Không có đường gửi:** app không có provider gửi tin nên **không có nút Send** và trạng thái `SENT` không thể đặt từ app (Rust từ chối). `Copy` chỉ ghi `COPIED` (`approved_by_user = 1`); sửa lại văn bản đưa về `DRAFT`. Có ghi chú rõ "đã sao chép không có nghĩa là đã gửi" trong giao diện.
+- **Lưu trữ (migration 3):** `live_reply_suggestions` (xóa theo phiên). Rust: `reply_create` (luôn bắt đầu `DRAFT`, chưa duyệt, dù người gọi truyền gì), `reply_list`, `reply_update` (chỉ `DRAFT/COPIED/REJECTED`, cắt 500 ký tự).
+- **AI soạn nháp:** lời nhắc dùng danh mục sản phẩm + "quy định shop" do người bán nhập (lưu localStorage) và bình luận khách ở dạng chuỗi JSON (dữ liệu không tin cậy). Dặn: chỉ dùng thông tin đã cho, không biết thì nói người bán sẽ xác nhận, tối đa 2 câu, không xin số điện thoại/địa chỉ/thanh toán ở chat công khai, không link. Bộ lọc sau cùng loại bỏ câu trả lời có link hoặc dãy số dài (số điện thoại/tài khoản) và cắt 300 ký tự.
+- **Giao diện:** thẻ trả lời ở panel chi tiết của Console và trang "回覆建議" (danh sách + ô quy định shop): Gợi ý, Sửa, Sao chép, Không dùng, Gợi ý lại.
+- **Kiểm tra:** 5 test Rust mới, test prompt/bộ lọc/repository, test store (sửa-sao chép-khôi phục, câu trả lời không an toàn bị loại), test giao diện (sao chép không thành "đã gửi", không có nút gửi).

@@ -77,6 +77,24 @@ CREATE TABLE live_order_evidence (
 CREATE INDEX ix_order_evidence_draft ON live_order_evidence(order_draft_id);
 ";
 
+const MIGRATION_3: &str = "
+CREATE TABLE live_reply_suggestions (
+    id               TEXT PRIMARY KEY,
+    session_id       TEXT NOT NULL REFERENCES live_sessions(id) ON DELETE CASCADE,
+    event_id         TEXT NOT NULL,
+    source           TEXT NOT NULL,
+    suggested_text   TEXT NOT NULL,
+    model_provider   TEXT,
+    model_name       TEXT,
+    status           TEXT NOT NULL,
+    approved_by_user INTEGER NOT NULL DEFAULT 0,
+    created_at       TEXT NOT NULL,
+    updated_at       TEXT NOT NULL,
+    sent_at          TEXT
+);
+CREATE INDEX ix_reply_suggestions_session ON live_reply_suggestions(session_id, created_at);
+";
+
 fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -95,6 +113,11 @@ pub fn migrate(conn: &Connection) -> Result<()> {
     if version < 2 {
         conn.execute_batch(&format!(
             "BEGIN;{MIGRATION_2}PRAGMA user_version = 2;COMMIT;"
+        ))?;
+    }
+    if version < 3 {
+        conn.execute_batch(&format!(
+            "BEGIN;{MIGRATION_3}PRAGMA user_version = 3;COMMIT;"
         ))?;
     }
     Ok(())
@@ -127,7 +150,7 @@ mod tests {
         let v: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 2);
+        assert_eq!(v, 3);
     }
 
     #[test]

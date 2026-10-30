@@ -216,7 +216,7 @@ export const vi: Messages = {
     aiTitle: "Phân tích AI",
     aiOff: "Bấm “Phân loại AI” ở Console, nhóm của bình luận sẽ hiện ở đây.",
     replyTitle: "Gợi ý trả lời",
-    replyOff: "Gợi ý trả lời sẽ có ở Phase 4, người bán duyệt rồi mới gửi.",
+    replyOff: "Chọn một bình luận để soạn nháp trả lời; không tự gửi.",
   },
   orders: {
     notice:
@@ -291,6 +291,29 @@ export const vi: Messages = {
       importButton: "Nhập",
       importResult: "Đã nhập {n} mục, {bad} dòng không đọc được.",
     },
+  },
+  replies: {
+    notice:
+      "AI chỉ soạn nháp trả lời. App không bao giờ tự gửi: hãy sửa, bấm “Sao chép” rồi dán vào TikTok để gửi thủ công. “Đã sao chép” không có nghĩa là đã gửi.",
+    policyTitle: "Quy định của shop (phí ship, thanh toán, đổi trả...)",
+    policyPlaceholder:
+      "Ví dụ: Nhận hàng tại 7-11 trả tiền sau; gửi trong 2 ngày; hàng đã mở không đổi trả.",
+    policyHelp:
+      "AI chỉ trả lời dựa trên nội dung này và danh mục sản phẩm; điều gì không có thì câu trả lời sẽ nói người bán sẽ xác nhận. Nội dung này được gửi kèm bình luận tới dịch vụ AI bạn chọn.",
+    emptyTitle: "Chưa có gợi ý trả lời",
+    emptyHint: "Ở Console chọn một bình luận rồi bấm “Gợi ý trả lời”.",
+    suggest: "Gợi ý trả lời",
+    suggesting: "Đang soạn…",
+    again: "Gợi ý lại",
+    privacy: "Gửi bình luận này, danh mục sản phẩm và quy định shop tới dịch vụ AI bạn chọn.",
+    textLabel: "Nội dung trả lời",
+    copy: "Sao chép",
+    saveEdit: "Lưu chỉnh sửa",
+    reject: "Không dùng",
+    copied: "Đã sao chép. Việc này không có nghĩa là đã gửi, hãy dán vào TikTok để gửi thủ công.",
+    copyFailed: "Không ghi được vào bộ nhớ tạm, hãy tự chọn và sao chép văn bản.",
+    notSent: "Không tự gửi; hãy tự dán vào TikTok.",
+    status: { DRAFT: "Nháp", COPIED: "Đã sao chép (chưa gửi)", REJECTED: "Không dùng" },
   },
   settings: {
     languageTitle: "Ngôn ngữ giao diện",

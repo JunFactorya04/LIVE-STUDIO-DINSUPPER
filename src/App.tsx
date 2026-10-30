@@ -7,6 +7,7 @@ import { NAV_ITEMS, type PageId } from "./navigation";
 import { ConsolePage } from "./pages/ConsolePage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
+import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SetupPage } from "./pages/SetupPage";
 
@@ -40,6 +41,8 @@ function PageBody({ id, onStarted }: { id: PageId; onStarted: () => void }) {
       return <SetupPage onStarted={onStarted} />;
     case "console":
       return <ConsolePage />;
+    case "replies":
+      return <RepliesPage />;
     case "orders":
       return <OrdersPage />;
     case "settings":

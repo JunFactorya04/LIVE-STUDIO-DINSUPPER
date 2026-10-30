@@ -15,7 +15,7 @@ import { ApiKeysSection } from "./pages/ApiKeysSection";
 import type { SecretsClient } from "./secrets/client";
 
 function setup(
-  initialPage?: "setup" | "console" | "orders" | "settings",
+  initialPage?: "setup" | "console" | "orders" | "replies" | "settings",
   deps: Partial<StoreDeps> = {},
 ) {
   let n = 0;
@@ -282,6 +282,50 @@ describe("Orders page", () => {
     fireEvent.click(screen.getByRole("button", { name: zhTW.orders.tabs.catalog }));
     fireEvent.click(screen.getByRole("button", { name: zhTW.orders.catalog.save }));
     expect(screen.getByRole("alert")).toHaveTextContent(zhTW.orders.catalog.skuRequired);
+  });
+});
+
+describe("Reply suggestions UI", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("copy records COPIED (not sent), and there is no send button", async () => {
+    const written: string[] = [];
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: async (t: string) => void written.push(t) },
+      configurable: true,
+    });
+    const store = setup("console", {
+      ai: { available: true, complete: async () => "明天出貨喔" },
+      loadAiConfig: () => ({ provider: "claude", models: {} }),
+    });
+    await act(async () => {
+      await store.connectSource();
+      store.startSession();
+      store.submitManual("amy: 什麼時候出貨?");
+    });
+    fireEvent.click(screen.getByText("什麼時候出貨?"));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: zhTW.replies.suggest }));
+    });
+    const box = await screen.findByLabelText(zhTW.replies.textLabel);
+    expect(box).toHaveValue("明天出貨喔");
+    expect(screen.queryByRole("button", { name: /送出|send|gửi/i })).not.toBeInTheDocument();
+
+    fireEvent.change(box, { target: { value: "今天下單明天出貨" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: zhTW.replies.copy }));
+    });
+    expect(written).toEqual(["今天下單明天出貨"]);
+    expect(store.getSnapshot().replies[0]).toMatchObject({
+      text: "今天下單明天出貨",
+      status: "COPIED",
+    });
+    expect(await screen.findByText(zhTW.replies.copied)).toBeInTheDocument();
+  });
+
+  it("the replies page explains the empty state", () => {
+    setup("replies");
+    expect(screen.getByText(zhTW.replies.emptyTitle)).toBeInTheDocument();
   });
 });
 

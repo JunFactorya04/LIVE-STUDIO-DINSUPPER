@@ -196,7 +196,7 @@ export const zhTW = {
     aiTitle: "AI 分析",
     aiOff: "按主控台的「AI 分類」後，這裡會顯示留言的分類。",
     replyTitle: "回覆建議",
-    replyOff: "回覆建議將在第 4 階段提供，並由賣家審核後再發送。",
+    replyOff: "選一則留言後，可在這裡草擬回覆；回覆不會自動送出。",
   },
   orders: {
     notice:
@@ -265,6 +265,28 @@ export const zhTW = {
       importButton: "匯入",
       importResult: "已匯入 {n} 項，{bad} 行無法讀取。",
     },
+  },
+  replies: {
+    notice:
+      "AI 只負責草擬回覆。這個應用程式不會自動送出任何回覆：請編輯後按「複製」，再到 TikTok 手動貼上傳送。「已複製」不代表已送出。",
+    policyTitle: "店家規則（運費、付款、退換貨等）",
+    policyPlaceholder: "例如：7-11 取貨付款；下單後 2 天內出貨；商品拆封不退換。",
+    policyHelp:
+      "AI 只會依這裡和商品目錄的內容回答；沒有寫的事情，回覆會說明由賣家確認。這些文字會連同留言傳送給你選的 AI 服務。",
+    emptyTitle: "還沒有回覆建議",
+    emptyHint: "在主控台選一則留言，按「建議回覆」。",
+    suggest: "建議回覆",
+    suggesting: "產生中…",
+    again: "重新建議",
+    privacy: "會把這則留言、商品目錄與店家規則傳送給你選的 AI 服務。",
+    textLabel: "回覆內容",
+    copy: "複製",
+    saveEdit: "儲存修改",
+    reject: "不採用",
+    copied: "已複製到剪貼簿。這不代表已送出，請到 TikTok 手動貼上傳送。",
+    copyFailed: "無法寫入剪貼簿，請手動選取文字複製。",
+    notSent: "不會自動送出；請自行貼到 TikTok。",
+    status: { DRAFT: "草稿", COPIED: "已複製（未送出）", REJECTED: "不採用" },
   },
   settings: {
     languageTitle: "介面語言",

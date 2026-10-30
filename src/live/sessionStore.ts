@@ -5,6 +5,9 @@ import { EulerProvider, createEulerBackend } from "./eulerProvider";
 import type { LiveCommentProvider } from "./provider";
 import { createRepository, type LiveRepository } from "./repository";
 import type { LiveCommentEvent, LiveProviderStatus } from "./types";
+import { createReplyRepository, type ReplyRepository } from "../replies/repository";
+import { REPLY_SYSTEM, buildReplyPrompt, cleanReply, loadPolicy } from "../replies/suggest";
+import type { ReplyStatus, ReplySuggestion } from "../replies/types";
 import { classifyBatch, BATCH_SIZE, MAX_PER_RUN } from "../ai/classifier";
 import { createAiClient, type AiClient, type AiErrorCode } from "../ai/client";
 import { loadAiConfig, type AiConfig } from "../ai/config";
@@ -54,6 +57,10 @@ export interface LiveSessionSnapshot {
   dropped: number;
   /** True when this session was loaded from storage after a restart. */
   restored: boolean;
+  /** Reply suggestions of this session (drafts for the seller; never sent by the app). */
+  replies: readonly ReplySuggestion[];
+  /** Event id of the comment a reply is being drafted for. */
+  suggestingFor: string | undefined;
   /** True while the AI is labelling comments. */
   classifying: boolean;
   /** Why the last AI run stopped early; NO_PROVIDER = no AI service chosen in Settings. */
@@ -66,6 +73,9 @@ export interface StoreDeps {
   repository?: LiveRepository;
   orders?: OrderRepository;
   ai?: AiClient;
+  replies?: ReplyRepository;
+  loadPolicy?: () => string;
+  newReplyId?: () => string;
   loadAiConfig?: () => AiConfig;
   newDraftId?: () => string;
   createDemoProvider?: () => LiveCommentProvider;
@@ -102,12 +112,14 @@ export class LiveSessionStore {
   private seen = new Set<string>();
   private readonly repo: LiveRepository;
   private readonly orders: OrderRepository;
+  private readonly replyRepo: ReplyRepository;
   private queue: Promise<void> = Promise.resolve();
   private restoring: Promise<void> | undefined;
 
   constructor(private readonly deps: StoreDeps = {}) {
     this.repo = deps.repository ?? createRepository();
     this.orders = deps.orders ?? createOrderRepository();
+    this.replyRepo = deps.replies ?? createReplyRepository();
     this.snapshot = this.freshSnapshot();
   }
 
@@ -142,6 +154,7 @@ export class LiveSessionStore {
       if (!stored || this.snapshot.providerType) return; // nothing saved, or user already started
       const comments = await this.repo.listComments(stored.id, MAX_COMMENTS);
       const drafts = await this.orders.listDrafts(stored.id);
+      const replies = await this.replyRepo.list(stored.id);
       if (this.snapshot.providerType) return;
       this.seen = new Set(comments.map((c) => `${c.sessionId}|${c.source}|${c.eventId}`));
       const source: SourceMode =
@@ -169,6 +182,7 @@ export class LiveSessionStore {
         endedAt: stored.startedAt ? endedAt : undefined,
         comments,
         drafts,
+        replies,
         restored: comments.length > 0,
       });
     } catch {
@@ -247,6 +261,7 @@ export class LiveSessionStore {
       issues: [],
       comments: [],
       drafts: [],
+      replies: [],
       duplicates: 0,
       dropped: 0,
       startedAt: undefined,
@@ -401,6 +416,91 @@ export class LiveSessionStore {
     }
   }
 
+  // ---- reply suggestions (the seller edits, copies and posts them by hand) ----
+
+  /** Ask the seller's AI for a reply draft to one comment. Never sends anything. */
+  async suggestReply(eventId: string, source: string): Promise<void> {
+    const comment = this.snapshot.comments.find(
+      (c) => c.eventId === eventId && c.source === source,
+    );
+    if (!comment || this.snapshot.suggestingFor) return;
+    const config = (this.deps.loadAiConfig ?? loadAiConfig)();
+    if (!config.provider) {
+      this.set({ aiError: "NO_PROVIDER" });
+      return;
+    }
+    const { sessionId } = this.snapshot;
+    const ai = (this.deps.ai ??= createAiClient());
+    this.set({ suggestingFor: eventId, aiError: undefined });
+    try {
+      const answer = await ai.complete({
+        provider: config.provider,
+        model: config.models[config.provider],
+        system: REPLY_SYSTEM,
+        prompt: buildReplyPrompt(
+          comment,
+          this.snapshot.catalog,
+          (this.deps.loadPolicy ?? loadPolicy)(),
+        ),
+        maxTokens: 300,
+      });
+      const text = cleanReply(answer);
+      if (!text) {
+        this.set({ aiError: "BAD_RESPONSE" });
+        return;
+      }
+      if (this.snapshot.sessionId !== sessionId) return;
+      const now = this.nowIso();
+      const reply: ReplySuggestion = {
+        id: (
+          this.deps.newReplyId ??
+          (() => `rs-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`)
+        )(),
+        sessionId,
+        eventId,
+        source,
+        text,
+        modelProvider: config.provider,
+        modelName: config.models[config.provider],
+        status: "DRAFT",
+        approvedByUser: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.set({ replies: [...this.snapshot.replies, reply] });
+      this.persist(() => this.replyRepo.create(reply));
+    } catch (e) {
+      this.set({ aiError: (e as { code?: AiErrorCode }).code ?? "NETWORK" });
+    } finally {
+      this.set({ suggestingFor: undefined });
+    }
+  }
+
+  /** Edit the text (back to DRAFT) and/or mark COPIED or REJECTED. COPIED is not "sent". */
+  updateReply(id: string, patch: { text?: string; status?: ReplyStatus }): boolean {
+    const current = this.snapshot.replies.find((r) => r.id === id);
+    if (!current) return false;
+    const text = patch.text === undefined ? undefined : patch.text.trim();
+    if (text === "") return false;
+    const status = patch.status ?? (text !== undefined ? "DRAFT" : current.status);
+    const now = this.nowIso();
+    this.set({
+      replies: this.snapshot.replies.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              text: text ?? r.text,
+              status,
+              approvedByUser: status === "COPIED",
+              updatedAt: now,
+            }
+          : r,
+      ),
+    });
+    this.persist(() => this.replyRepo.update(id, { text, status: patch.status }, now));
+    return true;
+  }
+
   // ---- catalog ----
 
   saveCatalogItem(item: CatalogItem): void {
@@ -466,6 +566,8 @@ export class LiveSessionStore {
       comments: [],
       catalog: [],
       drafts: [],
+      replies: [],
+      suggestingFor: undefined,
       duplicates: 0,
       dropped: 0,
       restored: false,

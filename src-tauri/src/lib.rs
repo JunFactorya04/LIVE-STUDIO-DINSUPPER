@@ -7,6 +7,7 @@ mod db;
 mod euler;
 mod live;
 mod orders;
+mod replies;
 mod secrets;
 
 use std::sync::Mutex;
@@ -53,6 +54,9 @@ pub fn run() {
             commands::order_set_status,
             commands::ai_complete,
             commands::ai_providers,
+            commands::reply_create,
+            commands::reply_list,
+            commands::reply_update,
             commands::euler_connect,
             commands::euler_disconnect,
         ])

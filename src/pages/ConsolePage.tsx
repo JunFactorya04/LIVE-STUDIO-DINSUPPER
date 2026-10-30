@@ -4,6 +4,7 @@ import { StatusChip } from "../components/StatusChip";
 import { useI18n } from "../i18n";
 import type { CommentIntent, LiveCommentEvent } from "../live/types";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
+import { ReplyCard } from "./ReplyCard";
 
 const FILTERS = ["all", "questions", "purchase", "product", "spam", "review"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -374,7 +375,11 @@ export function ConsolePage() {
         <h3 className="subhead">{t.insight.aiTitle}</h3>
         <p className="muted">{t.insight.aiOff}</p>
         <h3 className="subhead">{t.insight.replyTitle}</h3>
-        <p className="muted">{t.insight.replyOff}</p>
+        {selected ? (
+          <ReplyCard comment={selected} />
+        ) : (
+          <p className="muted">{t.insight.replyOff}</p>
+        )}
       </aside>
     </div>
   );

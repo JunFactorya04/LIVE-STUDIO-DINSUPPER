@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DemoLiveCommentProvider } from "./demoProvider";
 import { EulerProvider, type EulerBackend, type EulerEnvelope } from "./eulerProvider";
+import { MemoryReplyRepository } from "../replies/repository";
 import { AiError, type AiClient } from "../ai/client";
 import { MemoryOrderRepository } from "../orders/repository";
 import { MemoryLiveRepository, type LiveRepository } from "./repository";
@@ -339,6 +340,70 @@ describe("LiveSessionStore persistence", () => {
       await a.classifyPending();
       expect(a.getSnapshot().comments[0].intent).toBeUndefined();
       expect(a.getSnapshot().aiError).toBeUndefined();
+    });
+  });
+
+  describe("reply suggestions", () => {
+    function make(
+      answer: string,
+      repo = new MemoryLiveRepository(),
+      replies = new MemoryReplyRepository(),
+    ) {
+      let n = 0;
+      let r = 0;
+      return new LiveSessionStore({
+        repository: repo,
+        replies,
+        newId: () => `sess-${++n}`,
+        newReplyId: () => `rs-${++r}`,
+        ai: { available: true, complete: async () => answer },
+        loadAiConfig: () => ({ provider: "claude", models: {} }),
+        loadPolicy: () => "7-11",
+      });
+    }
+
+    it("drafts a reply, tracks edit and copy, and restores it; nothing is ever sent", async () => {
+      const repo = new MemoryLiveRepository();
+      const replies = new MemoryReplyRepository();
+      const a = make("明天出貨喔", repo, replies);
+      await manualSession(a);
+      a.submitManual("amy: 什麼時候出貨?");
+      const c = a.getSnapshot().comments[0];
+      await a.suggestReply(c.eventId, c.source);
+      const [r] = a.getSnapshot().replies;
+      expect(r).toMatchObject({
+        text: "明天出貨喔",
+        status: "DRAFT",
+        approvedByUser: false,
+        modelProvider: "claude",
+      });
+
+      expect(a.updateReply(r.id, { text: "  " })).toBe(false);
+      a.updateReply(r.id, { status: "COPIED" });
+      expect(a.getSnapshot().replies[0]).toMatchObject({ status: "COPIED", approvedByUser: true });
+      a.updateReply(r.id, { text: "今天下單明天出貨" });
+      expect(a.getSnapshot().replies[0]).toMatchObject({ status: "DRAFT", approvedByUser: false });
+      a.updateReply(r.id, { status: "COPIED" });
+      await a.flush();
+
+      const b = make("x", repo, replies);
+      await b.restore();
+      expect(b.getSnapshot().replies[0]).toMatchObject({
+        text: "今天下單明天出貨",
+        status: "COPIED",
+      });
+      expect(b.getSnapshot().replies.every((x) => (x.status as string) !== "SENT")).toBe(true);
+    });
+
+    it("an unsafe AI answer (link or phone number) is not saved", async () => {
+      const a = make("加我 LINE 0912345678 或 https://x.co");
+      await manualSession(a);
+      a.submitManual("amy: hi");
+      const c = a.getSnapshot().comments[0];
+      await a.suggestReply(c.eventId, c.source);
+      expect(a.getSnapshot().replies).toEqual([]);
+      expect(a.getSnapshot().aiError).toBe("BAD_RESPONSE");
+      expect(a.getSnapshot().suggestingFor).toBeUndefined();
     });
   });
 

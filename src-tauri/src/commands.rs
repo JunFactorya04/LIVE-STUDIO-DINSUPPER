@@ -282,3 +282,28 @@ pub fn live_set_intents(
 ) -> Result<usize, String> {
     live::set_intents(&mut *db(&state)?, &session_id, &items).map_err(err)
 }
+
+// ---- Reply suggestions (COPIED is never SENT: the app cannot send replies) ----
+
+use crate::replies::{self, ReplyDto};
+
+#[tauri::command]
+pub fn reply_create(state: State<'_, DbState>, reply: ReplyDto) -> Result<(), String> {
+    replies::reply_create(&*db(&state)?, &reply).map_err(err)
+}
+
+#[tauri::command]
+pub fn reply_list(state: State<'_, DbState>, session_id: String) -> Result<Vec<ReplyDto>, String> {
+    replies::reply_list(&*db(&state)?, &session_id).map_err(err)
+}
+
+#[tauri::command]
+pub fn reply_update(
+    state: State<'_, DbState>,
+    id: String,
+    text: Option<String>,
+    status: Option<String>,
+    now: String,
+) -> Result<bool, String> {
+    replies::reply_update(&*db(&state)?, &id, text.as_deref(), status.as_deref(), &now).map_err(err)
+}
