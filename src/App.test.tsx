@@ -198,6 +198,7 @@ describe("API keys", () => {
 
   it("in a plain browser it says keys need the desktop app and offers no input", () => {
     setup("settings");
+    fireEvent.click(screen.getByRole("tab", { name: zhTW.settingsTabs.ai }));
     expect(screen.getByText(zhTW.settings.apiBrowser)).toBeInTheDocument();
     expect(screen.queryByPlaceholderText(zhTW.settings.apiKeyPlaceholder)).toBeNull();
   });

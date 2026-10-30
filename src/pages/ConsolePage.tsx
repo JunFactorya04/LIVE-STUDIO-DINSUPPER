@@ -148,7 +148,7 @@ export function ConsolePage() {
     const draft = store.draftFromComment(c.eventId);
     if (!draft || !print) return;
     setPrintedIds((prev) => new Set(prev).add(c.eventId));
-    void printTempSlip(draft, s.comments, t.print.slip);
+    void printTempSlip(draft, s.comments, t.print.slip, { drafts: s.drafts });
   };
 
   const onRowKey = (e: KeyboardEvent<HTMLTableRowElement>, index: number) => {

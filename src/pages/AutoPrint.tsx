@@ -25,7 +25,7 @@ export function AutoPrint({ service }: { service?: PrintService }) {
         continue;
       }
       done.current.add(d.id);
-      void printTempSlip(d, s.comments, t.print.slip, { service: svc });
+      void printTempSlip(d, s.comments, t.print.slip, { service: svc, drafts: s.drafts });
     }
   }, [s.drafts, s.comments, t, service]);
 

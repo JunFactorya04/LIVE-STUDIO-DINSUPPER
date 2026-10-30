@@ -298,3 +298,10 @@ Học theo taodonnhanh.com, làm đúng theo file mẫu `訂單匯入` v1.5 củ
 - **An toàn:** mặc định tắt, tắt khi đóng app; chỉ nhận máy trong mạng nội bộ (10/8, 172.16/12, 192.168/16, link-local); Host phải là IP/localhost (chống DNS rebinding); mã 48 hex ngẫu nhiên mỗi lần bật, gửi qua header `X-Token`, so sánh hằng thời gian, khóa sau 30 lần sai; danh sách lệnh cho phép đóng (không có khóa API, xóa dữ liệu, ghi file, cấu hình AI/nguồn bình luận). In từ điện thoại luôn dùng máy in đã cài trên máy tính (không nhận host từ điện thoại). HTTP thuần trong LAN, nên cảnh báo trong UI.
 - **Frontend:** `platform/backend.ts` (Tauri invoke hoặc fetch), `live/sessionStore` có `refreshFromDb` (điện thoại đọc theo máy tính mỗi 2,5 s) và `mergeFromDb` (máy tính nhận đơn/tin nhắn do điện thoại lưu, bản `updatedAt` mới hơn thắng). Điện thoại không khôi phục/đóng phiên, không chạy dọn dữ liệu, chỉ có các trang: Console, Báo cáo công việc, Đơn, Quy trình, Đơn ship, Tin nhắn, Báo cáo.
 - **Chưa làm:** AI gọi từ điện thoại; máy in BLE; HTTPS cho LAN; thử trên mạng thật (cần Windows Firewall cho mạng riêng).
+
+## 19. Mẫu tem dán sản phẩm, tìm cửa hàng thông minh, Cài đặt theo nhóm
+
+- **Tem (`print/sticker.ts`, Cài đặt → Máy in & tem):** mỗi đơn trên Live in một tem dán sản phẩm: số đơn, ngày giờ, bình luận, (sản phẩm đọc tự động), TikTok ID, tên, SĐT, ghi chú cố định. Mỗi dòng bật/tắt và chỉnh cỡ 14–72 chấm, có xem trước theo khổ giấy. Tên/SĐT chỉ in khi khách đã lưu ở Đơn ship, không tự tạo. Sau đó mới nhắn TikTok ID để lấy thông tin (bước "ask" của quy trình A–Z).
+- **Tìm cửa hàng (`ship/storeQuery.ts`, `pages/StoreSearch.tsx`):** nhập mã, tiếng Trung, tiếng Anh hoặc pinyin (bỏ dấu thanh, Wade-Giles); từ điển tỉnh/quận/đường/địa danh đổi sang tiếng Trung trước khi hỏi bản đồ 7-ELEVEN; gợi ý sổ xuống khi gõ (debounce 350 ms, ↑↓ Enter), tô đậm phần khớp, xếp theo mức khớp, cửa hàng tạm ngưng để mờ.
+- **Cài đặt:** chia 4 nhóm: Chung, Máy in & tem, Điện thoại, AI & khóa.
+- **Chưa làm:** kết nối hãng vận chuyển khác (FamilyMart, Shopee, T-Cat, Hsinchu, Chunghwa Post; cần hợp đồng/API key của người bán).

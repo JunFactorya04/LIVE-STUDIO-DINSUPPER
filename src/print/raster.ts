@@ -10,6 +10,8 @@ const SIZE_DOTS = { sm: 20, md: 26, lg: 34 } as const;
 const MARGIN = 8;
 const LINE_GAP = 6;
 
+const dotsOf = (l: SlipLine): number => l.px ?? SIZE_DOTS[l.size];
+
 export type Measure = (text: string) => number;
 
 /** Break text to fit `maxWidth`: at spaces when possible, otherwise between any two characters (CJK). */
@@ -68,7 +70,7 @@ export function layout(slip: Slip, width: number, measureFor: (l: SlipLine) => M
       y += 8 + LINE_GAP;
       continue;
     }
-    const h = SIZE_DOTS[line.size];
+    const h = dotsOf(line);
     for (const text of wrapText(line.text, width - 2 * MARGIN, measureFor(line))) {
       placed.push({ line, text, y, h });
       y += h + LINE_GAP;
@@ -77,7 +79,7 @@ export function layout(slip: Slip, width: number, measureFor: (l: SlipLine) => M
   return { placed, height: y + MARGIN };
 }
 
-const fontOf = (l: SlipLine) => `${l.bold ? "700 " : ""}${SIZE_DOTS[l.size]}px ${FONT_FAMILY}`;
+const fontOf = (l: SlipLine) => `${l.bold ? "700 " : ""}${dotsOf(l)}px ${FONT_FAMILY}`;
 
 /** Render with a canvas. Throws PrintError("RENDER") when no canvas is available. */
 export function renderSlip(slip: Slip, width: number): Bitmap {

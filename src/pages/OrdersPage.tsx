@@ -212,7 +212,9 @@ function DraftsTab() {
                             type="button"
                             className="btn"
                             disabled={printStatus.printing}
-                            onClick={() => void printTempSlip(d, s.comments, t.print.slip)}
+                            onClick={() =>
+                              void printTempSlip(d, s.comments, t.print.slip, { drafts: s.drafts })
+                            }
                           >
                             {t.print.button}
                           </button>{" "}

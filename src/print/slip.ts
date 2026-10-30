@@ -6,6 +6,8 @@ import type { OrderDraft } from "../orders/types";
 export interface SlipLine {
   text: string;
   size: "sm" | "md" | "lg";
+  /** Text height in printer dots; overrides `size` (used by the sticker template). */
+  px?: number;
   bold?: boolean;
   align?: "left" | "center";
   /** A thin line is drawn instead of text. */

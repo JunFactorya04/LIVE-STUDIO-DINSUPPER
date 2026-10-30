@@ -1,3 +1,4 @@
+import { StoreSearch } from "./StoreSearch";
 import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
 import { EmptyState, ErrorState, LoadingState } from "../components/States";
 import { useI18n } from "../i18n";
@@ -421,14 +422,9 @@ function ShipFormView({
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string>();
   const [store, setStore] = useState<Store | "unknown">();
-  const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<StoreHit[]>();
-  const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const ids = {
     customer: useId(),
-    search: useId(),
     phone: useId(),
     name: useId(),
     code: useId(),
@@ -471,24 +467,8 @@ function ShipFormView({
     };
   }, [api, form.storeCode]);
 
-  const search = async () => {
-    if (!query.trim()) return;
-    setSearching(true);
-    setSearchError(undefined);
-    try {
-      setHits(await api.searchStores(query.trim()));
-    } catch {
-      setHits(undefined);
-      setSearchError(f.storeOffline);
-    } finally {
-      setSearching(false);
-    }
-  };
-
   const pickStore = (h: StoreHit) => {
     setForm((prev) => ({ ...prev, storeCode: h.code, storeName: h.name }));
-    setHits(undefined);
-    setQuery("");
   };
 
   const pickCustomer = (tiktokId: string) => {
@@ -586,56 +566,7 @@ function ShipFormView({
           ))}
         </div>
       </fieldset>
-      <div className="field">
-        <label htmlFor={ids.search}>{f.storeSearch}</label>
-        <div className="ship__search">
-          <input
-            id={ids.search}
-            className="input"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                void search();
-              }
-            }}
-          />
-          <button type="button" className="btn" disabled={searching} onClick={() => void search()}>
-            {searching ? f.storeSearching : f.storeSearchBtn}
-          </button>
-        </div>
-        {searchError && (
-          <span className="ship__rule ship__rule--bad" role="alert">
-            {searchError}
-          </span>
-        )}
-        {hits && hits.length === 0 && <span className="muted">{f.storeNone}</span>}
-        {hits && hits.length > 0 && (
-          <ul className="ship__hits">
-            {hits.map((h) => (
-              <li key={h.code}>
-                <span>
-                  <strong>{h.code}</strong> {h.name}
-                  <br />
-                  <span className="muted">
-                    {h.address}
-                    {h.disabled && ` · ${f.storeDisabled}`}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  className="btn"
-                  disabled={h.disabled}
-                  onClick={() => pickStore(h)}
-                >
-                  {f.storePick}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <StoreSearch api={api} onPick={pickStore} />
       <div className="field">
         <label htmlFor={ids.code}>{f.storeCode} *</label>
         <input
