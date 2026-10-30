@@ -1280,7 +1280,7 @@
   .fin__charts {
     grid-template-columns: minmax(0, 1fr);
   }
-  .fin-bar__x:nth-child(odd) {
+  .fin-bar:nth-child(even) .fin-bar__x {
     visibility: hidden;
   }
 }
