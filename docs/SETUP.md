@@ -68,3 +68,28 @@ Trên máy còn lại, chạy `git pull` trước khi code tiếp.
 npm run build          # phải thành công
 cd src-tauri && cargo check   # phải thành công
 ```
+
+## 7. Graphify: bản đồ tri thức của dự án
+
+Graphify tạo bản đồ quan hệ giữa các file, hàm và module để hỏi nhanh thay vì đọc hết mã. Ưu tiên dùng Graphify trước khi tìm kiếm thủ công.
+
+**Cài một lần mỗi máy** (cần Python 3.10+ và uv):
+```bash
+uv tool install graphifyy
+graphify install        # đăng ký skill /graphify cho trợ lý AI
+```
+
+**Tạo hoặc cập nhật bản đồ** (chạy ở thư mục gốc dự án, không cần LLM với code):
+```bash
+graphify update .
+```
+
+**Truy vấn:**
+```bash
+graphify query "câu hỏi"         # tìm nhánh liên quan đến câu hỏi
+graphify explain "TênHàm"        # giải thích một nút và các kết nối
+graphify path "A" "B"            # đường đi ngắn nhất giữa hai nút
+graphify god-nodes --top 10      # các nút trung tâm nhất
+```
+
+Kết quả nằm trong `graphify-out/` (`graph.html`, `GRAPH_REPORT.md`, `graph.json`). Thư mục này không được commit; sau khi `git pull` trên máy khác, chạy lại `graphify update .` để tạo bản đồ cho máy đó.

@@ -12,6 +12,9 @@ src-tauri/gen/
 .env.*
 !.env.example
 
+# Graphify output (regenerate with `graphify update .`)
+graphify-out/
+
 # OS and editor files
 .DS_Store
 Thumbs.db
