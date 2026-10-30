@@ -60,6 +60,8 @@ Manager; app không bao giờ đọc ngược hay hiển thị khóa, và kết 
 
 ## Chạy thử
 
+Cách nhanh nhất: sau `git clone` / `git pull`, nhấp đúp `Chay-LIVE-STUDIO.bat` (Windows) hoặc `Chay-LIVE-STUDIO.command` (Mac), xem `docs/SETUP.md` mục 2b. Hoặc chạy tay:
+
 ```bash
 npm install
 npm run tauri:dev      # mở cửa sổ ứng dụng với hot reload

@@ -34,6 +34,18 @@ npm install
 npm run tauri:dev
 ```
 
+## 2b. Chạy bằng một cú nhấp đúp
+
+Sau khi clone (hoặc `git pull`) có sẵn hai file ở thư mục gốc:
+
+- **Windows:** nhấp đúp `Chay-LIVE-STUDIO.bat`
+- **Mac:** nhấp đúp `Chay-LIVE-STUDIO.command`
+
+File sẽ kiểm tra Node, Rust (và Xcode CLT trên Mac), kéo bản mới từ GitHub, cài thư viện rồi mở app. Lần đầu mất vài phút vì biên dịch Rust. Nếu thiếu công cụ, nó nói rõ thiếu gì và dừng lại.
+Mac: nếu nhấp đúp không chạy, mở Terminal một lần: `chmod +x Chay-LIVE-STUDIO.command`.
+
+Muốn tạo bộ cài để cài như app thường: `npm run tauri:build` (kết quả trong `src-tauri/target/release/bundle`).
+
 ## 3. Quy trình làm việc hằng ngày
 
 Trước khi bắt đầu code, lấy bản mới nhất:
