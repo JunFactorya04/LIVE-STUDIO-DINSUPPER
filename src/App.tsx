@@ -5,6 +5,7 @@ import { useI18n } from "./i18n";
 import { useLiveSession } from "./live/useLiveSession";
 import { NAV_ITEMS, type PageId } from "./navigation";
 import { ConsolePage } from "./pages/ConsolePage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { OverlayPage } from "./pages/OverlayPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
@@ -29,7 +30,7 @@ export function App({ initialPage = "setup" }: { initialPage?: PageId }) {
           actions={<StatusChip status={status} />}
         />
         <div className="content">
-          <PageBody id={page} onStarted={() => setPage("console")} />
+          <PageBody id={page} onStarted={() => setPage("console")} onNavigate={setPage} />
         </div>
       </main>
       <TabBar current={page} onSelect={setPage} />
@@ -37,12 +38,22 @@ export function App({ initialPage = "setup" }: { initialPage?: PageId }) {
   );
 }
 
-function PageBody({ id, onStarted }: { id: PageId; onStarted: () => void }) {
+function PageBody({
+  id,
+  onStarted,
+  onNavigate,
+}: {
+  id: PageId;
+  onStarted: () => void;
+  onNavigate: (page: PageId) => void;
+}) {
   switch (id) {
     case "setup":
       return <SetupPage onStarted={onStarted} />;
     case "console":
       return <ConsolePage />;
+    case "dashboard":
+      return <DashboardPage onNavigate={onNavigate} />;
     case "replies":
       return <RepliesPage />;
     case "overlay":

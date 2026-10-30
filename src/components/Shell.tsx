@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { NAV_ITEMS, type PageId } from "../navigation";
 import { NavIcon } from "./Icons";
 import { useI18n } from "../i18n";
+import { useLiveSession } from "../live/useLiveSession";
 
 interface NavProps {
   current: PageId;
@@ -10,6 +11,12 @@ interface NavProps {
 
 export function Sidebar({ current, onSelect }: NavProps) {
   const { t } = useI18n();
+  const live = useLiveSession();
+  // Counts on the right of a source-list row: comments of this session, orders to review.
+  const counts: Partial<Record<PageId, number>> = {
+    console: live.comments.length,
+    orders: live.drafts.filter((d) => d.status === "NEEDS_REVIEW").length,
+  };
   const sections = [
     { key: "main", title: t.nav.sectionMain },
     { key: "manage", title: t.nav.sectionManage },
@@ -31,6 +38,11 @@ export function Sidebar({ current, onSelect }: NavProps) {
             >
               <NavIcon id={item.id} />
               {t.nav[item.id]}
+              {(counts[item.id] ?? 0) > 0 && (
+                <span className="sidebar__count" aria-hidden="true">
+                  {counts[item.id]}
+                </span>
+              )}
             </button>
           ))}
         </div>

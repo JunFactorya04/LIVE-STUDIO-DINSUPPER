@@ -11,6 +11,7 @@ export const vi: Messages = {
     orders: "Đơn từ Live",
     replies: "Gợi ý trả lời",
     overlay: "Overlay sản phẩm",
+    dashboard: "Tổng quan",
     report: "Báo cáo phiên",
     settings: "Cài đặt",
   },
@@ -23,6 +24,7 @@ export const vi: Messages = {
     orders: { title: "Đơn từ Live", subtitle: "Đơn nháp và đơn cần kiểm tra" },
     replies: { title: "Gợi ý trả lời", subtitle: "Người bán duyệt trước khi gửi" },
     overlay: { title: "Overlay sản phẩm", subtitle: "Dùng cho Browser Source của phần mềm phát" },
+    dashboard: { title: "Tổng quan", subtitle: "Phiên hiện tại và việc cần xử lý" },
     report: { title: "Báo cáo phiên", subtitle: "Thống kê từng phiên Live" },
     settings: { title: "Cài đặt", subtitle: "Ngôn ngữ và giao diện" },
   },
@@ -255,6 +257,7 @@ export const vi: Messages = {
     noCatalogHint:
       "Chưa có danh mục sản phẩm nên không nhận diện được mã. Hãy thêm sản phẩm ở tab “Danh mục sản phẩm”.",
     noMatch: "Không có đơn nháp phù hợp",
+    searchPlaceholder: "Tìm đơn theo tài khoản, mã, màu hoặc size",
     reasons: {
       NO_USER: "Không có thông tin tài khoản",
       NO_SKU: "Thiếu sản phẩm",
@@ -342,6 +345,36 @@ export const vi: Messages = {
     desktopOnly:
       "Dịch vụ overlay chỉ dùng được trong app desktop; chế độ trình duyệt chỉ xem trước.",
     help: "Trong OBS hoặc phần mềm hỗ trợ “Browser Source”, thêm một Browser Source và dán địa chỉ này. Địa chỉ chỉ truy cập được từ máy này. Nếu chưa chắc phần mềm livestream của bạn có hỗ trợ, hãy kiểm tra trước khi dùng.",
+  },
+  dashboard: {
+    currentTitle: "Phiên hiện tại",
+    allTitle: "Tất cả các phiên",
+    kpi: {
+      comments: "Bình luận",
+      review: "Đơn cần kiểm tra",
+      confirmed: "Đơn đã xác nhận",
+      copied: "Trả lời đã sao chép",
+      sessions: "Số phiên",
+      cancelled: "Đơn đã hủy",
+    },
+    todoTitle: "Cần xử lý",
+    todoNone: "Hiện không có việc nào cần xử lý.",
+    todo: {
+      review: "{n} đơn cần kiểm tra",
+      unclassified: "{n} bình luận chưa phân loại",
+      catalog: "Chưa có danh mục sản phẩm",
+      source: "Chưa có nguồn bình luận",
+      aiErrors: "AI báo lỗi {n} lần gần đây",
+    },
+    open: "Mở",
+    chartTitle: "Đơn đã xác nhận theo phiên",
+    noSessions: "Chưa có phiên nào.",
+    recentTitle: "Các phiên gần đây",
+    recentLine: "{c} bình luận · {o} đơn đã xác nhận",
+    viewReport: "Xem báo cáo phiên",
+    desktopOnly:
+      "Thống kê nhiều phiên chỉ có trong app desktop; chế độ xem trên trình duyệt không có dữ liệu đã lưu.",
+    failed: "Không tải được thống kê, hãy thử lại.",
   },
   report: {
     notice:

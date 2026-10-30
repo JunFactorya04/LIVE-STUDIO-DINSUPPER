@@ -1,7 +1,8 @@
 // One list of sections drives the sidebar (desktop) and the tab bar (phone).
 // Labels are looked up in the i18n catalogue by id: t.nav[id], t.pages[id].
 
-export type PageId = "setup" | "console" | "orders" | "replies" | "overlay" | "report" | "settings";
+export type PageId =
+  "setup" | "console" | "dashboard" | "orders" | "replies" | "overlay" | "report" | "settings";
 
 export interface NavItem {
   id: PageId;
@@ -15,9 +16,10 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { id: "setup", section: "main", tab: true },
   { id: "console", section: "main", tab: true },
+  { id: "dashboard", section: "manage", tab: false },
   { id: "orders", section: "manage", tab: true },
   { id: "replies", section: "manage", tab: true },
   { id: "overlay", section: "manage", tab: false },
-  { id: "report", section: "manage", tab: false, phase: 6 },
+  { id: "report", section: "manage", tab: false },
   { id: "settings", section: "manage", tab: false },
 ];

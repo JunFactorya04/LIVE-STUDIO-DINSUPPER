@@ -1,4 +1,5 @@
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { isSearchKey, searchShortcut } from "../components/shortcut";
 import { EmptyState } from "../components/States";
 import { useI18n } from "../i18n";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
@@ -44,6 +45,21 @@ function DraftsTab() {
   const store = useLiveStore();
   const s = useLiveSession();
   const [filter, setFilter] = useState<StatusFilter>("all");
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Cmd/Ctrl+F focuses the search box, like on the Live console.
+  useEffect(() => {
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (isSearchKey(e)) {
+        e.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const commentText = useMemo(
     () => new Map(s.comments.map((c) => [c.eventId, c.commentText])),
@@ -54,9 +70,16 @@ function DraftsTab() {
     () =>
       s.drafts
         .filter((d) => filter === "all" || d.status === filter)
+        .filter((d) => {
+          const q = query.trim().toLowerCase();
+          if (!q) return true;
+          return [d.username, d.sku, d.sku ? names.get(d.sku) : undefined, d.color, d.size].some(
+            (v) => (v ?? "").toLowerCase().includes(q),
+          );
+        })
         .slice()
         .reverse(),
-    [s.drafts, filter],
+    [s.drafts, filter, query, names],
   );
 
   return (
@@ -74,6 +97,17 @@ function DraftsTab() {
           </button>
         ))}
       </div>
+      <input
+        ref={searchRef}
+        className="input"
+        type="search"
+        placeholder={t.orders.searchPlaceholder}
+        aria-label={t.orders.searchPlaceholder}
+        title={`${t.orders.searchPlaceholder} (${searchShortcut()})`}
+        aria-keyshortcuts="Control+F Meta+F"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
       {s.drafts.length === 0 ? (
         <EmptyState title={t.orders.emptyTitle} hint={t.orders.emptyHint} />
       ) : rows.length === 0 ? (

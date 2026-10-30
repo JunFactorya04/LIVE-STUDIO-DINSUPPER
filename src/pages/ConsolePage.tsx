@@ -1,3 +1,4 @@
+import { isSearchKey, searchShortcut } from "../components/shortcut";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { EmptyState } from "../components/States";
 import { StatusChip } from "../components/StatusChip";
@@ -55,7 +56,7 @@ export function ConsolePage() {
   // Cmd/Ctrl+F focuses the feed search (desktop keyboard standard).
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
+      if (isSearchKey(e)) {
         e.preventDefault();
         searchRef.current?.focus();
         searchRef.current?.select();
@@ -236,6 +237,8 @@ export function ConsolePage() {
             type="search"
             placeholder={t.console.searchPlaceholder}
             aria-label={t.console.searchPlaceholder}
+            title={`${t.console.searchPlaceholder} (${searchShortcut()})`}
+            aria-keyshortcuts="Control+F Meta+F"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

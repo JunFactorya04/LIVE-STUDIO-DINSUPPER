@@ -465,3 +465,10 @@ button {
     padding: 0 8px;
   }
 }
+
+.sidebar__count {
+  margin-left: auto;
+  color: var(--mac-label-2);
+  font-size: var(--fs-subhead);
+  font-variant-numeric: tabular-nums;
+}
