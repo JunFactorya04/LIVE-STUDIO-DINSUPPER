@@ -309,3 +309,7 @@ Học theo taodonnhanh.com, làm đúng theo file mẫu `訂單匯入` v1.5 củ
 ## 20. Giao diện sáng / tối
 
 Cài đặt → Chung: Theo hệ thống (mặc định) / Sáng / Tối, nhớ trên thiết bị (`theme/theme.ts`, thuộc tính `data-theme` trên `<html>`, áp dụng trước khi vẽ giao diện nên không nháy). Trên điện thoại chế độ tối dùng nền đen thật với thẻ `#1c1c1e` như app hệ thống iOS; trên máy tính dùng bảng màu xám macOS.
+
+## 21. Báo cáo tài chính (Tổng quan)
+
+`dashboard/finance.ts` + `pages/FinancePanel.tsx`: từ các đơn ship đã lưu, theo Ngày (14 kỳ) / Tuần (12 tuần, bắt đầu thứ Hai) / Tháng (12 tháng): thẻ KPI (doanh thu = tiền hàng, số đơn, thu hộ COD = tiền hàng + phí, giá trị TB/đơn) kèm % so với kỳ trước, biểu đồ cột doanh thu, vòng tròn đã/chưa xuất Excel, bảng chi tiết có tổng (copy dán Excel), top khách mua. Không có đơn thì hiện trạng thái trống, không tự bịa số. Chưa có: chi phí/lợi nhuận, doanh thu theo phiên Live, hoàn/hủy đơn (app chưa theo dõi các số này).

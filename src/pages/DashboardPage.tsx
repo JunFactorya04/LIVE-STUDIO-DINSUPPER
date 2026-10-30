@@ -10,6 +10,7 @@ import {
   type ShipCustomer,
   type ShipOrder,
 } from "../ship/client";
+import { FinancePanel } from "./FinancePanel";
 import { workReport } from "../ship/flow";
 import { useLiveSession } from "../live/useLiveSession";
 import type { PageId } from "../navigation";
@@ -138,6 +139,7 @@ export function DashboardPage({
 
   return (
     <div className="page page--no-inspector orders">
+      <FinancePanel orders={follow.orders} />
       <section className="box">
         <h2 className="section-title">{d.currentTitle}</h2>
         <div className="kpi-grid">
