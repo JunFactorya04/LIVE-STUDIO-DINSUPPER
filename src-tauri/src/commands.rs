@@ -897,6 +897,48 @@ pub fn open_carrier_page(url: String) -> Result<(), String> {
     crate::browser::open_carrier(&url)
 }
 
+// ---------- ad platforms (TikTok / Meta / Google — the seller's own ad accounts, BYOK) ----------
+
+#[tauri::command]
+pub async fn ads_stats(
+    secrets: State<'_, SecretState>,
+    platform: String,
+) -> Result<crate::ads::AdStats, String> {
+    let p = crate::ads::Platform::parse(&platform)?;
+    crate::ads::fetch_stats(&*secrets.0, p).await
+}
+
+#[tauri::command]
+pub async fn ads_campaigns(
+    secrets: State<'_, SecretState>,
+    platform: String,
+) -> Result<Vec<crate::ads::AdCampaign>, String> {
+    let p = crate::ads::Platform::parse(&platform)?;
+    crate::ads::fetch_campaigns(&*secrets.0, p).await
+}
+
+#[tauri::command]
+pub async fn ads_set_campaign_status(
+    state: State<'_, DbState>,
+    secrets: State<'_, SecretState>,
+    platform: String,
+    campaign_id: String,
+    enabled: bool,
+) -> Result<(), String> {
+    let p = crate::ads::Platform::parse(&platform)?;
+    crate::ads::set_campaign_status(&*secrets.0, p, &campaign_id, enabled).await?;
+    log(
+        &state,
+        if enabled {
+            "AD_CAMPAIGN_ENABLED"
+        } else {
+            "AD_CAMPAIGN_PAUSED"
+        },
+        &format!("platform={platform}"),
+    );
+    Ok(())
+}
+
 // ---------- warehouse (barcode per unit) ----------
 
 #[tauri::command]

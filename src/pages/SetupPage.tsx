@@ -36,6 +36,7 @@ export function SetupPage({ onStarted }: { onStarted: () => void }) {
   const s = useLiveSession();
   const [busy, setBusy] = useState(false);
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [now, setNow] = useState(() => Date.now());
   const ids = { title: useId(), user: useId() };
 
   const running = Boolean(s.startedAt && !s.endedAt);
@@ -49,6 +50,24 @@ export function SetupPage({ onStarted }: { onStarted: () => void }) {
   useEffect(() => {
     if (s.form.source !== "live") store.updateForm({ source: "live" });
   }, [s.form.source, store]);
+
+  // Ticks the "elapsed" stat below while the session is running; stops otherwise.
+  useEffect(() => {
+    if (!running) return;
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [running]);
+
+  const elapsed = running && s.startedAt ? Math.max(0, now - new Date(s.startedAt).getTime()) : 0;
+  const elapsedLabel = (() => {
+    const total = Math.floor(elapsed / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const sec = total % 60;
+    return h > 0
+      ? `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`
+      : `${m}:${String(sec).padStart(2, "0")}`;
+  })();
 
   const start = async () => {
     setBusy(true);
@@ -137,6 +156,19 @@ export function SetupPage({ onStarted }: { onStarted: () => void }) {
 
       <section className="box setup-chat" aria-label={t.setup.viewerTitle}>
         <h2 className="section-title">{t.setup.viewerTitle}</h2>
+        {running && (
+          <div className="setup-chat__stats" role="status">
+            <span className="chip chip--inline tone-blue">
+              {t.setup.liveStats.elapsed} · {elapsedLabel}
+            </span>
+            <span className="chip chip--inline tone-gray">
+              {t.setup.liveStats.comments} · {s.comments.length}
+            </span>
+            <span className="chip chip--inline tone-gray">
+              {t.setup.liveStats.drafts} · {s.drafts.length}
+            </span>
+          </div>
+        )}
         {noSource ? (
           <EmptyState title={t.console.noSource} hint={t.console.noSourceHint} />
         ) : s.comments.length === 0 ? (

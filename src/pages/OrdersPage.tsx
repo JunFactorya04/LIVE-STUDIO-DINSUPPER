@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { isSearchKey, searchShortcut } from "../components/shortcut";
 import { EmptyState } from "../components/States";
 import { useI18n } from "../i18n";
@@ -10,7 +10,11 @@ import { getPrintService } from "../print/service";
 import { isConfigured, loadPrinter } from "../print/settings";
 import { printTempSlip } from "../print/tempPrint";
 import { usePrintStatus } from "../print/usePrint";
+import { createShipClient, type FlowRecord } from "../ship/client";
 import type { CatalogItem, OrderStatus } from "../orders/types";
+
+/** Lower-cased, no leading "@" — how `markFlow`/flow records key a buyer's TikTok id. */
+const flowKey = (username?: string) => (username ?? "").toLowerCase().replace(/^@/, "");
 
 type Tab = "drafts" | "catalog";
 type StatusFilter = "all" | OrderStatus;
@@ -55,6 +59,23 @@ function DraftsTab() {
   const printStatus = usePrintStatus(printer);
   const printerReady = printer.available && isConfigured(loadPrinter());
   const searchRef = useRef<HTMLInputElement>(null);
+  const [api] = useState(() => createShipClient());
+  const [flow, setFlow] = useState<FlowRecord[]>([]);
+  const refreshFlow = useCallback(() => {
+    if (!api.available) return;
+    void api.flow().then(setFlow, () => undefined);
+  }, [api]);
+  // The seller's printer runs AutoPrint in the background, outside this page; poll lightly so
+  // "already printed" catches up without the seller having to reload the tab.
+  useEffect(() => {
+    refreshFlow();
+    const id = window.setInterval(refreshFlow, 4000);
+    return () => window.clearInterval(id);
+  }, [refreshFlow]);
+  const slipPrinted = useMemo(
+    () => new Set(flow.filter((f) => f.slipPrintedAt).map((f) => f.tiktokId)),
+    [flow],
+  );
 
   // Cmd/Ctrl+F focuses the search box, like on the Live console.
   useEffect(() => {
@@ -208,15 +229,24 @@ function DraftsTab() {
                       </button>{" "}
                       {printerReady && (
                         <>
+                          {slipPrinted.has(flowKey(d.username)) && (
+                            <span className="chip tone-green chip--inline">
+                              {t.orders.slipPrinted}
+                            </span>
+                          )}{" "}
                           <button
                             type="button"
                             className="btn"
                             disabled={printStatus.printing}
                             onClick={() =>
-                              void printTempSlip(d, s.comments, t.print.slip, { drafts: s.drafts })
+                              void printTempSlip(d, s.comments, t.print.slip, {
+                                drafts: s.drafts,
+                              }).then(refreshFlow)
                             }
                           >
-                            {t.print.button}
+                            {slipPrinted.has(flowKey(d.username))
+                              ? t.print.reprint
+                              : t.print.button}
                           </button>{" "}
                         </>
                       )}

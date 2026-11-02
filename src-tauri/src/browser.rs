@@ -1,10 +1,10 @@
-//! Open a carrier's own web page in the system browser. Only https addresses on a fixed list of
-//! carrier domains are opened, and the address is passed as one argument (no shell).
+//! Open a carrier's (or ad platform's) own web page in the system browser. Only https addresses
+//! on a fixed list of domains are opened, and the address is passed as one argument (no shell).
 
 use std::process::Command;
 use url::Url;
 
-const HOSTS: [&str; 8] = [
+const HOSTS: [&str; 11] = [
     "ecpay.com.tw",
     "7-11.com.tw",
     "family.com.tw",
@@ -13,6 +13,10 @@ const HOSTS: [&str; 8] = [
     "t-cat.com.tw",
     "hct.com.tw",
     "post.gov.tw",
+    // Ad platforms' own developer-app registration pages (Quảng cáo tab).
+    "tiktok.com",
+    "facebook.com",
+    "google.com",
 ];
 
 pub fn allowed(url: &str) -> Option<Url> {
@@ -63,5 +67,13 @@ mod tests {
         assert!(allowed("https://nothct.com.tw/").is_none());
         assert!(allowed("file:///etc/passwd").is_none());
         assert!(allowed("javascript:alert(1)").is_none());
+    }
+
+    #[test]
+    fn ad_platform_console_pages_are_allowed() {
+        assert!(allowed("https://ads.tiktok.com/marketing_api/homepage").is_some());
+        assert!(allowed("https://developers.facebook.com/apps/").is_some());
+        assert!(allowed("https://ads.google.com/aw/apicenter").is_some());
+        assert!(allowed("https://evil.com/?u=google.com").is_none());
     }
 }

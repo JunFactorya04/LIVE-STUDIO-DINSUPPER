@@ -414,3 +414,58 @@ năng.
 - **Chưa làm:** các ý tưởng tầm trung/lớn khác đã đề xuất với người dùng (bộ lọc theo bước, hành
   động "sao chép lời nhắc" theo lô, bố cục Kanban, nhắc khách bị treo lâu) chưa được chọn, chưa
   triển khai.
+
+## 30. Tab Quảng cáo (TikTok/Meta/Google) và các điểm hoàn thiện UI khác
+
+Theo yêu cầu "thêm tab Quảng cáo, hỗ trợ chạy quảng cáo đa nền tảng TikTok/Facebook/Google, UI
+thông minh và khoa học, có API nhà quảng cáo để xem thống kê chuyển đổi đa nền tảng trong 1" —
+đã xác nhận với người dùng trước khi làm (AskUserQuestion): phạm vi là "xem thống kê + tạo/chỉnh
+campaign cơ bản" (không phải chỉ xem), người dùng **chưa có** app/developer account nào được
+duyệt trên 3 nền tảng, và nên "làm cả 3 khung UI trước, nối API sau" — nhưng vì mỗi API đều có
+tài liệu REST công khai, nên thực tế đã nối thẳng API thật ngay (không chỉ làm khung rỗng), chỉ
+chưa thử được với tài khoản thật (không có sẵn credentials để kiểm thử khi viết).
+
+- **Phạm vi cố ý giữ nhỏ:** đọc chi tiêu/hiển thị/click/chuyển đổi 7 ngày, xem danh sách chiến
+  dịch, tắt/mở một chiến dịch **đã có sẵn**. KHÔNG làm tạo chiến dịch mới (ngân sách/đối
+  tượng/nội dung) — rủi ro tiền thật, cần thiết kế và kiểm thử riêng kỹ hơn, xem lý do trong
+  `docs/ADS_SETUP.md`.
+- **Backend (`src-tauri/src/ads/{mod,tiktok,meta,google}.rs`):** mỗi nền tảng có `fetch_stats`,
+  `fetch_campaigns`, `set_campaign_status`, đọc khóa qua `ads-<platform>-<field>` (mở rộng
+  `secrets::valid_slot`, tương tự `carrier-*`). TikTok dùng REST v1.3 (`Access-Token` header);
+  Meta dùng Graph API v19.0 (access_token query param, `act_<id>`); Google dùng OAuth refresh
+  token → access token ngắn hạn, rồi gọi `googleAds:search` (GAQL) + `campaigns:mutate`. Thêm
+  feature `json` cho crate `reqwest` (trước đó app build request bằng tay như `ai.rs`/`ecpay.rs`,
+  nhưng 3 module ads gọi JSON nhiều hơn nên dùng `resp.json()`/`.json(&body)` cho ngắn). Mở rộng
+  `browser::HOSTS` để nút "Trang đăng ký API" mở được `ads.tiktok.com`, `developers.facebook.com`,
+  `ads.google.com` qua đúng cơ chế allowlist-https đã có cho hãng vận chuyển.
+- **Frontend:** `src/ads/registry.ts` (giống `carriers/registry.ts`), `src/ads/client.ts` (gọi 3
+  Tauri command), `src/ads/adCopy.ts` (AI soạn tiêu đề/mô tả quảng cáo bằng đúng key AI của người
+  bán, tái dùng `createAiClient`/`loadAiConfig` như luồng gợi ý trả lời — không tự gửi gì, chỉ
+  soạn). `src/pages/AdsPage.tsx` tái dùng nguyên khối CSS `.carrier`/`.carrier__*` của trang Hãng
+  vận chuyển (không viết CSS thẻ mới), thêm thanh KPI tổng hợp đa nền tảng (`.kpi-grid` có sẵn) và
+  bảng chiến dịch + nút tắt/mở.
+- **Tab mới** `"ads"` trong `navigation.ts` (mục "manage", không vào `REMOTE_PAGES` vì đây là cấu
+  hình khóa API cấp seller, giống Cài đặt/Hãng vận chuyển), icon riêng trong `Icons.tsx`.
+- **Nguồn ý tưởng/tham khảo:** repo `github.com/coreyhaines31/marketingskills` (bộ Claude Skills
+  cho marketing, không phải SDK) — đã xem danh sách 49 skill để lấy ý tưởng giọng điệu nội dung
+  quảng cáo theo từng nền tảng cho `adCopy.ts`; không import trực tiếp file nào từ repo đó vào
+  code (đây là app TS/Rust, không phải môi trường chạy Claude Skill).
+- **Tài liệu mới:** `docs/ADS_SETUP.md` — hướng dẫn tiếng Việt từng bước đăng ký Developer App ở
+  cả 3 nền tảng (TikTok for Business, Meta Marketing API qua System User, Google Ads API +
+  OAuth2), bảng tra lỗi theo mã lỗi.
+
+### Các điểm hoàn thiện UI khác trong cùng lần này
+
+- **Tab Thiết lập Live:** thêm thanh thống kê nhỏ (thời gian live đang chạy, số bình luận, số đơn
+  nháp) phía trên khung xem bình luận, chỉ hiện khi phiên đang chạy — trước đó phần này chỉ có
+  bình luận và gợi ý trả lời, không có gì cho biết phiên đã chạy bao lâu.
+- **Tab Đơn từ Live:** không bắt xác nhận in thêm lần nữa. AutoPrint đã tự in tem tạm khi có đơn
+  nháp mới (nếu seller bật); giờ bảng đơn đọc luôn bản ghi `flow.slipPrintedAt` (giống Quy Trình
+  dùng) để hiện chip "Đã in đơn nháp" + đổi nút "In phiếu tạm" thành "In lại" khi đã in — không
+  cần người bán tự bấm xác nhận đã in.
+- **Tab Quy Trình:** thêm bộ lọc theo bước cần làm (Cần chốt đơn/Cần in tem/.../Cần tạo đơn ship,
+  kèm số lượng) phía trên ô tìm kiếm, giúp seller lọc nhanh những người mua đang kẹt ở một bước cụ
+  thể thay vì lướt qua toàn bộ danh sách.
+- **Icon:** thêm icon riêng cho tab Quảng cáo trong bộ icon sidebar (`Icons.tsx`), theo đúng style
+  outline 1.5px đã dùng cho các tab khác. Không làm rà soát icon toàn bộ app ở lần này — phạm vi
+  giữ ở các mục mới thêm.

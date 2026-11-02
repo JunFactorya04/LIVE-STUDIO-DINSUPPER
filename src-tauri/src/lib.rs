@@ -1,6 +1,7 @@
 // Backend entry. Keep platform-specific code behind #[cfg(target_os = "...")]
 // so the same source builds on macOS and Windows.
 
+mod ads;
 mod ai;
 mod biz;
 mod browser;
@@ -112,6 +113,9 @@ pub fn run() {
             commands::ecpay_create,
             commands::ecpay_query,
             commands::open_carrier_page,
+            commands::ads_stats,
+            commands::ads_campaigns,
+            commands::ads_set_campaign_status,
             commands::biz_stock_list,
             commands::biz_stock_save,
             commands::biz_stock_delete,

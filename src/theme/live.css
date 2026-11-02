@@ -2299,6 +2299,12 @@
 .setup-chat {
   grid-column: 1;
 }
+.setup-chat__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
 .setup-chat__body {
   display: flex;
   gap: 16px;
@@ -2385,6 +2391,10 @@
 }
 
 /* Workflow ("Quy Trình") tab: per-buyer progress cards. */
+.flow__stepfilter {
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
 .flow__search {
   width: 280px;
   margin-bottom: 12px;
@@ -2494,4 +2504,31 @@
 .flow__step.is-done .flow__dot {
   background: var(--sys-green);
   color: #fff;
+}
+
+/* Quảng cáo (Ads) tab: reuses .carrier/.carrier__* cards from CarriersPage. */
+.ads__stats {
+  grid-template-columns: max-content 1fr;
+  margin-top: 8px;
+}
+.ads__campaigns {
+  margin-top: 8px;
+}
+.ads__copy {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--mac-separator);
+}
+.ads__copy-result {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: var(--ctl-radius);
+  background: var(--mac-under);
+  font-size: var(--fs-callout);
+}
+.ads__copy-result p {
+  margin: 0 0 4px;
+}
+.ads__copy-result p:last-child {
+  margin-bottom: 0;
 }

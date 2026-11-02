@@ -80,13 +80,15 @@ export function WorkflowPage({
     () => (data ? workReport({ comments: s.comments, drafts: s.drafts, ...data }) : undefined),
     [data, s.comments, s.drafts],
   );
+  const [stepFilter, setStepFilter] = useState<StepId | "all">("all");
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return buyers;
-    return buyers.filter(
-      (b) => b.tiktokId.toLowerCase().includes(q) || b.name.toLowerCase().includes(q),
-    );
-  }, [buyers, query]);
+    return buyers
+      .filter((b) => stepFilter === "all" || b.next === stepFilter)
+      .filter(
+        (b) => !q || b.tiktokId.toLowerCase().includes(q) || b.name.toLowerCase().includes(q),
+      );
+  }, [buyers, query, stepFilter]);
 
   const act = async (b: BuyerFlow, step: StepId) => {
     setNote(undefined);
@@ -157,6 +159,25 @@ export function WorkflowPage({
                 </div>
               </div>
             )}
+            <div className="segmented flow__stepfilter" role="group" aria-label={w.filterByStep}>
+              <button
+                type="button"
+                aria-pressed={stepFilter === "all"}
+                onClick={() => setStepFilter("all")}
+              >
+                {w.filterAll}
+              </button>
+              {STEPS.map((step) => (
+                <button
+                  key={step}
+                  type="button"
+                  aria-pressed={stepFilter === step}
+                  onClick={() => setStepFilter(step)}
+                >
+                  {w.filterSteps[step]} {buyers.filter((b) => b.next === step).length}
+                </button>
+              ))}
+            </div>
             <input
               type="search"
               className="input flow__search"
