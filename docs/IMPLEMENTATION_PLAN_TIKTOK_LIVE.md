@@ -601,3 +601,37 @@ rồi các trang khác tự nhận" bằng đúng màn hình quét QR như TikTo
   theo khuyến nghị chính thức của Tauri. Ghi chú cảnh báo deadlock thẳng vào doc-comment của
   `open_or_focus_tiktok_window` để không ai vô tình đổi lại thành hàm đồng bộ sau này.
 - **Chưa kiểm chứng trên máy Windows thật** — chờ chủ dự án test lại bản build tiếp theo.
+
+## 36. TikTok mở bằng Chrome/Edge thật của máy, không còn dùng webview nhúng
+
+- **Bối cảnh:** chủ dự án xác nhận ESET Endpoint Antivirus trên máy Windows xưởng không chặn qua
+  "lọc trang web" hay "network protection" (log trống), và tạm dừng bảo vệ virus/spyware cũng
+  không hết lỗi "ERR_CONNECTION_RESET" — nhưng log "事件" (Events) cho thấy ESET liên tục gửi file
+  `.exe` của app lên quét vì **chưa được ký số (code-signing)**, coi là chương trình lạ mỗi lần
+  build mới. Trình duyệt thật (Edge/Chrome) trên cùng máy vào tiktok.com bình thường.
+- **Quyết định:** thay vì tiếp tục dò từng lớp bảo mật của máy xưởng (có thể là plugin/policy IT
+  quản lý tập trung, không tự đổi được), đổi hẳn cách mở cửa sổ TikTok: **gọi thẳng Chrome/Edge
+  thật đã cài trên máy ở chế độ `--app=<url>`** (cửa sổ riêng, không thanh tab, không thanh địa
+  chỉ — nhìn gần như cửa sổ riêng của app) thay vì dùng `WebviewWindowBuilder` của Tauri.
+  - `src-tauri/src/commands.rs`: xoá `open_or_focus_tiktok_window` (dựa trên
+    `WebviewWindowBuilder`), thay bằng `open_tiktok_in_system_browser(url)` — dò đường dẫn Chrome/
+    Edge trên Windows (`%ProgramFiles%`, `%ProgramFiles(x86)%`, `%LocalAppData%`) hoặc trên macOS
+    (`/Applications/Google Chrome.app`, `/Applications/Microsoft Edge.app` qua lệnh `open -na`),
+    spawn tiến trình ngoài với `--app=<url>`. Không dùng profile riêng — dùng đúng profile mặc
+    định của trình duyệt, nên nếu người bán đã đăng nhập TikTok sẵn trong Chrome/Edge hằng ngày,
+    cửa sổ này tự động đã đăng nhập.
+  - Lợi ích kép: (1) không còn dính lỗi deadlock của `WebviewWindowBuilder` trên Windows (mục 35)
+    vì không tạo webview Tauri nào nữa; (2) ESET/các phần mềm bảo mật tin tưởng Chrome/Edge thật
+    (đã ký số, có uy tín) nên không reset kết nối như với webview riêng của app (chưa ký số).
+  - **Đánh đổi đã báo trước và được chủ dự án đồng ý:** mất tính năng "luôn nổi trên cùng" (cửa sổ
+    hệ điều hành của Chrome/Edge, app không điều khiển được) và mất việc "dùng lại đúng 1 cửa sổ
+    theo từng khách" (`ship_open_buyer_page`/`ship_open_tiktok_login` không còn nhận `app:
+    AppHandle` hay quản lý theo `label` nữa) — mỗi lần bấm sẽ mở cửa sổ mới, người bán tự đóng bớt
+    nếu cần.
+  - Cập nhật i18n (`vi.ts`, `zh-TW.ts`): `flow.loginTikTokHint`, `flow.openTikTokHint`,
+    `flow.openTikTokFailed` không còn nhắc "luôn nổi trên cùng"/"kéo góc màn hình" nữa.
+- **Lưu ý được cân nhắc và loại bỏ:** có đề xuất dùng Playwright để điều khiển Chrome — không làm,
+  vì Playwright là công cụ automation (click/nhập liệu tự động), đi ngược nguyên tắc "không tự
+  động hoá bất kỳ thao tác nào với TikTok" của dự án. Giải pháp chọn (spawn trình duyệt thật như
+  một tiến trình ngoài, không điều khiển nội dung bên trong) giữ đúng nguyên tắc đó.
+- **Chưa kiểm chứng trên máy Windows thật** — chờ chủ dự án test bản build tiếp theo.

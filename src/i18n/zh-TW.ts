@@ -407,11 +407,11 @@ export const zhTW = {
     },
     loginTikTok: "登入 TikTok",
     loginTikTokHint:
-      "只需登入一次（用手機 TikTok App 掃描 QR code）——下面每個「開啟買家的 TikTok 頁面」視窗都會自動共用這個登入狀態。",
+      "開啟電腦上真實的 Chrome/Edge 瀏覽器登入（用手機 TikTok App 掃描 QR code）——下面每個「開啟買家的 TikTok 頁面」視窗共用同一個瀏覽器，會自動已登入，不必重新掃描。",
     openTikTok: "開啟買家的 TikTok 頁面",
     openTikTokHint:
-      "在獨立視窗開啟買家真實的 TikTok 頁面（可拖到螢幕角落，永遠在最上層），讓您用自己的 TikTok 帳號登入並親自傳送訊息——App 不會替您登入或傳送。",
-    openTikTokFailed: "無法開啟 TikTok 視窗：{error}",
+      "用電腦上真實的 Chrome/Edge 瀏覽器開啟買家真實的 TikTok 頁面（獨立視窗，沒有分頁列），讓您親自傳送訊息——App 不會替您登入或傳送。",
+    openTikTokFailed: "無法開啟 TikTok：{error}",
   },
   ship: {
     notice:

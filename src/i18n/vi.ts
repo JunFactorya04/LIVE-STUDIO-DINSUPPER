@@ -428,11 +428,11 @@ export const vi: Messages = {
     },
     loginTikTok: "Đăng nhập TikTok",
     loginTikTokHint:
-      "Chỉ cần đăng nhập 1 lần (quét mã QR bằng app TikTok trên điện thoại) — các cửa sổ “Mở trang TikTok của khách” bên dưới sẽ tự dùng chung phiên đăng nhập này.",
+      "Mở trình duyệt Chrome/Edge thật của máy để đăng nhập (quét mã QR bằng app TikTok trên điện thoại) — các cửa sổ “Mở trang TikTok của khách” bên dưới dùng chung trình duyệt này nên tự đã đăng nhập, không cần quét lại.",
     openTikTok: "Mở trang TikTok của khách",
     openTikTokHint:
-      "Mở trang TikTok thật của khách trong một cửa sổ riêng (có thể kéo đặt ở góc màn hình, luôn nổi trên cùng), để bạn đăng nhập TikTok của chính mình và tự gửi tin nhắn — app không đăng nhập hay gửi thay bạn.",
-    openTikTokFailed: "Không mở được cửa sổ TikTok: {error}",
+      "Mở trang TikTok thật của khách bằng trình duyệt Chrome/Edge thật của máy (cửa sổ riêng, không có thanh tab), để bạn tự gửi tin nhắn — app không đăng nhập hay gửi thay bạn.",
+    openTikTokFailed: "Không mở được TikTok: {error}",
   },
   ship: {
     notice:

@@ -125,10 +125,12 @@ export function WorkflowPage({
     onNavigate("ship");
   };
 
-  // Opens the buyer's real TikTok page in its own small window inside the app, so the seller
-  // can send the "ask for address" message (copied above) without leaving Live Studio. Login
-  // and sending both stay entirely inside that window, on the seller's own TikTok session —
-  // this only tells the window which buyer to show.
+  // Opens the buyer's real TikTok page in the seller's own Chrome/Edge, in "app mode" (its own
+  // window, no tab bar) rather than a Tauri-managed webview — see the Rust-side comment on
+  // ship_open_buyer_page for why: endpoint security software on at least one seller's machine
+  // reset connections from the app's own embedded webview but not from their real browser. Login
+  // and sending both stay entirely inside that window, on the seller's own TikTok session — this
+  // only tells the browser which buyer's page to show.
   const openPage = async (b: BuyerFlow) => {
     setNote(undefined);
     try {

@@ -788,84 +788,102 @@ pub fn flow_mark(
     ship::flow_mark(&*db(&state)?, &tiktok_id, &step, &now).map_err(err)
 }
 
-/// Open (or bring forward) a small, always-on-top, draggable TikTok window identified by
-/// `label`, showing `url`. All of the app's TikTok windows deliberately use Tauri's *default*
-/// webview profile (no `.incognito()`, no custom `.data_directory()` anywhere in this file), so
-/// they all share one cookie jar — logging in once in any of them (see `ship_open_tiktok_login`)
-/// is enough for the others to already be signed in, the same way signing into TikTok once in a
-/// real browser keeps every other tab of that browser signed in.
+/// Launch the seller's own installed Chrome or Edge in "app mode" (`--app=<url>`) — a separate,
+/// borderless, tab-less window showing just that page, not a browser tab the seller switches to.
+/// This is a real, external browser process, not a Tauri-managed webview: on at least one
+/// seller's Windows machine, endpoint security software (ESET) reset every connection the app's
+/// own embedded WebView2 window made to tiktok.com while leaving their real Chrome/Edge
+/// completely unaffected (security software commonly trusts a well-known, code-signed browser
+/// binary and is wary of an unrecognized app's own embedded browser component — this app's .exe
+/// is not code-signed). Spawning the real browser sidesteps that: TikTok, and the security
+/// software, sees the seller's actual Chrome/Edge. It also sidesteps the Windows WebView2
+/// synchronous-command deadlock documented at https://github.com/tauri-apps/wry/issues/583
+/// entirely, since no Tauri window or webview is created at all.
 ///
-/// MUST be called from an `async fn` command, never a plain synchronous one: on Windows,
-/// `WebviewWindowBuilder::build()` (and `WebviewWindow::navigate()`/`set_focus()`) deadlock the
-/// whole app when called from a synchronous command or event handler, because window creation
-/// has to hop to the main thread and a sync command can itself already be running there — see
-/// https://github.com/tauri-apps/wry/issues/583 and the `tauri` crate's own docs on
-/// `WebviewWindowBuilder::new`/`build`. Both call sites below are `async fn` for exactly this
-/// reason; keep it that way even though nothing here actually awaits anything.
-fn open_or_focus_tiktok_window(
-    app: &AppHandle,
-    label: &str,
-    url: tauri::Url,
-    title: &str,
-    size: (f64, f64),
-) -> Result<(), String> {
-    if let Some(win) = app.get_webview_window(label) {
-        win.navigate(url).map_err(err)?;
-        win.set_focus().map_err(err)?;
-        return Ok(());
+/// Nothing here reads, stores, or scripts anything inside that window, and nothing here passes
+/// it any TikTok cookie or credential — it is launched against the browser's own default
+/// profile, so if the seller is already signed into TikTok in their everyday Chrome/Edge, this
+/// window opens already signed in too, the same as opening any other window of that browser.
+/// There is no "always on top" here (an OS browser window isn't ours to pin), and no window
+/// reuse by buyer — a second click opens another window, which the seller closes themselves.
+fn open_tiktok_in_system_browser(url: &str) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        for candidate in windows_browser_candidates() {
+            if candidate.exists() {
+                return std::process::Command::new(&candidate)
+                    .arg(format!("--app={url}"))
+                    .spawn()
+                    .map(|_| ())
+                    .map_err(err);
+            }
+        }
+        Err("Không tìm thấy Chrome hoặc Edge đã cài trên máy.".to_string())
     }
-    tauri::WebviewWindowBuilder::new(app, label, tauri::WebviewUrl::External(url))
-        .title(title)
-        .inner_size(size.0, size.1)
-        .always_on_top(true)
-        .build()
-        .map_err(err)?;
-    Ok(())
+    #[cfg(target_os = "macos")]
+    {
+        for app_name in ["Google Chrome", "Microsoft Edge"] {
+            if std::path::Path::new(&format!("/Applications/{app_name}.app")).exists() {
+                return std::process::Command::new("open")
+                    .args(["-na", app_name, "--args", &format!("--app={url}")])
+                    .spawn()
+                    .map(|_| ())
+                    .map_err(err);
+            }
+        }
+        Err("Không tìm thấy Chrome hoặc Edge đã cài trên máy.".to_string())
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        let _ = url;
+        Err("Không hỗ trợ mở trình duyệt trên hệ điều hành này.".to_string())
+    }
 }
 
-/// Open one buyer's real TikTok page in its own small window — a separate, draggable OS window,
-/// not a tab inside the app's main window — so the seller can read the "ask for address"
-/// worklist and send the pre-drafted message without switching away from Live Studio, and can
-/// park this window in a corner of their screen while they keep working in the main app. Always
-/// on top (per the seller's own choice) so the main window never covers it back up. This is NOT
-/// automation: the window is a plain TikTok webview the seller logs into (or is already logged
-/// into) with their own real TikTok session — the app never sees, stores or touches that login,
-/// and never reads or writes anything inside the window. Reusing the same window per buyer (by
-/// label) means a second click on the same buyer brings the window forward instead of piling up
-/// duplicates. If the seller already signed in through `ship_open_tiktok_login`, this page opens
-/// already logged in (see `open_or_focus_tiktok_window`).
+#[cfg(target_os = "windows")]
+fn windows_browser_candidates() -> Vec<std::path::PathBuf> {
+    let mut paths = Vec::new();
+    for var in ["ProgramFiles", "ProgramFiles(x86)", "LocalAppData"] {
+        if let Ok(base) = std::env::var(var) {
+            let base = std::path::PathBuf::from(base);
+            paths.push(
+                base.join("Google")
+                    .join("Chrome")
+                    .join("Application")
+                    .join("chrome.exe"),
+            );
+            paths.push(
+                base.join("Microsoft")
+                    .join("Edge")
+                    .join("Application")
+                    .join("msedge.exe"),
+            );
+        }
+    }
+    paths
+}
+
+/// Open one buyer's real TikTok page in its own window — the seller's own Chrome/Edge in app
+/// mode (see `open_tiktok_in_system_browser`), not a tab inside the app's main window — so the
+/// seller can read the "ask for address" worklist and send the pre-drafted message without it
+/// looking like switching away to a browser. This is NOT automation: it is the seller's own
+/// browser, logged into (or already logged into) their own real TikTok session — the app never
+/// sees, stores or touches that login, and never reads or writes anything inside the window.
 #[tauri::command]
-pub async fn ship_open_buyer_page(app: AppHandle, tiktok_id: String) -> Result<(), String> {
+pub async fn ship_open_buyer_page(tiktok_id: String) -> Result<(), String> {
     let id = ship::clean_tiktok_id(&tiktok_id).ok_or("BAD_ID")?;
-    let url: tauri::Url = format!("https://www.tiktok.com/@{id}")
-        .parse()
-        .map_err(|_| "BAD_ID".to_string())?;
-    open_or_focus_tiktok_window(
-        &app,
-        &format!("buyer-{id}"),
-        url,
-        &format!("TikTok — @{id}"),
-        (430.0, 780.0),
-    )
+    open_tiktok_in_system_browser(&format!("https://www.tiktok.com/@{id}"))
 }
 
-/// Open the single, shared "sign in to TikTok" window: TikTok's own QR-code login page, scanned
-/// with the TikTok app on the seller's phone — the exact same flow as logging into TikTok in any
-/// browser. Nothing here is app code reading that login: the window is a plain TikTok webview,
-/// the app only asks it to exist and to show this URL. Because this window uses the same default
-/// webview profile as every `ship_open_buyer_page` window (none of them set `.incognito()` or a
-/// custom `.data_directory()`), signing in here once also signs in every buyer window — the
-/// seller does not need to scan again per buyer.
+/// Open TikTok's own QR-code login page in the seller's real Chrome/Edge (see
+/// `open_tiktok_in_system_browser`) — scanned with the TikTok app on the seller's phone, the
+/// exact same flow as logging into TikTok in any browser. Because this opens the browser's own
+/// default profile, the same one `ship_open_buyer_page` opens, signing in here also signs in
+/// every buyer window that profile already had — the seller does not need to scan again per
+/// buyer, same as before.
 #[tauri::command]
-pub async fn ship_open_tiktok_login(app: AppHandle) -> Result<(), String> {
-    let url: tauri::Url = "https://www.tiktok.com/login/qrcode".parse().map_err(err)?;
-    open_or_focus_tiktok_window(
-        &app,
-        "tiktok-login",
-        url,
-        "Đăng nhập TikTok",
-        (480.0, 720.0),
-    )
+pub async fn ship_open_tiktok_login() -> Result<(), String> {
+    open_tiktok_in_system_browser("https://www.tiktok.com/login/qrcode")
 }
 
 // ---- phone sharing (only the desktop window can switch it on or off) ----
