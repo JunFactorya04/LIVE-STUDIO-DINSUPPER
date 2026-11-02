@@ -115,6 +115,19 @@ export function WorkflowPage({
     onNavigate("ship");
   };
 
+  // Opens the buyer's real TikTok page in its own small window inside the app, so the seller
+  // can send the "ask for address" message (copied above) without leaving Live Studio. Login
+  // and sending both stay entirely inside that window, on the seller's own TikTok session —
+  // this only tells the window which buyer to show.
+  const openPage = async (b: BuyerFlow) => {
+    setNote(undefined);
+    try {
+      await api.openBuyerPage(b.tiktokId);
+    } catch {
+      setNote({ text: w.openTikTokFailed, error: true });
+    }
+  };
+
   return (
     <div className="page page--no-inspector flow">
       <section className="box">
@@ -256,6 +269,16 @@ export function WorkflowPage({
                           >
                             {w.actions[b.next]}
                           </button>
+                          {(b.next === "ask" || b.next === "info") && (
+                            <button
+                              type="button"
+                              className="btn"
+                              title={w.openTikTokHint}
+                              onClick={() => void openPage(b)}
+                            >
+                              {w.openTikTok}
+                            </button>
+                          )}
                         </div>
                       )}
                     </li>

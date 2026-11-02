@@ -114,8 +114,10 @@ export function drawBars(
 
 const fontOf = (l: SlipLine) => `${l.bold ? "700 " : ""}${dotsOf(l)}px ${FONT_FAMILY}`;
 
-/** Render with a canvas. Throws PrintError("RENDER") when no canvas is available. */
-export function renderSlip(slip: Slip, width: number): Bitmap {
+/** The same drawing the printer gets, on a canvas. Shared by `renderSlip` (packs it into printer
+ *  bits) and `renderSlipPng` (keeps it as a PNG, for the order's printed-slip record). Throws
+ *  PrintError("RENDER") when no canvas is available. */
+function drawSlip(slip: Slip, width: number): HTMLCanvasElement {
   const canvas = typeof document !== "undefined" ? document.createElement("canvas") : undefined;
   const probe = canvas?.getContext("2d");
   if (!canvas || !probe) throw new PrintError("RENDER");
@@ -150,6 +152,30 @@ export function renderSlip(slip: Slip, width: number): Bitmap {
     const x = p.line.align === "center" ? Math.max(MARGIN, (width - w) / 2) : MARGIN;
     ctx.fillText(p.text, x, p.y);
   }
-  const image = ctx.getImageData(0, 0, width, height);
-  return { width, height, bits: packBits(image.data, width, height) };
+  return canvas;
+}
+
+/** Render with a canvas. Throws PrintError("RENDER") when no canvas is available. */
+export function renderSlip(slip: Slip, width: number): Bitmap {
+  const canvas = drawSlip(slip, width);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new PrintError("RENDER");
+  const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  return {
+    width: canvas.width,
+    height: canvas.height,
+    bits: packBits(image.data, canvas.width, canvas.height),
+  };
+}
+
+/** The exact same slip, as a PNG data URL, so it can be kept on the order for later lookup —
+ *  "what did I actually hand the buyer" — instead of the 1-bit bytes the printer needs. Returns
+ *  undefined instead of throwing: a seller without a reachable canvas (should not happen in the
+ *  desktop app) simply gets no image on file, which is strictly better than failing the print. */
+export function renderSlipPng(slip: Slip, width: number): string | undefined {
+  try {
+    return drawSlip(slip, width).toDataURL("image/png");
+  } catch {
+    return undefined;
+  }
 }

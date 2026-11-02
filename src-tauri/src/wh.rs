@@ -315,6 +315,98 @@ pub fn restock(conn: &Connection, code: &str, location: &str, now: &str) -> Res<
     Ok(u)
 }
 
+/// How many units of `sku` are on the shelf right now. Used wherever a screen (the Live tab, the
+/// inventory tab) needs one number for "how much is left" without caring whether the seller is
+/// tracking that sku by barcode at all.
+pub fn stock_count(conn: &Connection, sku: &str) -> Res<i64> {
+    conn.query_row(
+        "SELECT COUNT(*) FROM wh_units WHERE sku = ?1 AND status = 'IN_STOCK'",
+        [sku],
+        |r| r.get(0),
+    )
+    .map_err(db)
+}
+
+/// Whether `sku` has ever been received through the barcode warehouse. A sku that never has is
+/// not barcode-tracked at all, so callers fall back to the simple `biz` counter for it instead of
+/// reading a permanent zero here.
+pub fn has_any_units(conn: &Connection, sku: &str) -> Res<bool> {
+    conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM wh_units WHERE sku = ?1)",
+        [sku],
+        |r| r.get(0),
+    )
+    .map_err(db)
+}
+
+/// Best-effort link between a ship/live order and the barcode warehouse: allocate up to `qty` of
+/// the oldest IN_STOCK units of `sku` to `order_id`, without touching `biz_stock` (the caller —
+/// `ship::order_save` — already adjusted that). Silently allocates fewer than `qty`, or none,
+/// when the warehouse holds fewer units of this sku than the order needs: most skus are never
+/// scanned into the barcode warehouse at all, and that is not an error here, just a sku this
+/// order cannot be reconciled against a physical unit for.
+pub fn auto_allocate(
+    conn: &Connection,
+    sku: &str,
+    qty: i64,
+    order_id: &str,
+    now: &str,
+) -> Res<usize> {
+    if sku.is_empty() || qty <= 0 || order_id.is_empty() {
+        return Ok(0);
+    }
+    let mut stmt = conn
+        .prepare(&format!(
+            "SELECT {COLS} FROM wh_units WHERE sku = ?1 AND status = 'IN_STOCK' ORDER BY code LIMIT ?2"
+        ))
+        .map_err(db)?;
+    let units: Vec<UnitDto> = stmt
+        .query_map(params![sku, qty], map)
+        .map_err(db)?
+        .collect::<Result<_, _>>()
+        .map_err(db)?;
+    for u in &units {
+        conn.execute(
+            "UPDATE wh_units SET status='SHIPPED', shipped_at=?2, order_id=?3 WHERE code=?1",
+            params![u.code, now, order_id],
+        )
+        .map_err(db)?;
+        let mut shipped = u.clone();
+        shipped.status = "SHIPPED".into();
+        shipped.order_id = order_id.into();
+        log(conn, now, "OUT", &shipped, order_id)?;
+    }
+    Ok(units.len())
+}
+
+/// Give back every unit tied to `order_id` (auto-allocated above, or scanned by hand in the
+/// barcode-warehouse tab) when that order is deleted or its sku/qty changes. Also does not touch
+/// `biz_stock`: the caller already reverses that on its own side.
+pub fn release_order(conn: &Connection, order_id: &str, now: &str) -> Res<usize> {
+    if order_id.is_empty() {
+        return Ok(0);
+    }
+    let mut stmt = conn
+        .prepare(&format!(
+            "SELECT {COLS} FROM wh_units WHERE order_id = ?1 AND status = 'SHIPPED'"
+        ))
+        .map_err(db)?;
+    let units: Vec<UnitDto> = stmt
+        .query_map([order_id], map)
+        .map_err(db)?
+        .collect::<Result<_, _>>()
+        .map_err(db)?;
+    for u in &units {
+        conn.execute(
+            "UPDATE wh_units SET status='IN_STOCK', shipped_at='', order_id='' WHERE code=?1",
+            [&u.code],
+        )
+        .map_err(db)?;
+        log(conn, now, "RETURN", u, order_id)?;
+    }
+    Ok(units.len())
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CountResult {
@@ -431,6 +523,33 @@ mod tests {
         r.location = "kệ A".into();
         assert_eq!(receive(&c, &r, "t").unwrap_err(), "BAD_LOCATION");
         assert!(biz::stock_list(&c).unwrap().is_empty());
+    }
+
+    #[test]
+    fn auto_allocate_picks_oldest_units_and_skips_what_does_not_exist() {
+        let c = open_in_memory().unwrap();
+        receive(&c, &req(3), "t").unwrap();
+        assert!(has_any_units(&c, "A12").unwrap());
+        assert!(!has_any_units(&c, "NOPE").unwrap());
+        assert_eq!(stock_count(&c, "A12").unwrap(), 3);
+        // Asking for more than exist allocates only what is there; it is not an error.
+        let n = auto_allocate(&c, "A12", 5, "o1", "t2").unwrap();
+        assert_eq!(n, 3);
+        assert_eq!(stock_count(&c, "A12").unwrap(), 0);
+        assert_eq!(unit_get(&c, "A12-000001").unwrap().unwrap().order_id, "o1");
+        // A sku never received through the barcode warehouse allocates nothing, silently.
+        assert_eq!(auto_allocate(&c, "NOPE", 2, "o2", "t2").unwrap(), 0);
+        // Releasing the order puts every one of its units back on the shelf.
+        assert_eq!(release_order(&c, "o1", "t3").unwrap(), 3);
+        assert_eq!(stock_count(&c, "A12").unwrap(), 3);
+        assert_eq!(
+            unit_get(&c, "A12-000001").unwrap().unwrap().status,
+            "IN_STOCK"
+        );
+        // biz_stock is untouched by either call: the caller (ship::order_save) owns that.
+        assert_eq!(stock(&c), 3);
+        // Releasing an order that holds nothing is a harmless no-op.
+        assert_eq!(release_order(&c, "no-such-order", "t3").unwrap(), 0);
     }
 
     #[test]

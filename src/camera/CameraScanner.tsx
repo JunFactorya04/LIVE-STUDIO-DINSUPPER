@@ -32,9 +32,25 @@ export function CameraButton({
     <>
       <button
         type="button"
-        className="btn"
+        className="btn btn--scan"
         onClick={() => (cameraSupported() ? setOpen(true) : setHint(true))}
       >
+        <svg
+          className="icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3" />
+          <circle cx="12" cy="12" r="3.2" />
+        </svg>
         {c.open}
       </button>
       {hint && !open && (

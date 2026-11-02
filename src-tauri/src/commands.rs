@@ -249,6 +249,47 @@ pub fn order_list(
     orders::order_list(&*db(&state)?, &session_id).map_err(err)
 }
 
+/// One catalog item with the single stock number to show while live: the barcode warehouse's
+/// unit count when the seller tracks this sku there (most accurate), otherwise the simple
+/// per-sku counter. Lets the Live tab show price and "how many are left" without the seller
+/// having to know which of the app's two stock systems is behind the number.
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LiveStockItemDto {
+    pub sku: String,
+    pub name: String,
+    pub price: Option<f64>,
+    pub stock: i64,
+    pub source: &'static str,
+}
+
+#[tauri::command]
+pub fn live_stock_overview(state: State<'_, DbState>) -> Result<Vec<LiveStockItemDto>, String> {
+    let conn = db(&state)?;
+    let items = orders::catalog_list(&conn).map_err(err)?;
+    let biz_map: std::collections::HashMap<String, i64> = crate::biz::stock_list(&conn)
+        .map_err(err)?
+        .into_iter()
+        .map(|s| (s.sku, s.stock))
+        .collect();
+    let mut out = Vec::with_capacity(items.len());
+    for item in items {
+        let (stock, source) = if crate::wh::has_any_units(&conn, &item.sku).map_err(err)? {
+            (crate::wh::stock_count(&conn, &item.sku).map_err(err)?, "wh")
+        } else {
+            (*biz_map.get(&item.sku).unwrap_or(&0), "biz")
+        };
+        out.push(LiveStockItemDto {
+            sku: item.sku,
+            name: item.name,
+            price: item.price,
+            stock,
+            source,
+        });
+    }
+    Ok(out)
+}
+
 #[tauri::command]
 pub fn order_set_status(
     state: State<'_, DbState>,
@@ -265,6 +306,31 @@ pub fn order_set_status(
         }
     }
     Ok(changed)
+}
+
+#[tauri::command]
+pub fn order_slip_save(
+    state: State<'_, DbState>,
+    order_draft_id: String,
+    image_png: String,
+) -> Result<(), String> {
+    orders::slip_save(&*db(&state)?, &order_draft_id, &image_png).map_err(err)
+}
+
+#[tauri::command]
+pub fn order_slip_image(
+    state: State<'_, DbState>,
+    order_draft_id: String,
+) -> Result<Option<String>, String> {
+    orders::slip_image(&*db(&state)?, &order_draft_id).map_err(err)
+}
+
+#[tauri::command]
+pub fn order_slips_printed(
+    state: State<'_, DbState>,
+    session_id: String,
+) -> Result<Vec<String>, String> {
+    orders::slips_printed_for_session(&*db(&state)?, &session_id).map_err(err)
 }
 
 // ---- AI providers (the seller's own key, read from the keychain here in Rust) ----
@@ -720,6 +786,33 @@ pub fn flow_mark(
     now: String,
 ) -> Result<(), String> {
     ship::flow_mark(&*db(&state)?, &tiktok_id, &step, &now).map_err(err)
+}
+
+/// Open one buyer's real TikTok page in its own small window inside the app, so the seller can
+/// read the "ask for address" worklist and send the pre-drafted message without switching away
+/// from Live Studio. This is NOT automation: the window is a plain TikTok webview the seller logs
+/// into (or is already logged into) with their own real TikTok session — the app never sees,
+/// stores or touches that login, and never reads or writes anything inside the window. Reusing
+/// the same window per buyer (by label) means a second click on the same buyer brings the window
+/// forward instead of piling up duplicates.
+#[tauri::command]
+pub fn ship_open_buyer_page(app: AppHandle, tiktok_id: String) -> Result<(), String> {
+    let id = ship::clean_tiktok_id(&tiktok_id).ok_or("BAD_ID")?;
+    let url: tauri::Url = format!("https://www.tiktok.com/@{id}")
+        .parse()
+        .map_err(|_| "BAD_ID".to_string())?;
+    let label = format!("buyer-{id}");
+    if let Some(win) = app.get_webview_window(&label) {
+        win.navigate(url).map_err(err)?;
+        win.set_focus().map_err(err)?;
+        return Ok(());
+    }
+    tauri::WebviewWindowBuilder::new(&app, label, tauri::WebviewUrl::External(url))
+        .title(format!("TikTok — @{id}"))
+        .inner_size(430.0, 780.0)
+        .build()
+        .map_err(err)?;
+    Ok(())
 }
 
 // ---- phone sharing (only the desktop window can switch it on or off) ----

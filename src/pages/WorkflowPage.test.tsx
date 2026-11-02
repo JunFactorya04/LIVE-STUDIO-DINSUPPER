@@ -38,6 +38,7 @@ function fake(over: Partial<ShipClient> = {}): ShipClient {
     exportXlsx: vi.fn(),
     flow: async () => [{ tiktokId: "mai", slipPrintedAt: "t", askCopiedAt: null }],
     markFlow: vi.fn(async () => undefined),
+    openBuyerPage: vi.fn(async () => undefined),
     ...over,
   };
 }
@@ -61,6 +62,14 @@ describe("WorkflowPage", () => {
     fireEvent.click(screen.getByRole("button", { name: zhTW.flow.actions.ask }));
     await waitFor(() => expect(c.markFlow).toHaveBeenCalledWith("mai", "ASK_COPIED"));
     expect(String((writeText.mock.calls[0] as unknown[])[0])).toContain("@mai");
+  });
+
+  it("opens the buyer's TikTok page in its own window instead of copying a message", async () => {
+    const c = fake();
+    mount(c);
+    expect(await screen.findByText("@mai")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: zhTW.flow.openTikTok }));
+    await waitFor(() => expect(c.openBuyerPage).toHaveBeenCalledWith("mai"));
   });
 
   it("hands the buyer to the shipping form for the info step", async () => {

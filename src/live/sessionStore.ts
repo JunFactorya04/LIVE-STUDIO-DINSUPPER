@@ -11,9 +11,11 @@ import type { ReplyStatus, ReplySuggestion } from "../replies/types";
 import { classifyBatch, BATCH_SIZE, MAX_PER_RUN } from "../ai/classifier";
 import { createAiClient, type AiClient, type AiErrorCode } from "../ai/client";
 import { loadAiConfig, type AiConfig } from "../ai/config";
+import { classifyByRules } from "./commentRules";
+import type { Locale } from "../i18n";
 import { applyComment, canTransition } from "../orders/engine";
 import { createOrderRepository, type OrderRepository } from "../orders/repository";
-import type { CatalogItem, OrderDraft, OrderStatus } from "../orders/types";
+import type { CatalogItem, LiveStockItem, OrderDraft, OrderStatus } from "../orders/types";
 
 // Framework-free store for one LIVE session. React reads it through
 // useSyncExternalStore (see ./useLiveSession.ts).
@@ -490,6 +492,33 @@ export class LiveSessionStore {
     }
   }
 
+  /** Label the newest unclassified comments with local keyword rules (see ./commentRules) —
+   *  free, instant, no AI call. An alternative to classifyPending() above: both write the same
+   *  intent/intentConfidence fields, so the seller can switch between them freely and the two
+   *  passes never conflict (each only touches comments that are still unclassified). */
+  classifyPendingByRules(locale: Locale): void {
+    const { sessionId } = this.snapshot;
+    const pending = this.snapshot.comments.filter((c) => !c.intent).slice(-MAX_PER_RUN);
+    if (pending.length === 0) return;
+    const items = pending.map((c) => {
+      const label = classifyByRules(c.commentText, locale);
+      return {
+        eventId: c.eventId,
+        source: c.source,
+        intent: label.intent,
+        confidence: label.confidence,
+      };
+    });
+    const byKey = new Map(items.map((x) => [`${x.source}|${x.eventId}`, x]));
+    this.set({
+      comments: this.snapshot.comments.map((c) => {
+        const hit = byKey.get(`${c.source}|${c.eventId}`);
+        return hit ? { ...c, intent: hit.intent, intentConfidence: hit.confidence } : c;
+      }),
+    });
+    this.persist(() => this.repo.setIntents(sessionId, items));
+  }
+
   // ---- reply suggestions (the seller edits, copies and posts them by hand) ----
 
   /** Ask the seller's AI for a reply draft to one comment. Never sends anything. */
@@ -590,6 +619,22 @@ export class LiveSessionStore {
   deleteCatalogItem(sku: string): void {
     this.set({ catalog: this.snapshot.catalog.filter((c) => c.sku !== sku) });
     this.persist(() => this.orders.deleteCatalogItem(sku));
+  }
+
+  /** Price + stock per sku for the Live tab's product panel. Not kept in the reactive snapshot:
+   *  stock changes from outside this store too (the Ship/Workflow tabs), so the panel polls this
+   *  instead of trusting a cached number. */
+  stockOverview(): Promise<readonly LiveStockItem[]> {
+    return this.orders.stockOverview();
+  }
+
+  /** Which of this session's order drafts have a printed-slip image on file. */
+  printedSlipIds(): Promise<readonly string[]> {
+    return this.orders.printedSlipIds(this.snapshot.sessionId);
+  }
+  /** The slip image itself, fetched only when the seller opens one order to check it. */
+  slipImage(orderDraftId: string): Promise<string | undefined> {
+    return this.orders.slipImage(orderDraftId);
   }
 
   // ---- seller decisions ----

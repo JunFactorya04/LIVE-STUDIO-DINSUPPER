@@ -19,6 +19,10 @@ pub struct CatalogItemDto {
     pub sizes: Vec<String>,
     #[serde(default)]
     pub aliases: Vec<String>,
+    /// Free-form fields for shops outside clothing (expiry date, volume, brand...): the seller
+    /// names the key, so this works for any kind of shop without a fixed schema.
+    #[serde(default)]
+    pub attrs: std::collections::BTreeMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -75,6 +79,28 @@ fn clean(list: &[String]) -> Vec<String> {
 
 // ---- catalog ----
 
+/// At most this many custom attrs per item, keys/values each capped like the other free-text
+/// fields here: generous for "hạn dùng", "dung tích", "thương hiệu"... but still bounded.
+const MAX_ATTRS: usize = 24;
+
+fn clean_attrs(
+    attrs: &std::collections::BTreeMap<String, String>,
+) -> std::collections::BTreeMap<String, String> {
+    attrs
+        .iter()
+        .filter_map(|(k, v)| {
+            let key: String = k.trim().chars().take(40).collect();
+            let val: String = v.trim().chars().take(120).collect();
+            if key.is_empty() {
+                None
+            } else {
+                Some((key, val))
+            }
+        })
+        .take(MAX_ATTRS)
+        .collect()
+}
+
 pub fn catalog_upsert(conn: &Connection, item: &CatalogItemDto) -> Result<()> {
     let sku = item.sku.trim();
     let name = item.name.trim();
@@ -87,12 +113,15 @@ pub fn catalog_upsert(conn: &Connection, item: &CatalogItemDto) -> Result<()> {
     if item.price.is_some_and(|p| !p.is_finite() || p < 0.0) {
         return Err(bad("price"));
     }
+    let attrs = clean_attrs(&item.attrs);
+    let attrs_json = serde_json::to_string(&attrs).unwrap_or_else(|_| "{}".into());
     conn.execute(
-        "INSERT INTO catalog_items (sku, name, price, colors, sizes, aliases, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        "INSERT INTO catalog_items (sku, name, price, colors, sizes, aliases, attrs, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
          ON CONFLICT(sku) DO UPDATE SET
            name = excluded.name, price = excluded.price, colors = excluded.colors,
-           sizes = excluded.sizes, aliases = excluded.aliases, updated_at = excluded.updated_at",
+           sizes = excluded.sizes, aliases = excluded.aliases, attrs = excluded.attrs,
+           updated_at = excluded.updated_at",
         params![
             sku,
             name,
@@ -100,6 +129,7 @@ pub fn catalog_upsert(conn: &Connection, item: &CatalogItemDto) -> Result<()> {
             list_json(&clean(&item.colors)),
             list_json(&clean(&item.sizes)),
             list_json(&clean(&item.aliases)),
+            attrs_json,
         ],
     )?;
     Ok(())
@@ -107,7 +137,7 @@ pub fn catalog_upsert(conn: &Connection, item: &CatalogItemDto) -> Result<()> {
 
 pub fn catalog_list(conn: &Connection) -> Result<Vec<CatalogItemDto>> {
     let mut stmt = conn.prepare(
-        "SELECT sku, name, price, colors, sizes, aliases FROM catalog_items ORDER BY sku",
+        "SELECT sku, name, price, colors, sizes, aliases, attrs FROM catalog_items ORDER BY sku",
     )?;
     let rows = stmt.query_map([], |r| {
         Ok(CatalogItemDto {
@@ -117,6 +147,7 @@ pub fn catalog_list(conn: &Connection) -> Result<Vec<CatalogItemDto>> {
             colors: json_list(&r.get::<_, String>(3)?),
             sizes: json_list(&r.get::<_, String>(4)?),
             aliases: json_list(&r.get::<_, String>(5)?),
+            attrs: serde_json::from_str(&r.get::<_, String>(6)?).unwrap_or_default(),
         })
     })?;
     rows.collect()
@@ -290,6 +321,53 @@ pub fn order_set_status(conn: &Connection, id: &str, status: &str, now: &str) ->
     Ok(true)
 }
 
+// ---- printed slip image (for post-session reconciliation) ----
+
+/// A base64 data: URL is already ~33% larger than the PNG it carries; cap well above what a
+/// small thermal-printer sticker needs so a stray huge image cannot bloat the database.
+const MAX_SLIP_IMAGE_CHARS: usize = 400_000;
+
+/// Remember the exact bitmap that was sent to the printer for this order draft, as a PNG. Called
+/// right after a successful print; a failure here never blocks or un-does the print itself.
+pub fn slip_save(conn: &Connection, order_draft_id: &str, image_png: &str) -> Result<()> {
+    if order_draft_id.trim().is_empty() {
+        return Err(bad("order_draft_id"));
+    }
+    if image_png.is_empty() || image_png.len() > MAX_SLIP_IMAGE_CHARS {
+        return Err(bad("image"));
+    }
+    conn.execute(
+        "INSERT INTO order_slips (order_draft_id, image_png, printed_at)
+         VALUES (?1, ?2, strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+         ON CONFLICT(order_draft_id) DO UPDATE SET
+           image_png = excluded.image_png, printed_at = excluded.printed_at",
+        params![order_draft_id, image_png],
+    )?;
+    Ok(())
+}
+
+/// The image itself, fetched only when the seller opens one order to look at it.
+pub fn slip_image(conn: &Connection, order_draft_id: &str) -> Result<Option<String>> {
+    conn.query_row(
+        "SELECT image_png FROM order_slips WHERE order_draft_id = ?1",
+        [order_draft_id],
+        |r| r.get(0),
+    )
+    .optional()
+}
+
+/// Which drafts of a session have a printed slip on file, for a lightweight "📷" marker on each
+/// order row without pulling every image over just to show that.
+pub fn slips_printed_for_session(conn: &Connection, session_id: &str) -> Result<Vec<String>> {
+    let mut stmt = conn.prepare(
+        "SELECT s.order_draft_id FROM order_slips s
+         JOIN live_order_drafts d ON d.id = s.order_draft_id
+         WHERE d.session_id = ?1",
+    )?;
+    let rows = stmt.query_map([session_id], |r| r.get::<_, String>(0))?;
+    rows.collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -318,6 +396,7 @@ mod tests {
             colors: vec!["黑色".into(), " 黑色 ".into(), "白色".into()],
             sizes: vec!["M".into(), "L".into()],
             aliases: vec![],
+            attrs: std::collections::BTreeMap::new(),
         }
     }
 
@@ -360,6 +439,28 @@ mod tests {
     }
 
     #[test]
+    fn catalog_attrs_round_trip_and_trim_blank_keys() {
+        let c = open_in_memory().unwrap();
+        let mut it = item("CO1");
+        it.attrs = std::collections::BTreeMap::from([
+            ("Hạn dùng".into(), "2026-12-01".into()),
+            ("  ".into(), "dropped: blank key".into()),
+            ("Dung tích".into(), " 50ml ".into()),
+        ]);
+        catalog_upsert(&c, &it).unwrap();
+        let saved = &catalog_list(&c).unwrap()[0];
+        assert_eq!(saved.attrs.len(), 2);
+        assert_eq!(
+            saved.attrs.get("Hạn dùng").map(String::as_str),
+            Some("2026-12-01")
+        );
+        assert_eq!(
+            saved.attrs.get("Dung tích").map(String::as_str),
+            Some("50ml")
+        );
+    }
+
+    #[test]
     fn catalog_rejects_bad_input() {
         let c = open_in_memory().unwrap();
         assert!(catalog_upsert(&c, &item("  ")).is_err());
@@ -385,6 +486,33 @@ mod tests {
         // Saving again replaces evidence instead of duplicating it.
         order_save(&mut c, &d).unwrap();
         assert_eq!(order_list(&c, "s1").unwrap()[0].evidence.len(), 1);
+    }
+
+    #[test]
+    fn printed_slip_image_is_saved_and_listed_per_session() {
+        let mut c = open_in_memory().unwrap();
+        session(&c);
+        order_save(&mut c, &draft("d1")).unwrap();
+        order_save(&mut c, &draft("d2")).unwrap();
+        assert!(slip_image(&c, "d1").unwrap().is_none());
+        slip_save(&c, "d1", "fake-png-bytes-1").unwrap();
+        assert_eq!(
+            slip_image(&c, "d1").unwrap().as_deref(),
+            Some("fake-png-bytes-1")
+        );
+        assert_eq!(
+            slips_printed_for_session(&c, "s1").unwrap(),
+            vec!["d1".to_string()]
+        );
+        // Printing again (re-print) replaces the stored image rather than erroring.
+        slip_save(&c, "d1", "fake-png-bytes-2").unwrap();
+        assert_eq!(
+            slip_image(&c, "d1").unwrap().as_deref(),
+            Some("fake-png-bytes-2")
+        );
+        assert_eq!(slips_printed_for_session(&c, "s1").unwrap().len(), 1);
+        assert!(slip_save(&c, "", "x").is_err());
+        assert!(slip_save(&c, "d1", "").is_err());
     }
 
     #[test]

@@ -230,6 +230,18 @@ CREATE TABLE wh_moves (
 );
 ";
 
+const MIGRATION_10: &str = "
+ALTER TABLE catalog_items ADD COLUMN attrs TEXT NOT NULL DEFAULT '{}';
+
+-- The printed temporary slip ('tem') for one order, as a PNG snapshot of the exact bitmap sent
+-- to the printer, so the seller can find and reconcile it after the live session ends.
+CREATE TABLE order_slips (
+    order_draft_id TEXT PRIMARY KEY REFERENCES live_order_drafts(id) ON DELETE CASCADE,
+    image_png      TEXT NOT NULL,
+    printed_at     TEXT NOT NULL
+);
+";
+
 fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -285,6 +297,11 @@ pub fn migrate(conn: &Connection) -> Result<()> {
             "BEGIN;{MIGRATION_9}PRAGMA user_version = 9;COMMIT;"
         ))?;
     }
+    if version < 10 {
+        conn.execute_batch(&format!(
+            "BEGIN;{MIGRATION_10}PRAGMA user_version = 10;COMMIT;"
+        ))?;
+    }
     Ok(())
 }
 
@@ -315,7 +332,7 @@ mod tests {
         let v: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 9);
+        assert_eq!(v, 10);
     }
 
     #[test]

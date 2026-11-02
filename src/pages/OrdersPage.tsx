@@ -11,6 +11,7 @@ import { isConfigured, loadPrinter } from "../print/settings";
 import { printTempSlip } from "../print/tempPrint";
 import { usePrintStatus } from "../print/usePrint";
 import { createShipClient, type FlowRecord } from "../ship/client";
+import { INDUSTRIES, presetFields, type Industry } from "../catalog/industryPresets";
 import type { CatalogItem, OrderStatus } from "../orders/types";
 
 /** Lower-cased, no leading "@" — how `markFlow`/flow records key a buyer's TikTok id. */
@@ -65,17 +66,36 @@ function DraftsTab() {
     if (!api.available) return;
     void api.flow().then(setFlow, () => undefined);
   }, [api]);
+  const [slipIds, setSlipIds] = useState<ReadonlySet<string>>(new Set());
+  const refreshSlipIds = useCallback(() => {
+    void store.printedSlipIds().then(
+      (ids) => setSlipIds(new Set(ids)),
+      () => undefined,
+    );
+  }, [store]);
   // The seller's printer runs AutoPrint in the background, outside this page; poll lightly so
   // "already printed" catches up without the seller having to reload the tab.
   useEffect(() => {
     refreshFlow();
-    const id = window.setInterval(refreshFlow, 4000);
+    refreshSlipIds();
+    const id = window.setInterval(() => {
+      refreshFlow();
+      refreshSlipIds();
+    }, 4000);
     return () => window.clearInterval(id);
-  }, [refreshFlow]);
+  }, [refreshFlow, refreshSlipIds]);
   const slipPrinted = useMemo(
     () => new Set(flow.filter((f) => f.slipPrintedAt).map((f) => f.tiktokId)),
     [flow],
   );
+  const [slipView, setSlipView] = useState<{ id: string; src?: string } | undefined>();
+  const openSlip = (id: string) => {
+    setSlipView({ id });
+    void store.slipImage(id).then(
+      (src) => setSlipView({ id, src: src ?? "" }),
+      () => setSlipView({ id, src: "" }),
+    );
+  };
 
   // Cmd/Ctrl+F focuses the search box, like on the Live console.
   useEffect(() => {
@@ -250,6 +270,11 @@ function DraftsTab() {
                           </button>{" "}
                         </>
                       )}
+                      {slipIds.has(d.id) && (
+                        <button type="button" className="btn" onClick={() => openSlip(d.id)}>
+                          {t.orders.viewSlip}
+                        </button>
+                      )}{" "}
                       <button
                         type="button"
                         className="btn"
@@ -266,17 +291,41 @@ function DraftsTab() {
           </table>
         </div>
       )}
+      {slipView && (
+        <div
+          className="slip-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t.orders.slipModalTitle}
+        >
+          <div className="slip-modal__box box">
+            <h3 className="section-title">{t.orders.slipModalTitle}</h3>
+            {slipView.src === undefined ? (
+              <p className="caption">{t.common.loading}</p>
+            ) : slipView.src === "" ? (
+              <p className="caption">{t.orders.slipLoadError}</p>
+            ) : (
+              <img className="slip-modal__img" src={slipView.src} alt={t.orders.slipModalTitle} />
+            )}
+            <button type="button" className="btn" onClick={() => setSlipView(undefined)}>
+              {t.common.close}
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
 
 const EMPTY_FORM = { sku: "", name: "", price: "", colors: "", sizes: "", aliases: "" };
+type AttrRow = { key: string; value: string };
 
 function CatalogTab() {
-  const { t, fmt } = useI18n();
+  const { t, fmt, locale } = useI18n();
   const store = useLiveStore();
   const { catalog } = useLiveSession();
   const [form, setForm] = useState(EMPTY_FORM);
+  const [attrs, setAttrs] = useState<AttrRow[]>([]);
   const [error, setError] = useState<string>();
   const [csv, setCsv] = useState("");
   const [result, setResult] = useState<string>();
@@ -297,6 +346,11 @@ function CatalogTab() {
     if (!sku || !name) return setError(c.skuRequired);
     const price = form.price.trim() === "" ? undefined : Number(form.price.replace(/[^\d.]/g, ""));
     if (price !== undefined && !Number.isFinite(price)) return setError(c.priceInvalid);
+    const cleanAttrs: Record<string, string> = {};
+    for (const row of attrs) {
+      const k = row.key.trim();
+      if (k) cleanAttrs[k] = row.value.trim();
+    }
     store.saveCatalogItem({
       sku,
       name,
@@ -304,12 +358,14 @@ function CatalogTab() {
       colors: splitList(form.colors),
       sizes: splitList(form.sizes),
       aliases: splitList(form.aliases),
+      attrs: cleanAttrs,
     });
     setForm(EMPTY_FORM);
+    setAttrs([]);
     setError(undefined);
   };
 
-  const edit = (item: CatalogItem) =>
+  const edit = (item: CatalogItem) => {
     setForm({
       sku: item.sku,
       name: item.name,
@@ -318,6 +374,20 @@ function CatalogTab() {
       sizes: item.sizes.join(";"),
       aliases: item.aliases.join(";"),
     });
+    setAttrs(Object.entries(item.attrs ?? {}).map(([key, value]) => ({ key, value })));
+  };
+
+  const addAttrRow = () => setAttrs((rows) => [...rows, { key: "", value: "" }]);
+  const removeAttrRow = (i: number) => setAttrs((rows) => rows.filter((_, idx) => idx !== i));
+  const updateAttrRow = (i: number, patch: Partial<AttrRow>) =>
+    setAttrs((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  const applyPreset = (industry: Industry) => {
+    const existing = new Set(attrs.map((r) => r.key.trim().toLowerCase()).filter(Boolean));
+    const add = presetFields(locale, industry)
+      .filter((name) => !existing.has(name.toLowerCase()))
+      .map((name) => ({ key: name, value: "" }));
+    if (add.length > 0) setAttrs((rows) => [...rows, ...add]);
+  };
 
   const importCsv = () => {
     const { items, errors } = parseCatalogCsv(csv);
@@ -351,6 +421,61 @@ function CatalogTab() {
         {field("sizes", c.sizes)}
         {field("aliases", c.aliases)}
       </div>
+
+      <div className="catalog-attrs">
+        <h3>{c.attrsTitle}</h3>
+        <p className="caption">{c.attrsHelp}</p>
+        <div className="actions">
+          {INDUSTRIES.map((industry) => (
+            <button
+              key={industry}
+              type="button"
+              className="btn"
+              onClick={() => applyPreset(industry)}
+            >
+              {c.presetLabels[industry]}
+            </button>
+          ))}
+        </div>
+        {attrs.length > 0 && (
+          <div className="catalog-attrs__rows">
+            {attrs.map((row, i) => (
+              <div className="catalog-attrs__row" key={i}>
+                <input
+                  className="input"
+                  type="text"
+                  autoComplete="off"
+                  placeholder={c.attrsKeyPh}
+                  value={row.key}
+                  onChange={(e) => updateAttrRow(i, { key: e.target.value })}
+                />
+                <input
+                  className="input"
+                  type="text"
+                  autoComplete="off"
+                  placeholder={c.attrsValuePh}
+                  value={row.value}
+                  onChange={(e) => updateAttrRow(i, { value: e.target.value })}
+                />
+                <button
+                  type="button"
+                  className="btn"
+                  aria-label={c.attrsRemove}
+                  onClick={() => removeAttrRow(i)}
+                >
+                  {c.attrsRemove}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="actions">
+          <button type="button" className="btn" onClick={addAttrRow}>
+            {c.attrsAdd}
+          </button>
+        </div>
+      </div>
+
       {error && (
         <p className="banner banner--error" role="alert">
           {error}
@@ -375,6 +500,7 @@ function CatalogTab() {
                 <th scope="col">{c.colors}</th>
                 <th scope="col">{c.sizes}</th>
                 <th scope="col">{c.aliases}</th>
+                <th scope="col">{c.attrsTitle}</th>
                 <th scope="col">{t.orders.columns.actions}</th>
               </tr>
             </thead>
@@ -398,6 +524,12 @@ function CatalogTab() {
                   </td>
                   <td className="wrap" data-label={c.aliases}>
                     {item.aliases.join("、") || t.common.none}
+                  </td>
+                  <td className="wrap" data-label={c.attrsTitle}>
+                    {Object.entries(item.attrs ?? {})
+                      .filter(([, v]) => v)
+                      .map(([k, v]) => `${k}: ${v}`)
+                      .join("、") || t.common.none}
                   </td>
                   <td className="cell-actions nowrap">
                     <button

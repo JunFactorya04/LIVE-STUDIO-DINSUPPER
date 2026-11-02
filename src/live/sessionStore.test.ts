@@ -260,6 +260,15 @@ describe("LiveSessionStore persistence", () => {
       expect(a.getSnapshot().catalog.map((c) => c.sku)).toEqual(["B7"]);
     });
 
+    it("stockOverview() reflects catalog price per sku", async () => {
+      const { make } = pair();
+      const a = make();
+      a.saveCatalogItem(item);
+      await a.flush();
+      const rows = await a.stockOverview();
+      expect(rows).toEqual([expect.objectContaining({ sku: item.sku, name: item.name })]);
+    });
+
     it("clearing comments keeps the order drafts", async () => {
       const { make } = pair();
       const a = make();

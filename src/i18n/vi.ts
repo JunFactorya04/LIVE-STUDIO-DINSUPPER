@@ -182,6 +182,9 @@ export const vi: Messages = {
     classifying: "Đang phân loại…",
     classifyHint:
       "Gửi các bình luận chưa phân loại tới dịch vụ AI bạn chọn trong Cài đặt; chi phí tính vào tài khoản của bạn.",
+    classifyRules: "Phân loại theo quy tắc ({n})",
+    classifyRulesHint:
+      "Phân loại ngay bằng từ khóa có sẵn, không cần AI, miễn phí. Có thể dùng thay hoặc cùng với “Phân loại AI”.",
     aiNoProvider: "Hãy vào Cài đặt chọn dịch vụ AI và nhập khóa trước.",
     intents: {
       QUESTION: "Câu hỏi",
@@ -223,6 +226,13 @@ export const vi: Messages = {
     persistError:
       "Không lưu được bình luận vào cơ sở dữ liệu trên máy; đóng app có thể mất dữ liệu.",
     clearHint: "Chỉ xóa bình luận; đơn nháp được giữ lại.",
+    stock: {
+      title: "Hàng hóa đang live",
+      empty: "Chưa có sản phẩm trong danh mục. Vào tab “Đơn hàng” → “Danh mục” để thêm.",
+      left: "còn {n}",
+      out: "Hết hàng",
+      noPrice: "Chưa có giá",
+    },
   },
   insight: {
     title: "Chi tiết bình luận",
@@ -280,6 +290,9 @@ export const vi: Messages = {
     duplicate: "Đơn trùng?",
     duplicateHint: "Cùng người mua, cùng sản phẩm và biến thể. Hãy kiểm tra rồi hủy bớt nếu trùng.",
     slipPrinted: "Đã in đơn nháp",
+    viewSlip: "Xem tem đã in",
+    slipModalTitle: "Tem đã in cho đơn này",
+    slipLoadError: "Không tải được ảnh tem đã in.",
     reasons: {
       NO_USER: "Không có thông tin tài khoản",
       NO_SKU: "Thiếu sản phẩm",
@@ -315,6 +328,18 @@ export const vi: Messages = {
       importPlaceholder: "A12\t黑色連帽衫\t790\t黑色|黑;白色\tM;L;XL\t帽T",
       importButton: "Nhập",
       importResult: "Đã nhập {n} mục, {bad} dòng không đọc được.",
+      attrsTitle: "Thuộc tính khác (cho mọi ngành hàng)",
+      attrsHelp:
+        "Không chỉ quần áo — tạp hóa, mỹ phẩm... đặt thêm tên thuộc tính riêng, ví dụ “Hạn dùng”, “Dung tích”. Hoặc bấm mẫu có sẵn bên dưới.",
+      attrsKeyPh: "Tên thuộc tính",
+      attrsValuePh: "Giá trị",
+      attrsAdd: "Thêm thuộc tính",
+      attrsRemove: "Xóa",
+      presetLabels: {
+        clothing: "Mẫu: Quần áo",
+        grocery: "Mẫu: Tạp hóa",
+        cosmetics: "Mẫu: Mỹ phẩm",
+      },
     },
   },
   replies: {
@@ -400,6 +425,10 @@ export const vi: Messages = {
       info: "Nhập thông tin nhận hàng",
       ship: "Tạo đơn ship",
     },
+    openTikTok: "Mở trang TikTok của khách",
+    openTikTokHint:
+      "Mở trang TikTok thật của khách ngay trong app (cửa sổ riêng), để bạn đăng nhập TikTok của chính mình và tự gửi tin nhắn — app không đăng nhập hay gửi thay bạn.",
+    openTikTokFailed: "Không mở được cửa sổ TikTok, hãy thử lại.",
   },
   ship: {
     notice:

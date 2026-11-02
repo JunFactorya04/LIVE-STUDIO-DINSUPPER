@@ -395,6 +395,13 @@ pub fn order_save(
         crate::biz::stock_adjust(conn, old_sku, *old_qty, now)?;
     }
     crate::biz::stock_adjust(conn, &sku, -qty, now)?;
+    // Keep the barcode warehouse ("Kho mã vạch") in step with this order: give back whatever it
+    // held there before, then best-effort re-allocate its (possibly new) sku/qty from the oldest
+    // units on the shelf. A no-op for any sku the seller never receives through that tab.
+    crate::wh::release_order(conn, &o.id, now).map_err(|e| bad(&e))?;
+    if !sku.is_empty() {
+        crate::wh::auto_allocate(conn, &sku, qty, &o.id, now).map_err(|e| bad(&e))?;
+    }
     let unit_cost = match &before {
         Some((old_sku, _, old_cost)) if *old_sku == sku && !sku.is_empty() => *old_cost,
         _ => crate::biz::unit_cost(conn, &sku)?,
@@ -536,6 +543,7 @@ pub fn order_delete(conn: &Connection, id: &str, now: &str) -> Result<usize> {
     if let Some((sku, qty)) = row {
         crate::biz::stock_adjust(&tx, &sku, qty, now)?;
     }
+    crate::wh::release_order(&tx, id, now).map_err(|e| bad(&e))?;
     let n = tx.execute("DELETE FROM ship_orders WHERE id = ?1", [id])?;
     tx.commit()?;
     Ok(n)
@@ -769,6 +777,44 @@ mod tests {
         // a sku needs a quantity
         o.qty = 0;
         assert!(order_save(&c, &o, false, "t").is_err());
+    }
+
+    #[test]
+    fn orders_also_allocate_and_release_barcode_warehouse_units() {
+        let c = open_in_memory().unwrap();
+        // "A12" is tracked in the barcode warehouse; "B99" never is.
+        crate::wh::receive(
+            &c,
+            &crate::wh::ReceiveReq {
+                purchase_id: "p1".into(),
+                sku: "A12".into(),
+                qty: 3,
+                price: 350,
+                unit_cost: 120,
+                location: "A1".into(),
+                supplier: String::new(),
+                at: "2026-10-30".into(),
+            },
+            "t0",
+        )
+        .unwrap();
+        let mut o = sample("o1");
+        o.sku = "A12".into();
+        o.qty = 2;
+        order_save(&c, &o, false, "t").unwrap();
+        assert_eq!(crate::wh::stock_count(&c, "A12").unwrap(), 1);
+        // Saving a sku with no barcode units is a harmless no-op, not an error.
+        let mut o2 = sample("o2");
+        o2.sku = "B99".into();
+        o2.qty = 4;
+        order_save(&c, &o2, false, "t").unwrap();
+        // Changing the order's quantity re-allocates from the shelf.
+        o.qty = 1;
+        order_save(&c, &o, false, "t").unwrap();
+        assert_eq!(crate::wh::stock_count(&c, "A12").unwrap(), 2);
+        // Deleting the order gives its unit back.
+        order_delete(&c, "o1", "t").unwrap();
+        assert_eq!(crate::wh::stock_count(&c, "A12").unwrap(), 3);
     }
 
     #[test]

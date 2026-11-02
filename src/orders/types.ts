@@ -11,6 +11,22 @@ export interface CatalogItem {
   sizes: string[];
   /** Extra names customers use for the product. */
   aliases: string[];
+  /** Free-form fields the seller defines for shops outside clothing (expiry date, volume,
+   *  brand...): key -> value. Optional and defaulted to {} everywhere it is read, so existing
+   *  catalog items and fixtures that never set it keep working unchanged. */
+  attrs?: Record<string, string>;
+}
+
+/** One catalog item with the single stock number to show while live (console/StockPanel.tsx):
+ *  whichever of the app's two stock systems the seller actually uses for this sku. */
+export interface LiveStockItem {
+  sku: string;
+  name: string;
+  price?: number;
+  stock: number;
+  /** "wh" = counted from the barcode warehouse (the seller scans units for this sku);
+   *  "biz" = the simple per-sku counter, used when the sku is never scanned into the warehouse. */
+  source: "wh" | "biz";
 }
 
 export type OrderStatus = "DRAFT" | "NEEDS_REVIEW" | "CONFIRMED" | "CANCELLED";

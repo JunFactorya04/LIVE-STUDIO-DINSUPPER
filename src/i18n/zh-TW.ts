@@ -175,6 +175,8 @@ export const zhTW = {
     classify: "AI 分類（{n}）",
     classifying: "分類中…",
     classifyHint: "會把尚未分類的留言傳送給你在「設定」選擇的 AI 服務，費用由你的帳號負擔。",
+    classifyRules: "規則分類（{n}）",
+    classifyRulesHint: "用內建關鍵字立即分類，不用 AI、不花錢。可以和「AI 分類」交替使用。",
     aiNoProvider: "請先到「設定」選擇 AI 服務並輸入金鑰。",
     intents: {
       QUESTION: "提問",
@@ -212,6 +214,13 @@ export const zhTW = {
     restoredBanner: "已從上次場次載入儲存的留言。來源已中斷，需要時請重新開始場次。",
     persistError: "留言無法儲存到本機資料庫，關閉應用程式後可能遺失。",
     clearHint: "只清除留言；訂單草稿會保留。",
+    stock: {
+      title: "直播商品庫存",
+      empty: "目錄還沒有商品。請到「訂單」→「商品目錄」新增。",
+      left: "剩 {n}",
+      out: "缺貨",
+      noPrice: "尚未設定價格",
+    },
   },
   insight: {
     title: "留言詳情",
@@ -263,6 +272,9 @@ export const zhTW = {
     duplicate: "可能重複？",
     duplicateHint: "同一買家、同一商品與規格。請確認，若重複請取消其中一筆。",
     slipPrinted: "已列印暫存單",
+    viewSlip: "查看已列印的標籤",
+    slipModalTitle: "此訂單已列印的標籤",
+    slipLoadError: "無法載入標籤圖片。",
     reasons: {
       NO_USER: "沒有帳號資料",
       NO_SKU: "缺少商品",
@@ -298,6 +310,17 @@ export const zhTW = {
       importPlaceholder: "A12\t黑色連帽衫\t790\t黑色|黑;白色\tM;L;XL\t帽T",
       importButton: "匯入",
       importResult: "已匯入 {n} 項，{bad} 行無法讀取。",
+      attrsTitle: "自訂欄位",
+      attrsHelp: "依商品類型新增任意欄位（保存期限、容量、品牌……），或點下方快速範本帶入常用欄位。",
+      attrsKeyPh: "欄位名稱",
+      attrsValuePh: "內容",
+      attrsAdd: "新增欄位",
+      attrsRemove: "刪除",
+      presetLabels: {
+        clothing: "服飾",
+        grocery: "雜貨",
+        cosmetics: "美妝",
+      },
     },
   },
   replies: {
@@ -381,6 +404,10 @@ export const zhTW = {
       info: "填寫收件資料",
       ship: "建立出貨單",
     },
+    openTikTok: "開啟買家的 TikTok 頁面",
+    openTikTokHint:
+      "在 App 內的獨立視窗開啟買家真實的 TikTok 頁面，讓您用自己的 TikTok 帳號登入並親自傳送訊息——App 不會替您登入或傳送。",
+    openTikTokFailed: "無法開啟 TikTok 視窗，請再試一次。",
   },
   ship: {
     notice:

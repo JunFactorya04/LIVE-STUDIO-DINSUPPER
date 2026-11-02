@@ -91,6 +91,13 @@ export interface ShipClient {
   searchStores(query: string): Promise<StoreHit[]>;
   /** Writes the 7-ELEVEN order-import workbook to Downloads and returns its path. */
   exportXlsx(ids: string[], markExported: boolean): Promise<string>;
+  /** Opens this buyer's real TikTok page in its own small window inside the app (not the OS
+   *  browser), so the seller can log in with their own TikTok session and send the pre-drafted
+   *  "ask for address" message without leaving Live Studio. The app never sees that login and
+   *  never reads or sends anything inside the window — it only asks the window to exist and to
+   *  show that URL. A second call for the same buyer brings the existing window forward instead
+   *  of opening a duplicate. */
+  openBuyerPage(tiktokId: string): Promise<void>;
 }
 
 class TauriShipClient implements ShipClient {
@@ -161,6 +168,9 @@ class TauriShipClient implements ShipClient {
   exportXlsx(ids: string[], markExported: boolean) {
     return this.call<string>("ship_export_xlsx", { ids, mark: markExported });
   }
+  async openBuyerPage(tiktokId: string) {
+    await this.call<null>("ship_open_buyer_page", { tiktokId });
+  }
 }
 
 class UnavailableShipClient implements ShipClient {
@@ -183,6 +193,7 @@ class UnavailableShipClient implements ShipClient {
   markFlow = () => this.no();
   searchStores = () => this.no();
   exportXlsx = () => this.no();
+  openBuyerPage = () => this.no();
 }
 
 export function createShipClient(): ShipClient {

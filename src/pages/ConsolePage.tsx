@@ -1,15 +1,43 @@
 import { isSearchKey, searchShortcut } from "../components/shortcut";
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { EmptyState } from "../components/States";
 import { StatusChip } from "../components/StatusChip";
 import { useI18n } from "../i18n";
 import type { CommentIntent, LiveCommentEvent } from "../live/types";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
+import type { LiveSessionStore } from "../live/sessionStore";
+import type { LiveStockItem } from "../orders/types";
 import { getPrintService } from "../print/service";
 import { isConfigured, loadPrinter } from "../print/settings";
 import { printTempSlip } from "../print/tempPrint";
 import { usePrintStatus } from "../print/usePrint";
 import { ReplyCard } from "./ReplyCard";
+
+const STOCK_POLL_MS = 5000;
+const money = (n: number) => `NT$ ${Math.round(n).toLocaleString("en-US")}`;
+
+/** Price + "how many are left" for every catalog item, while live. Polled rather than kept in
+ *  the reactive snapshot: stock can change from the Ship/Workflow tabs too, not only from here. */
+function useStockOverview(store: LiveSessionStore): readonly LiveStockItem[] {
+  const [items, setItems] = useState<readonly LiveStockItem[]>([]);
+  const refresh = useCallback(() => {
+    void store.stockOverview().then(setItems, () => undefined);
+  }, [store]);
+  useEffect(() => {
+    refresh();
+    const id = window.setInterval(refresh, STOCK_POLL_MS);
+    return () => window.clearInterval(id);
+  }, [refresh]);
+  return items;
+}
 
 const FILTERS = ["all", "questions", "purchase", "product", "spam", "review"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -56,7 +84,7 @@ function useElapsed(startedAt?: string, endedAt?: string): string | undefined {
 }
 
 export function ConsolePage() {
-  const { t, fmt, formatTime } = useI18n();
+  const { t, fmt, formatTime, locale } = useI18n();
   const store = useLiveStore();
   const s = useLiveSession();
   const [filter, setFilter] = useState<Filter>("all");
@@ -69,6 +97,7 @@ export function ConsolePage() {
   const printerReady = printer.available && isConfigured(loadPrinter());
   const [printedIds, setPrintedIds] = useState<ReadonlySet<string>>(new Set());
   const searchRef = useRef<HTMLInputElement>(null);
+  const stock = useStockOverview(store);
 
   // Cmd/Ctrl+F focuses the feed search (desktop keyboard standard).
   useEffect(() => {
@@ -231,6 +260,29 @@ export function ConsolePage() {
             </button>
           )}
         </div>
+        <h3 className="subhead">{t.console.stock.title}</h3>
+        {stock.length === 0 ? (
+          <p className="muted caption">{t.console.stock.empty}</p>
+        ) : (
+          <ul className="stock-list">
+            {stock.map((item) => (
+              <li key={item.sku} className="stock-list__row">
+                <div className="stock-list__name">
+                  <span>{item.name}</span>
+                  <span className="caption muted">{item.sku}</span>
+                </div>
+                <span className="num">
+                  {item.price === undefined ? t.console.stock.noPrice : money(item.price)}
+                </span>
+                <span className={`chip ${item.stock > 0 ? "tone-blue" : "tone-red"}`}>
+                  {item.stock > 0
+                    ? fmt(t.console.stock.left, { n: item.stock })
+                    : t.console.stock.out}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="box console__feed" aria-label={t.console.feedLabel}>
@@ -285,6 +337,15 @@ export function ConsolePage() {
             onClick={() => void store.classifyPending()}
           >
             {s.classifying ? t.console.classifying : fmt(t.console.classify, { n: unclassified })}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={unclassified === 0}
+            title={t.console.classifyRulesHint}
+            onClick={() => store.classifyPendingByRules(locale)}
+          >
+            {fmt(t.console.classifyRules, { n: unclassified })}
           </button>
           <div className="segmented" role="group" aria-label={t.console.feedLabel}>
             {FILTERS.map((f) => (

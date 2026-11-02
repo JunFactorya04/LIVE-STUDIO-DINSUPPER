@@ -469,3 +469,50 @@ chưa thử được với tài khoản thật (không có sẵn credentials đ�
 - **Icon:** thêm icon riêng cho tab Quảng cáo trong bộ icon sidebar (`Icons.tsx`), theo đúng style
   outline 1.5px đã dùng cho các tab khác. Không làm rà soát icon toàn bộ app ở lần này — phạm vi
   giữ ở các mục mới thêm.
+
+## 31. Hợp nhất kho, tồn kho trên tab Live, kho đa ngành, ảnh tem in, lọc bình luận theo quy tắc, mở trang TikTok khách ngay trong app
+
+Theo yêu cầu người dùng về kho hàng tổng quát hơn, giữ bằng chứng tem đã in, và tối ưu quy trình
+xin địa chỉ sau live — đã xác nhận phạm vi từng phần bằng `AskUserQuestion` trước khi làm.
+
+- **Hợp nhất 2 hệ thống tồn kho** (`src-tauri/src/wh.rs`): thêm `stock_count`/`has_any_units` (đọc)
+  và `auto_allocate`/`release_order` (ghi, best-effort). `ship::order_save`/`order_delete` gọi hai
+  hàm ghi này song song với `biz::stock_adjust` đã có — **không đụng `biz_stock`** để tránh đếm hai
+  lần; một sku chưa từng quét vào kho mã vạch (`has_any_units` false) thì bị bỏ qua lặng lẽ, không
+  bắt buộc phải quét mã khi tạo đơn (không thực tế với đơn chốt từ live).
+- **Thẻ tồn kho trên tab Live** (`commands::live_stock_overview`, hook `useStockOverview` ở
+  `ConsolePage.tsx`): mỗi sku hiện giá + số còn lại, ưu tiên số từ kho mã vạch khi sku có từng
+  nhập kho, không thì dùng bộ đếm đơn giản của `biz.rs` — người bán thấy "còn hàng hay hết hàng"
+  ngay khi đang live, không cần chuyển tab.
+- **Kho đa ngành nghề** (không chỉ quần áo): thêm cột tự do `attrs: BTreeMap<String,String>` trên
+  `catalog_items` (migration 10, ≤24 mục/≤40 ký tự tên/≤120 ký tự giá trị, bỏ khóa trống) — người
+  bán tự đặt tên thuộc tính riêng (hạn dùng, dung tích, thương hiệu…) cho tạp hóa/mỹ phẩm/ngành
+  khác. Frontend (`src/catalog/industryPresets.ts`, tab Danh mục ở `OrdersPage.tsx`): ô nhập
+  cặp tên/giá trị tự do + 3 nút mẫu có sẵn (Quần áo/Tạp hóa/Mỹ phẩm) tự điền tên thuộc tính thường
+  dùng — người bán chỉ cần gõ giá trị. Không ràng buộc gì ở backend ngoài giới hạn kích thước.
+- **Ảnh tem đã in đính kèm đơn** (`order_slips` table, `order_slip_save/_image/s_printed`): tách
+  phần vẽ canvas của máy in (`src/print/raster.ts`) thành `drawSlip()` dùng chung cho
+  `renderSlip()` (đóng gói bit cho máy in) và `renderSlipPng()` mới (xuất PNG). Sau khi in thành
+  công, `printTempSlip` lưu PNG này theo `order_draft_id`, tải lười khi người bán bấm "Xem tem đã
+  in" ở tab Đơn từ Live — để đối chiếu với bản in thật sau khi hết phiên.
+- **Lọc bình luận theo quy tắc** (`src/live/commentRules.ts`), thay thế/bổ sung cho lọc AI: một bộ
+  từ khóa theo 4 nhóm (SPAM/PURCHASE/PRODUCT_QUESTION/QUESTION) cho cả tiếng Việt (không phân biệt
+  dấu, vì bình luận live thường gõ không dấu) và zh-TW, chạy ngay tại máy, miễn phí, không gọi AI.
+  Ghi đúng field `intent`/`intentConfidence` như lọc AI nên hai cách dùng thay nhau tự do, không
+  xung đột. Nút "Phân loại theo quy tắc" đặt cạnh nút "Phân loại AI" ở tab Bảng điều khiển. AI vẫn
+  giữ lại riêng cho việc soạn gợi ý trả lời (`replies/suggest.ts`) — không đổi.
+- **Mở trang TikTok của khách ngay trong app, thay vì chuyển tab trình duyệt rời:** sau khi giải
+  thích rõ với người dùng lý do kỹ thuật tại sao không thể làm "trình quản lý kênh TikTok" đọc/trả
+  lời tin nhắn từ trong app (TikTok Business Messaging API có thật nhưng cần tài khoản Business +
+  đối tác được duyệt, giới hạn vùng, và **không thể chủ động mở hội thoại mới** với người chưa từng
+  nhắn tin trước — không hợp với nhu cầu "chủ động xin địa chỉ" của người bán dù có xin được
+  developer credentials), người dùng chọn phương án an toàn: một cửa sổ webview riêng của Tauri
+  (`commands::ship_open_buyer_page`, lệnh `ship_open_buyer_page`) mở đúng trang
+  `https://www.tiktok.com/@<id>` của khách, dùng nhãn cửa sổ theo id để bấm lại thì focus cửa sổ cũ
+  thay vì mở trùng. App chỉ ra lệnh mở URL — không đọc, không ghi, không tiêm script vào webview
+  đó; đăng nhập/gửi tin hoàn toàn là phiên TikTok thật của người bán. Nút "Mở trang TikTok của
+  khách" đặt cạnh nút sao chép tin nhắn xin thông tin ở tab Quy Trình (bước `ask`/`info`) — tận
+  dụng nguyên khung "Quy trình A–Z" theo từng người mua đã có sẵn từ mục 29, không làm tab mới.
+- **Chưa làm/chưa kiểm chứng:** build/test trên máy Mac và Windows thật cho các thay đổi trong mục
+  này chưa thực hiện lại (sẽ làm ở bước phát hành kế tiếp); cửa sổ webview TikTok mới chưa thử
+  bằng tài khoản TikTok thật (chỉ kiểm tra logic validate id + build Rust).
