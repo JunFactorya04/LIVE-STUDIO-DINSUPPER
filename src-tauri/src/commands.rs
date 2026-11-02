@@ -794,6 +794,14 @@ pub fn flow_mark(
 /// they all share one cookie jar — logging in once in any of them (see `ship_open_tiktok_login`)
 /// is enough for the others to already be signed in, the same way signing into TikTok once in a
 /// real browser keeps every other tab of that browser signed in.
+///
+/// MUST be called from an `async fn` command, never a plain synchronous one: on Windows,
+/// `WebviewWindowBuilder::build()` (and `WebviewWindow::navigate()`/`set_focus()`) deadlock the
+/// whole app when called from a synchronous command or event handler, because window creation
+/// has to hop to the main thread and a sync command can itself already be running there — see
+/// https://github.com/tauri-apps/wry/issues/583 and the `tauri` crate's own docs on
+/// `WebviewWindowBuilder::new`/`build`. Both call sites below are `async fn` for exactly this
+/// reason; keep it that way even though nothing here actually awaits anything.
 fn open_or_focus_tiktok_window(
     app: &AppHandle,
     label: &str,
@@ -827,7 +835,7 @@ fn open_or_focus_tiktok_window(
 /// duplicates. If the seller already signed in through `ship_open_tiktok_login`, this page opens
 /// already logged in (see `open_or_focus_tiktok_window`).
 #[tauri::command]
-pub fn ship_open_buyer_page(app: AppHandle, tiktok_id: String) -> Result<(), String> {
+pub async fn ship_open_buyer_page(app: AppHandle, tiktok_id: String) -> Result<(), String> {
     let id = ship::clean_tiktok_id(&tiktok_id).ok_or("BAD_ID")?;
     let url: tauri::Url = format!("https://www.tiktok.com/@{id}")
         .parse()
@@ -849,7 +857,7 @@ pub fn ship_open_buyer_page(app: AppHandle, tiktok_id: String) -> Result<(), Str
 /// custom `.data_directory()`), signing in here once also signs in every buyer window — the
 /// seller does not need to scan again per buyer.
 #[tauri::command]
-pub fn ship_open_tiktok_login(app: AppHandle) -> Result<(), String> {
+pub async fn ship_open_tiktok_login(app: AppHandle) -> Result<(), String> {
     let url: tauri::Url = "https://www.tiktok.com/login/qrcode".parse().map_err(err)?;
     open_or_focus_tiktok_window(
         &app,

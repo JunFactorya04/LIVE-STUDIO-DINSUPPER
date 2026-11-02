@@ -578,3 +578,26 @@ rồi các trang khác tự nhận" bằng đúng màn hình quét QR như TikTo
     đỏ (hết hàng) — trước chỉ có 2 mức xanh/đỏ.
   - Không thêm bước chọn sản phẩm nào ở màn hình bắt đầu live (`SetupPage.tsx` không đổi) —
     danh sách vẫn là toàn bộ danh mục/kho như trước, chỉ cải thiện cách hiển thị.
+
+## 35. SỬA LỖI KHẨN: treo cứng toàn bộ app khi mở cửa sổ TikTok
+
+- **Lỗi thật của chủ dự án gặp (build 50 trên Windows):** bấm "Đăng nhập TikTok" → cửa sổ mở ra
+  trắng tinh, không bấm được nút X để tắt, và ngay sau đó TOÀN BỘ app bị treo cứng (các tab khác,
+  ví dụ "Đơn ship", bị kẹt "Đang tải..." vĩnh viễn, icon/giao diện lỗi). Phải tắt bằng Task Manager.
+- **Nguyên nhân xác định được (không phải đoán):** đọc chính tài liệu của crate `tauri` 2.12.5
+  (`WebviewWindowBuilder::new`/`build` trong `tauri-2.12.5/src/webview/webview_window.rs`) ghi rõ:
+  > "On Windows, this function deadlocks when used in a synchronous command and event handlers...
+  > You should use `async` commands and separate threads when creating windows."
+  (tham chiếu tới lỗi đã biết của wry: https://github.com/tauri-apps/wry/issues/583)
+
+  `ship_open_tiktok_login` và `ship_open_buyer_page` (thêm ở mục 32) là hàm `fn` đồng bộ (không
+  `async`) — đúng loại hàm mà tài liệu cảnh báo sẽ deadlock trên Windows khi tạo cửa sổ webview
+  mới, vì việc tạo cửa sổ phải nhảy sang luồng chính (main thread) trong khi lệnh đồng bộ có thể
+  đang tự chạy ngay trên chính luồng đó — tự khóa chính mình, treo cả app vì luồng chính cũng lo
+  xử lý IPC/giao diện cho mọi cửa sổ khác.
+- **Sửa:** đổi cả hai command (`ship_open_tiktok_login`, `ship_open_buyer_page`) thành `pub async
+  fn` (`src-tauri/src/commands.rs`) — không đổi logic bên trong, chỉ đổi cách Tauri điều phối lệnh
+  (chạy trên worker thread của async runtime thay vì khả năng chạy ngay trên luồng chính), đúng
+  theo khuyến nghị chính thức của Tauri. Ghi chú cảnh báo deadlock thẳng vào doc-comment của
+  `open_or_focus_tiktok_window` để không ai vô tình đổi lại thành hàm đồng bộ sau này.
+- **Chưa kiểm chứng trên máy Windows thật** — chờ chủ dự án test lại bản build tiếp theo.
