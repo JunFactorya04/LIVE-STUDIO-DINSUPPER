@@ -806,6 +806,12 @@ pub fn flow_mark(
 /// window opens already signed in too, the same as opening any other window of that browser.
 /// There is no "always on top" here (an OS browser window isn't ours to pin), and no window
 /// reuse by buyer — a second click opens another window, which the seller closes themselves.
+// Narrow enough that tiktok.com serves its own mobile-web layout (single column, no desktop
+// sidebar) through its normal responsive CSS — this is still the one real tiktok.com, just a
+// phone-sized viewport, not a different site or a spoofed user agent. Roughly an iPhone's
+// portrait size plus window chrome.
+const TIKTOK_WINDOW_SIZE: &str = "430,900";
+
 fn open_tiktok_in_system_browser(url: &str) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
@@ -813,6 +819,7 @@ fn open_tiktok_in_system_browser(url: &str) -> Result<(), String> {
             if candidate.exists() {
                 return std::process::Command::new(&candidate)
                     .arg(format!("--app={url}"))
+                    .arg(format!("--window-size={TIKTOK_WINDOW_SIZE}"))
                     .spawn()
                     .map(|_| ())
                     .map_err(err);
@@ -825,7 +832,13 @@ fn open_tiktok_in_system_browser(url: &str) -> Result<(), String> {
         for app_name in ["Google Chrome", "Microsoft Edge"] {
             if std::path::Path::new(&format!("/Applications/{app_name}.app")).exists() {
                 return std::process::Command::new("open")
-                    .args(["-na", app_name, "--args", &format!("--app={url}")])
+                    .args([
+                        "-na",
+                        app_name,
+                        "--args",
+                        &format!("--app={url}"),
+                        &format!("--window-size={TIKTOK_WINDOW_SIZE}"),
+                    ])
                     .spawn()
                     .map(|_| ())
                     .map_err(err);
@@ -869,6 +882,12 @@ fn windows_browser_candidates() -> Vec<std::path::PathBuf> {
 /// looking like switching away to a browser. This is NOT automation: it is the seller's own
 /// browser, logged into (or already logged into) their own real TikTok session — the app never
 /// sees, stores or touches that login, and never reads or writes anything inside the window.
+///
+/// This opens the buyer's PROFILE page, not their chat thread directly — TikTok has no public
+/// URL to deep-link straight into a conversation with a given user, so the seller still taps
+/// TikTok's own "Message" button on that profile once to get to the chat. The window opens at
+/// phone width (see `TIKTOK_WINDOW_SIZE`) specifically so TikTok's own responsive site shows its
+/// mobile layout there, where that button is one tap at the top of the profile.
 #[tauri::command]
 pub async fn ship_open_buyer_page(tiktok_id: String) -> Result<(), String> {
     let id = ship::clean_tiktok_id(&tiktok_id).ok_or("BAD_ID")?;

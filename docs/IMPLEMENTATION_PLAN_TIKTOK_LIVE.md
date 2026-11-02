@@ -635,3 +635,19 @@ rồi các trang khác tự nhận" bằng đúng màn hình quét QR như TikTo
   động hoá bất kỳ thao tác nào với TikTok" của dự án. Giải pháp chọn (spawn trình duyệt thật như
   một tiến trình ngoài, không điều khiển nội dung bên trong) giữ đúng nguyên tắc đó.
 - **Chưa kiểm chứng trên máy Windows thật** — chờ chủ dự án test bản build tiếp theo.
+
+## 37.
+
+Cửa sổ TikTok (trang khách + đăng nhập) giờ mở ở kích thước hẹp theo chiều dọc
+(`--window-size=430,900`, xấp xỉ khung hình điện thoại) thay vì kích thước mặc định của trình
+duyệt. tiktok.com tự chuyển sang bố cục mobile-web (một cột, không sidebar desktop) qua CSS
+responsive của chính nó khi thấy khung hình hẹp như vậy — không phải một trang khác, không giả
+user-agent, chỉ là tham số kích thước cửa sổ khi spawn trình duyệt, giống `--app=`.
+
+Không có cách mở thẳng vào khung chat/nhắn tin của một người dùng TikTok bằng URL công khai —
+TikTok không công bố deep link dạng đó. Trang mở ra vẫn là trang hồ sơ (`/@id`); người bán tự bấm
+nút "Message" trên trang hồ sơ đó (một chạm, vì giờ đã ở bố cục mobile nên nút đó ở ngay đầu trang)
+để vào khung chat — không phải việc app tự động hoá, chỉ là điều hướng trình duyệt thật bình
+thường.
+
+**Build 51** đã được xác nhận chạy ổn trên máy Mac thật của chủ dự án.
