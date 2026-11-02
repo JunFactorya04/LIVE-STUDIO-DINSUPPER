@@ -516,3 +516,29 @@ xin địa chỉ sau live — đã xác nhận phạm vi từng phần bằng `A
 - **Chưa làm/chưa kiểm chứng:** build/test trên máy Mac và Windows thật cho các thay đổi trong mục
   này chưa thực hiện lại (sẽ làm ở bước phát hành kế tiếp); cửa sổ webview TikTok mới chưa thử
   bằng tài khoản TikTok thật (chỉ kiểm tra logic validate id + build Rust).
+
+## 32. Đăng nhập TikTok chung một lần cho mọi cửa sổ khách
+
+Theo phản hồi người dùng (cửa sổ TikTok khách báo lỗi vì chưa đăng nhập, và muốn "đăng nhập tổng
+rồi các trang khác tự nhận" bằng đúng màn hình quét QR như TikTok Web thật):
+
+- **`commands::ship_open_tiktok_login`** (lệnh `ship_open_tiktok_login`): mở một cửa sổ riêng, dùng
+  chung, tới `https://www.tiktok.com/login/qrcode` — đúng màn hình đăng nhập quét mã QR bằng app
+  TikTok trên điện thoại, không khác gì mở trình duyệt thật. Nút "Đăng nhập TikTok" đặt ngay đầu
+  tab Quy Trình, trước cả banner giải thích.
+- **Chia sẻ phiên đăng nhập giữa các cửa sổ:** tách logic mở/focus cửa sổ thành
+  `open_or_focus_tiktok_window()` dùng chung cho cả cửa sổ đăng nhập và cửa sổ từng khách — không
+  cửa sổ nào gọi `.incognito()` hay `.data_directory()` riêng, nên tất cả dùng chung đúng một hồ sơ
+  webview mặc định của Tauri (giống việc đăng nhập 1 tab trình duyệt thì mọi tab khác của trình
+  duyệt đó cũng đăng nhập theo). Đăng nhập ở cửa sổ chung 1 lần là đủ cho mọi cửa sổ khách sau đó.
+- **Hiện đúng lỗi thật khi mở cửa sổ thất bại:** trước đó lỗi bị nuốt thành một câu chung chung
+  "Không mở được cửa sổ TikTok, hãy thử lại." — giờ hiện kèm thông báo lỗi thật từ Rust
+  (`openTikTokFailed: "Không mở được cửa sổ TikTok: {error}"`) để dễ chẩn đoán lần sau nếu còn lỗi.
+- **Chưa kiểm chứng:** chưa thử lại trên máy Windows thật sau thay đổi này (bản build trước đó báo
+  lỗi mở cửa sổ khách — có thể do chưa đăng nhập TikTok lần nào, hoặc một nguyên nhân khác chưa rõ,
+  thông báo lỗi chi tiết hơn ở bản build tiếp theo sẽ giúp xác định).
+- **Sửa thêm một lỗi hiển thị phát hiện khi dựng ảnh demo minh họa cho người dùng:** thanh tồn kho
+  ở tab Bảng điều khiển Live (cột 200px bên trái) từng xếp tên sản phẩm, giá và chip còn/hết hàng
+  trên cùng một hàng ngang — tên sản phẩm bị bóp chỉ còn 1 ký tự vì giá + chip chiếm hết chỗ. Đổi
+  `.stock-list__row` sang xếp 2 dòng (tên ở dòng riêng, giá + chip ở dòng dưới) nên tên sản phẩm
+  đọc được đầy đủ (`src/pages/ConsolePage.tsx`, `src/theme/live.css`).

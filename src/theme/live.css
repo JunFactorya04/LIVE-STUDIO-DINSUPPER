@@ -175,10 +175,16 @@
 }
 .stock-list__row {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 2px;
   padding: 4px 0;
   border-bottom: 0.5px solid var(--mac-separator);
+}
+.stock-list__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
 }
 .slip-modal {
   position: fixed;
@@ -208,7 +214,9 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  flex: 1;
+}
+.stock-list__title {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

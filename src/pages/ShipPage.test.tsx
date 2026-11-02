@@ -58,6 +58,7 @@ function fake(over: Partial<ShipClient> = {}, orders = [order()], customers: Shi
     searchStores: vi.fn(async () => []),
     exportXlsx: vi.fn(async () => "/Downloads/x.xlsx"),
     openBuyerPage: vi.fn(async () => undefined),
+    openTikTokLogin: vi.fn(async () => undefined),
     ...over,
   };
   return c;

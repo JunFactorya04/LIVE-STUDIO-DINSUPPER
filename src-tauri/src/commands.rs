@@ -788,6 +788,33 @@ pub fn flow_mark(
     ship::flow_mark(&*db(&state)?, &tiktok_id, &step, &now).map_err(err)
 }
 
+/// Open (or bring forward) a small, always-on-top, draggable TikTok window identified by
+/// `label`, showing `url`. All of the app's TikTok windows deliberately use Tauri's *default*
+/// webview profile (no `.incognito()`, no custom `.data_directory()` anywhere in this file), so
+/// they all share one cookie jar — logging in once in any of them (see `ship_open_tiktok_login`)
+/// is enough for the others to already be signed in, the same way signing into TikTok once in a
+/// real browser keeps every other tab of that browser signed in.
+fn open_or_focus_tiktok_window(
+    app: &AppHandle,
+    label: &str,
+    url: tauri::Url,
+    title: &str,
+    size: (f64, f64),
+) -> Result<(), String> {
+    if let Some(win) = app.get_webview_window(label) {
+        win.navigate(url).map_err(err)?;
+        win.set_focus().map_err(err)?;
+        return Ok(());
+    }
+    tauri::WebviewWindowBuilder::new(app, label, tauri::WebviewUrl::External(url))
+        .title(title)
+        .inner_size(size.0, size.1)
+        .always_on_top(true)
+        .build()
+        .map_err(err)?;
+    Ok(())
+}
+
 /// Open one buyer's real TikTok page in its own small window — a separate, draggable OS window,
 /// not a tab inside the app's main window — so the seller can read the "ask for address"
 /// worklist and send the pre-drafted message without switching away from Live Studio, and can
@@ -797,26 +824,40 @@ pub fn flow_mark(
 /// into) with their own real TikTok session — the app never sees, stores or touches that login,
 /// and never reads or writes anything inside the window. Reusing the same window per buyer (by
 /// label) means a second click on the same buyer brings the window forward instead of piling up
-/// duplicates.
+/// duplicates. If the seller already signed in through `ship_open_tiktok_login`, this page opens
+/// already logged in (see `open_or_focus_tiktok_window`).
 #[tauri::command]
 pub fn ship_open_buyer_page(app: AppHandle, tiktok_id: String) -> Result<(), String> {
     let id = ship::clean_tiktok_id(&tiktok_id).ok_or("BAD_ID")?;
     let url: tauri::Url = format!("https://www.tiktok.com/@{id}")
         .parse()
         .map_err(|_| "BAD_ID".to_string())?;
-    let label = format!("buyer-{id}");
-    if let Some(win) = app.get_webview_window(&label) {
-        win.navigate(url).map_err(err)?;
-        win.set_focus().map_err(err)?;
-        return Ok(());
-    }
-    tauri::WebviewWindowBuilder::new(&app, label, tauri::WebviewUrl::External(url))
-        .title(format!("TikTok — @{id}"))
-        .inner_size(430.0, 780.0)
-        .always_on_top(true)
-        .build()
-        .map_err(err)?;
-    Ok(())
+    open_or_focus_tiktok_window(
+        &app,
+        &format!("buyer-{id}"),
+        url,
+        &format!("TikTok — @{id}"),
+        (430.0, 780.0),
+    )
+}
+
+/// Open the single, shared "sign in to TikTok" window: TikTok's own QR-code login page, scanned
+/// with the TikTok app on the seller's phone — the exact same flow as logging into TikTok in any
+/// browser. Nothing here is app code reading that login: the window is a plain TikTok webview,
+/// the app only asks it to exist and to show this URL. Because this window uses the same default
+/// webview profile as every `ship_open_buyer_page` window (none of them set `.incognito()` or a
+/// custom `.data_directory()`), signing in here once also signs in every buyer window — the
+/// seller does not need to scan again per buyer.
+#[tauri::command]
+pub fn ship_open_tiktok_login(app: AppHandle) -> Result<(), String> {
+    let url: tauri::Url = "https://www.tiktok.com/login/qrcode".parse().map_err(err)?;
+    open_or_focus_tiktok_window(
+        &app,
+        "tiktok-login",
+        url,
+        "Đăng nhập TikTok",
+        (480.0, 720.0),
+    )
 }
 
 // ---- phone sharing (only the desktop window can switch it on or off) ----

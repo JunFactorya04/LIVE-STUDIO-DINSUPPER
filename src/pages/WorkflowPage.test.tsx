@@ -39,6 +39,7 @@ function fake(over: Partial<ShipClient> = {}): ShipClient {
     flow: async () => [{ tiktokId: "mai", slipPrintedAt: "t", askCopiedAt: null }],
     markFlow: vi.fn(async () => undefined),
     openBuyerPage: vi.fn(async () => undefined),
+    openTikTokLogin: vi.fn(async () => undefined),
     ...over,
   };
 }

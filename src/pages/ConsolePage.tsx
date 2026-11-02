@@ -268,17 +268,21 @@ export function ConsolePage() {
             {stock.map((item) => (
               <li key={item.sku} className="stock-list__row">
                 <div className="stock-list__name">
-                  <span>{item.name}</span>
+                  <span className="stock-list__title" title={item.name}>
+                    {item.name}
+                  </span>
                   <span className="caption muted">{item.sku}</span>
                 </div>
-                <span className="num">
-                  {item.price === undefined ? t.console.stock.noPrice : money(item.price)}
-                </span>
-                <span className={`chip ${item.stock > 0 ? "tone-blue" : "tone-red"}`}>
-                  {item.stock > 0
-                    ? fmt(t.console.stock.left, { n: item.stock })
-                    : t.console.stock.out}
-                </span>
+                <div className="stock-list__meta">
+                  <span className="num">
+                    {item.price === undefined ? t.console.stock.noPrice : money(item.price)}
+                  </span>
+                  <span className={`chip ${item.stock > 0 ? "tone-blue" : "tone-red"}`}>
+                    {item.stock > 0
+                      ? fmt(t.console.stock.left, { n: item.stock })
+                      : t.console.stock.out}
+                  </span>
+                </div>
               </li>
             ))}
           </ul>

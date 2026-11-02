@@ -123,8 +123,20 @@ export function WorkflowPage({
     setNote(undefined);
     try {
       await api.openBuyerPage(b.tiktokId);
-    } catch {
-      setNote({ text: w.openTikTokFailed, error: true });
+    } catch (e) {
+      setNote({ text: fmt(w.openTikTokFailed, { error: String(e) }), error: true });
+    }
+  };
+
+  // Opens the one shared "sign in to TikTok" window (QR code, scanned with the TikTok app on
+  // the seller's phone) once; every openPage() window above then opens already signed in, since
+  // they all share the same browser profile — no need to scan again per buyer.
+  const openLogin = async () => {
+    setNote(undefined);
+    try {
+      await api.openTikTokLogin();
+    } catch (e) {
+      setNote({ text: fmt(w.openTikTokFailed, { error: String(e) }), error: true });
     }
   };
 
@@ -134,6 +146,19 @@ export function WorkflowPage({
         <p className="banner banner--info" role="note">
           {w.notice}
         </p>
+        {api.available && (
+          <div className="actions">
+            <button type="button" className="btn" onClick={() => void openLogin()}>
+              {w.loginTikTok}
+            </button>
+            <span className="caption">{w.loginTikTokHint}</span>
+          </div>
+        )}
+        {note && (
+          <p className={`banner ${note.error ? "banner--error" : "banner--info"}`} role="status">
+            {note.text}
+          </p>
+        )}
         {!api.available ? (
           <EmptyState title={t.ship.errors.desktopOnly} hint="" />
         ) : failed ? (
@@ -199,14 +224,6 @@ export function WorkflowPage({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            {note && (
-              <p
-                className={`banner ${note.error ? "banner--error" : "banner--info"}`}
-                role="status"
-              >
-                {note.text}
-              </p>
-            )}
             {visible.length === 0 ? (
               <EmptyState title={w.emptyTitle} hint={w.emptyHint} />
             ) : (

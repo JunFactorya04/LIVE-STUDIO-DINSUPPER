@@ -425,10 +425,13 @@ export const vi: Messages = {
       info: "Nhập thông tin nhận hàng",
       ship: "Tạo đơn ship",
     },
+    loginTikTok: "Đăng nhập TikTok",
+    loginTikTokHint:
+      "Chỉ cần đăng nhập 1 lần (quét mã QR bằng app TikTok trên điện thoại) — các cửa sổ “Mở trang TikTok của khách” bên dưới sẽ tự dùng chung phiên đăng nhập này.",
     openTikTok: "Mở trang TikTok của khách",
     openTikTokHint:
       "Mở trang TikTok thật của khách trong một cửa sổ riêng (có thể kéo đặt ở góc màn hình, luôn nổi trên cùng), để bạn đăng nhập TikTok của chính mình và tự gửi tin nhắn — app không đăng nhập hay gửi thay bạn.",
-    openTikTokFailed: "Không mở được cửa sổ TikTok, hãy thử lại.",
+    openTikTokFailed: "Không mở được cửa sổ TikTok: {error}",
   },
   ship: {
     notice:

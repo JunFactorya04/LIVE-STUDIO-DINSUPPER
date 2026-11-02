@@ -404,10 +404,13 @@ export const zhTW = {
       info: "填寫收件資料",
       ship: "建立出貨單",
     },
+    loginTikTok: "登入 TikTok",
+    loginTikTokHint:
+      "只需登入一次（用手機 TikTok App 掃描 QR code）——下面每個「開啟買家的 TikTok 頁面」視窗都會自動共用這個登入狀態。",
     openTikTok: "開啟買家的 TikTok 頁面",
     openTikTokHint:
       "在獨立視窗開啟買家真實的 TikTok 頁面（可拖到螢幕角落，永遠在最上層），讓您用自己的 TikTok 帳號登入並親自傳送訊息——App 不會替您登入或傳送。",
-    openTikTokFailed: "無法開啟 TikTok 視窗，請再試一次。",
+    openTikTokFailed: "無法開啟 TikTok 視窗：{error}",
   },
   ship: {
     notice:

@@ -98,6 +98,11 @@ export interface ShipClient {
    *  show that URL. A second call for the same buyer brings the existing window forward instead
    *  of opening a duplicate. */
   openBuyerPage(tiktokId: string): Promise<void>;
+  /** Opens the single, shared "sign in to TikTok" window — TikTok's own QR-code login page,
+   *  scanned with the TikTok app on the seller's phone. Signing in here once is enough for every
+   *  openBuyerPage() window too: they all share the same browser profile/cookies (see the Rust
+   *  side), the same way one browser tab staying signed in keeps every other tab signed in. */
+  openTikTokLogin(): Promise<void>;
 }
 
 class TauriShipClient implements ShipClient {
@@ -171,6 +176,9 @@ class TauriShipClient implements ShipClient {
   async openBuyerPage(tiktokId: string) {
     await this.call<null>("ship_open_buyer_page", { tiktokId });
   }
+  async openTikTokLogin() {
+    await this.call<null>("ship_open_tiktok_login");
+  }
 }
 
 class UnavailableShipClient implements ShipClient {
@@ -194,6 +202,7 @@ class UnavailableShipClient implements ShipClient {
   searchStores = () => this.no();
   exportXlsx = () => this.no();
   openBuyerPage = () => this.no();
+  openTikTokLogin = () => this.no();
 }
 
 export function createShipClient(): ShipClient {
