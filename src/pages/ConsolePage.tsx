@@ -527,8 +527,30 @@ export function ConsolePage() {
         )}
       </section>
 
-      <aside className="inspector console__insight" aria-label={t.insight.title}>
-        <h2 className="section-title">{t.insight.title}</h2>
+      {selected && (
+        <div
+          className="console__insight-backdrop"
+          onClick={() => setSelectedId(undefined)}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`inspector console__insight${selected ? " console__insight--open" : ""}`}
+        aria-label={t.insight.title}
+      >
+        <div className="console__insight-head">
+          <h2 className="section-title">{t.insight.title}</h2>
+          {selected && (
+            <button
+              type="button"
+              className="console__insight-close"
+              aria-label={t.common.close}
+              onClick={() => setSelectedId(undefined)}
+            >
+              ✕
+            </button>
+          )}
+        </div>
         {selected ? (
           <dl className="kv">
             <dt>{t.insight.user}</dt>

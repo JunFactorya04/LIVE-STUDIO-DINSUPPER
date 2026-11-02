@@ -502,6 +502,35 @@ button {
     color: var(--sys-blue);
   }
 
+  /* The "Thanh Toán" (POS) tab floats as a big round accent button, center of the bar, the way
+     a kiosk/register app marks its one primary action — not just another row item. */
+  .tabbar__item--accent {
+    position: relative;
+    flex: 0 0 56px;
+    width: 56px;
+    height: 56px;
+    margin-top: -22px;
+    border-radius: 50%;
+    background: var(--sys-green);
+    color: #04210c;
+    box-shadow:
+      0 6px 16px color-mix(in srgb, var(--sys-green) 55%, transparent),
+      0 0 0 4px var(--mac-toolbar);
+  }
+  .tabbar__item--accent[aria-current="page"] {
+    color: #04210c;
+  }
+  .tabbar__item--accent .icon {
+    stroke: #04210c;
+  }
+  .tabbar__item--accent .tabbar__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
   .table td,
   .table th {
     padding: 0 8px;

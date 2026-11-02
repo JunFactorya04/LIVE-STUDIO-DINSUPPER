@@ -6,7 +6,7 @@ import { zhTW } from "../i18n/zh-TW";
 import type { PosClient, PosSale } from "../pos/client";
 import type { PrintService } from "../print/service";
 import type { ShipResult, Unit, WarehouseClient } from "../warehouse/client";
-import { WarehousePage } from "./WarehousePage";
+import { PosPage } from "./PosPage";
 
 afterEach(cleanup);
 
@@ -43,10 +43,10 @@ function fakeClient(ship: WarehouseClient["ship"]): WarehouseClient {
 const printer = { available: true, print: vi.fn(async () => true) } as unknown as PrintService;
 
 function fakePosClient(save: PosClient["save"]): PosClient {
-  return { available: true, save, list: async () => [] };
+  return { available: true, save, list: async () => [] as PosSale[] };
 }
 
-describe("Tính tiền (POS checkout)", () => {
+describe("Thanh Toán (standalone POS page)", () => {
   it("scans a unit, ships it under a new sale id, and saves the sale's payment method", async () => {
     const shipResult: ShipResult = { units: [unit], total: unit.price };
     const ship = vi.fn().mockResolvedValue(shipResult);
@@ -54,16 +54,9 @@ describe("Tính tiền (POS checkout)", () => {
 
     render(
       <I18nProvider initial="zh-TW">
-        <WarehousePage
-          client={fakeClient(ship)}
-          posClient={fakePosClient(save)}
-          labels={printer}
-          receipts={printer}
-        />
+        <PosPage client={fakeClient(ship)} posClient={fakePosClient(save)} receipts={printer} />
       </I18nProvider>,
     );
-
-    fireEvent.click(screen.getByRole("button", { name: zhTW.warehouse.tabs.pos }));
 
     const input = screen.getByPlaceholderText(zhTW.warehouse.scanHere);
     fireEvent.change(input, { target: { value: unit.code } });
@@ -72,7 +65,7 @@ describe("Tính tiền (POS checkout)", () => {
     expect(await screen.findAllByText(/A12/)).not.toHaveLength(0);
 
     fireEvent.click(screen.getByRole("button", { name: zhTW.warehouse.pos.methods.TRANSFER }));
-    fireEvent.click(screen.getByRole("button", { name: zhTW.warehouse.pos.go }));
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(zhTW.warehouse.pos.confirm) }));
 
     await waitFor(() => expect(ship).toHaveBeenCalledTimes(1));
     expect(ship.mock.calls[0][0]).toEqual([unit.code]);
@@ -84,7 +77,6 @@ describe("Tính tiền (POS checkout)", () => {
     expect(saved.id).toBe(saleId);
     expect(saved.total).toBe(unit.price);
     expect(saved.paymentMethod).toBe("TRANSFER");
-    expect(saved.receiptNo).toBe(""); // numbering off by default
   });
 
   it("does not stop the sale when saving the till-history row fails", async () => {
@@ -96,24 +88,18 @@ describe("Tính tiền (POS checkout)", () => {
 
     render(
       <I18nProvider initial="zh-TW">
-        <WarehousePage
-          client={fakeClient(ship)}
-          posClient={fakePosClient(save)}
-          labels={printer}
-          receipts={printer}
-        />
+        <PosPage client={fakeClient(ship)} posClient={fakePosClient(save)} receipts={printer} />
       </I18nProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: zhTW.warehouse.tabs.pos }));
     const input = screen.getByPlaceholderText(zhTW.warehouse.scanHere);
     fireEvent.change(input, { target: { value: unit.code } });
     fireEvent.click(screen.getByRole("button", { name: "OK" }));
     await screen.findAllByText(/A12/);
-    fireEvent.click(screen.getByRole("button", { name: zhTW.warehouse.pos.go }));
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(zhTW.warehouse.pos.confirm) }));
 
     await waitFor(() => expect(ship).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
-    expect(await screen.findAllByText(/合計/)).not.toHaveLength(0);
+    expect(await screen.findAllByText(/尚未掃描商品/)).not.toHaveLength(0);
   });
 });

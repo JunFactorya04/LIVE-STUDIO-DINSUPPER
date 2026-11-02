@@ -757,3 +757,64 @@ File mới: `src-tauri/src/pos.rs`, `src/pos/client.ts`, `src/pos/settings.ts`, 
 `src/pages/InvoiceSection.tsx`, `src/pages/WarehousePage.pos.test.tsx`. Sửa: `db.rs` (migration 11),
 `commands.rs`/`lib.rs` (2 lệnh mới), `WarehousePage.tsx` (tab mới), `SettingsPage.tsx` (mục mới),
 `vi.ts`/`zh-TW.ts` (khoá `warehouse.pos.*`, `warehouse.tabs.pos`, `settings.invoice.*`).
+
+## 42.
+
+Phản hồi sau build-57 (4 điểm trong 1 tin nhắn, cộng thêm 2 yêu cầu phát sinh giữa chừng): sửa lỗi
+tìm cửa hàng theo quận/huyện, tách "Tính tiền" thành trang riêng + UI đẹp theo mẫu ảnh gửi, thêm
+trang quét QR riêng trên điện thoại, làm lại giao diện điện thoại của Console theo chuẩn Apple UI,
+và thêm ảnh sản phẩm khi nhập kho.
+
+**1. Lỗi tìm cửa hàng theo quận/huyện ("chỉ ấn cho vui"):** xác nhận được nguyên nhân thật —
+`ship_store_search` gọi đúng endpoint `emap.pcsc.com.tw` của 7-ELEVEN, và API đó cần thêm tên
+đường/tên cửa hàng/địa danh mới ra kết quả; chỉ "tỉnh+quận" không đủ (phía 7-ELEVEN trả về `NO2`
+— không khớp — không phải lỗi parse hay lỗi mạng của app). `StoreSearch.tsx`: bấm chọn quận/huyện
+giờ bôi chọn (select) sẵn chữ trong ô tìm, focus vào ô, và khi kết quả rỗng hiện gợi ý riêng
+(`storeNoneDistrict`) giải thích rõ cần gõ thêm gì, thay vì im lặng như "ấn cho vui".
+
+**2+4. Trang "Thanh Toán" độc lập (PC + điện thoại):** tách khỏi tab "Tính tiền" cũ trong Kho mã
+vạch, thành `PageId` mới `"pos"` — `src/pages/PosPage.tsx`, sidebar + tab bar riêng (`navigation.ts`,
+`Icons.tsx`). Trên máy tính: màn hình "phiếu xác nhận" tối màu (`.posui`) theo đúng mẫu ảnh — card
+món hàng có ảnh thumbnail, badge trạng thái "Chờ thanh toán", tổng tiền chữ to màu vàng-chanh, nút
+"Xác nhận thanh toán" to nổi bật + phím tắt F8, nút "In biên nhận" + F9, cột lịch sử giao dịch gần
+đây bên phải. Trên điện thoại: `isRemote()` chuyển sang `PosPhone` — segmented "Quét mã / Lịch sử",
+nút quét to tròn viền neon ở giữa (tái dùng `CameraButton`/`ScanBox` có sẵn, gửi mã qua
+`scan_push`), tab "Lịch sử" đọc `pos_sales_list` qua chia sẻ. Tab bar điện thoại: nút "Thanh Toán"
+nổi thành vòng tròn to màu xanh lá-neon ở giữa thanh (`.tabbar__item--accent`), đúng kiểu nút chính
+của app kiosk — `Shell.tsx`/`base.css`.
+
+Gỡ tab "Tính tiền" cũ khỏi `WarehousePage.tsx` (xoá `PosTab`, props `posClient`); logic giỏ
+hàng/thanh toán chuyển nguyên sang `PosDesktop` trong `PosPage.tsx`, vẫn gọi đúng `wh_ship` nên
+doanh thu tự lên báo cáo tài chính như cũ (không đổi gì ở `sales.ts`/`finance.ts`).
+
+**Lỗ hổng chia sẻ phải vá:** `pos_sales_list` chưa có trong danh sách lệnh cho phép của điện thoại
+(`share.rs::ALLOWED`) — tab "Lịch sử" trên điện thoại sẽ luôn lỗi nếu không thêm. Đã thêm
+`pos_sales_list` (chỉ đọc) và `sku_image_get` (chỉ đọc, cho ảnh sản phẩm) vào `ALLOWED` + khớp lệnh
+trong `dispatch()`; `pos_sale_save`/`sku_image_set`/`sku_image_delete` CHƯA thêm — ghi sổ bán hàng
+và sửa ảnh vẫn chỉ làm trên máy tính, đúng như "Tính tiền" gốc.
+
+**3. Điện thoại xem live + tạo đơn "sơ sài":** tính năng này vốn đã có sẵn qua `ConsolePage` khi mở
+bằng liên kết chia sẻ (không phải thiếu tính năng), nhưng giao diện điện thoại trước đây chỉ ẩn hẳn
+panel "Insight" (`display: none`) và liệt kê thống kê phiên bằng `<dl>` phẳng. Làm lại theo chuẩn
+Apple UI: panel Insight giờ trượt lên như bottom sheet (giống xem chi tiết kiểu iOS) khi bấm vào
+một bình luận, có nút đóng + nền mờ phía sau, thay vì biến mất hoàn toàn; thống kê phiên thành các
+hàng cao, dễ bấm, có viền phân cách thay vì danh sách dày đặc. Không đổi cấu trúc dữ liệu/logic,
+chỉ CSS (`live.css`) + JSX bọc thêm nút đóng/nền mờ (`ConsolePage.tsx`).
+
+**5. Ảnh sản phẩm khi nhập kho:** bảng mới `sku_images` (migration 12, `src-tauri/src/images.rs`) —
+một ảnh cho mỗi SKU (không phải từng món), lưu thẳng dạng `data:` URL nhỏ (đã resize phía client,
+tối đa ~500KB) ngay trong SQLite, để điện thoại đọc qua liên kết chia sẻ dùng chung cơ chế JSON với
+mọi lệnh khác, không cần máy chủ file riêng. `src/warehouse/downscale.ts` thu nhỏ ảnh còn ≤640px
+cạnh dài trước khi gửi lên. `src/warehouse/images.ts` (client), `src/warehouse/SkuPhoto.tsx`
+(`SkuThumb` hiển thị, `SkuPhotoPicker` chụp/chọn ảnh — `<input type=file capture=environment>` nên
+tự mở camera trên điện thoại, mở hộp thoại chọn file trên máy tính, không cần code camera riêng).
+Gắn vào: Nhập hàng (chọn ảnh khi nhập SKU mới), bảng tồn kho theo SKU (cột ảnh nhỏ), giỏ hàng
+"Thanh Toán" (ảnh cạnh mỗi dòng, đúng yêu cầu "quét mã có giá, có ảnh").
+
+File mới: `src-tauri/src/images.rs`, `src/pages/PosPage.tsx`, `src/pages/PosPage.test.tsx`,
+`src/warehouse/images.ts`, `src/warehouse/downscale.ts`, `src/warehouse/SkuPhoto.tsx`. Xoá:
+`src/pages/WarehousePage.pos.test.tsx`. Sửa: `db.rs` (migration 12), `commands.rs`/`lib.rs` (3 lệnh
+ảnh mới), `share.rs` (ALLOWED + dispatch: `pos_sales_list`, `sku_image_get`), `navigation.ts`
+(`PageId "pos"`), `Icons.tsx`, `Shell.tsx` (nút tab nổi), `App.tsx`, `WarehousePage.tsx` (gỡ tab
+Tính tiền, thêm ảnh ở Nhập hàng/Tồn kho), `StoreSearch.tsx`, `ConsolePage.tsx`,
+`live.css`/`base.css`, `vi.ts`/`zh-TW.ts`.

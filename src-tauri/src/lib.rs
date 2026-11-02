@@ -11,6 +11,7 @@ mod data;
 mod db;
 mod ecpay;
 mod euler;
+mod images;
 mod live;
 mod orders;
 mod overlay;
@@ -112,6 +113,9 @@ pub fn run() {
             commands::wh_ship,
             commands::pos_sale_save,
             commands::pos_sales_list,
+            commands::sku_image_set,
+            commands::sku_image_get,
+            commands::sku_image_delete,
             commands::wh_unit_get,
             commands::wh_units_list,
             commands::wh_move,

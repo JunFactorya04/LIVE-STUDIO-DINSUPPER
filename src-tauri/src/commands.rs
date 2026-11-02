@@ -1211,6 +1211,31 @@ pub fn pos_sales_list(
     crate::pos::sales_list(&*db(&state)?, limit).map_err(err)
 }
 
+/// Sets (or replaces) the one photo shown for a SKU, in Stock, Receive and "Thanh Toán".
+#[tauri::command]
+pub fn sku_image_set(
+    state: State<'_, DbState>,
+    sku: String,
+    data_url: String,
+    now: String,
+) -> Result<(), String> {
+    crate::images::set(&*db(&state)?, &sku, &data_url, &now).map_err(err)?;
+    log(&state, "SKU_IMAGE_SET", &sku);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn sku_image_get(state: State<'_, DbState>, sku: String) -> Result<Option<String>, String> {
+    crate::images::get(&*db(&state)?, &sku).map_err(err)
+}
+
+#[tauri::command]
+pub fn sku_image_delete(state: State<'_, DbState>, sku: String) -> Result<(), String> {
+    crate::images::delete(&*db(&state)?, &sku).map_err(err)?;
+    log(&state, "SKU_IMAGE_DELETED", &sku);
+    Ok(())
+}
+
 #[tauri::command]
 pub fn wh_unit_get(
     state: State<'_, DbState>,

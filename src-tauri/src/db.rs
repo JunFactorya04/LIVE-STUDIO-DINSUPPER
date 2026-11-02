@@ -259,6 +259,19 @@ CREATE TABLE pos_sales (
 CREATE INDEX pos_sales_created ON pos_sales(created_at);
 ";
 
+// One product photo per SKU (not per unit — every unit of a SKU is the same product), captured
+// or picked when the stock is received. Stored as a data: URL right in SQLite, downscaled on the
+// client before it gets here, so a phone reading it over the share link gets the same bytes
+// through the ordinary JSON command round trip as everything else — no file server, no path to
+// keep in sync across Mac, Windows and a phone.
+const MIGRATION_12: &str = "
+CREATE TABLE sku_images (
+    sku        TEXT PRIMARY KEY,
+    data_url   TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+";
+
 fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -324,6 +337,11 @@ pub fn migrate(conn: &Connection) -> Result<()> {
             "BEGIN;{MIGRATION_11}PRAGMA user_version = 11;COMMIT;"
         ))?;
     }
+    if version < 12 {
+        conn.execute_batch(&format!(
+            "BEGIN;{MIGRATION_12}PRAGMA user_version = 12;COMMIT;"
+        ))?;
+    }
     Ok(())
 }
 
@@ -354,7 +372,7 @@ mod tests {
         let v: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 11);
+        assert_eq!(v, 12);
     }
 
     #[test]

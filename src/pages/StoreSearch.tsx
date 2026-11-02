@@ -39,8 +39,13 @@ export function StoreSearch({
   const [open, setOpen] = useState(false);
   const [browsing, setBrowsing] = useState(false);
   const [city, setCity] = useState<TaiwanRegion>();
+  // 7-ELEVEN's own search needs a street, landmark or store name — a bare "city + district" text
+  // reliably comes back with no match, so a district pick shown as an ordinary empty result reads
+  // as broken. This flag swaps in a hint that explains why and what to type next, instead.
+  const [fromDistrict, setFromDistrict] = useState(false);
   const listId = useId();
   const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const cache = useRef(new Map<string, StoreHit[]>());
   const parsed = parseStoreQuery(query);
   const marks = [...parsed.understood, ...parsed.keys];
@@ -99,17 +104,22 @@ export function StoreSearch({
     setQuery("");
     setHits(undefined);
     setOpen(false);
+    setFromDistrict(false);
   };
 
   // Clicking a district sends 7-ELEVEN's own city+district text straight into the same free-text
   // search above (parseStoreQuery passes Chinese through unchanged) and opens the result list —
   // picking the live, current entry instead of typing or remembering a store number that may have
-  // changed since it was last used.
+  // changed since it was last used. 7-ELEVEN's search itself needs more than an administrative
+  // area to match anything, so the district name is left selected (not just appended) and the
+  // field focused, ready for the seller to type over it with a street or store name.
   const pickDistrict = (c: TaiwanRegion, district: string) => {
     setQuery(c.zh + district);
     setOpen(true);
+    setFromDistrict(true);
     setBrowsing(false);
     setCity(undefined);
+    window.requestAnimationFrame(() => inputRef.current?.select());
   };
 
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -136,6 +146,7 @@ export function StoreSearch({
       <label htmlFor={inputId}>{f.storeSearch}</label>
       <div className="store-search__box">
         <input
+          ref={inputRef}
           id={inputId}
           className="input"
           role="combobox"
@@ -150,6 +161,7 @@ export function StoreSearch({
           onChange={(e) => {
             setQuery(e.target.value);
             setOpen(true);
+            setFromDistrict(false);
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => window.setTimeout(() => setOpen(false), 150)}
@@ -252,7 +264,9 @@ export function StoreSearch({
           {f.storeOffline}
         </span>
       )}
-      {!busy && !error && hits && hits.length === 0 && <span className="muted">{f.storeNone}</span>}
+      {!busy && !error && hits && hits.length === 0 && (
+        <span className="muted">{fromDistrict ? f.storeNoneDistrict : f.storeNone}</span>
+      )}
     </div>
   );
 }

@@ -53,6 +53,10 @@ pub const ALLOWED: &[&str] = &[
     "wh_move",
     "wh_count_apply",
     "wh_moves_list",
+    "pos_sales_list",
+    // Read-only: capturing/replacing a product photo (Receive) stays desktop-only, but a photo
+    // already on file is worth showing while a phone browses Stock or the POS cart.
+    "sku_image_get",
     "ship_orders",
     "ship_order_save",
     "ship_order_delete",
@@ -308,6 +312,11 @@ async fn dispatch(
             arg(a, "now")?,
         )),
         "wh_moves_list" => out(commands::wh_moves_list(app.state(), arg(a, "limit")?)),
+        // In-person checkout ("Thanh Toán"): the phone pushes scans over `scan_push` above and
+        // only reads its own till history here — saving a sale's payment method stays on the
+        // computer, which is the side that actually shipped the units.
+        "pos_sales_list" => out(commands::pos_sales_list(app.state(), arg(a, "limit")?)),
+        "sku_image_get" => out(commands::sku_image_get(app.state(), arg(a, "sku")?)),
         "ship_customers" => out(commands::ship_customers(app.state())),
         "ship_customer_save" => out(commands::ship_customer_save(
             app.state(),

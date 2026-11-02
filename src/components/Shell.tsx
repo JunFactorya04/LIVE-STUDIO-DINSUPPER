@@ -114,15 +114,15 @@ export function TabBar({ current, onSelect }: NavProps) {
         <button
           key={item.id}
           type="button"
-          className="tabbar__item"
+          className={item.id === "pos" ? "tabbar__item tabbar__item--accent" : "tabbar__item"}
           aria-current={current === item.id ? "page" : undefined}
           onClick={() => {
             setMoreOpen(false);
             onSelect(item.id);
           }}
         >
-          <NavIcon id={item.id} size={22} />
-          {t.nav[item.id]}
+          <NavIcon id={item.id} size={item.id === "pos" ? 26 : 22} />
+          <span className="tabbar__label">{t.nav[item.id]}</span>
         </button>
       ))}
       <button

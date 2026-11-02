@@ -230,6 +230,21 @@
   align-self: start;
   overflow-wrap: anywhere;
 }
+.console__insight-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.console__insight-close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--mac-under);
+  color: var(--mac-label-2);
+}
 
 .banner {
   margin: 0 0 10px;
@@ -356,11 +371,55 @@
     grid-template-columns: minmax(0, 1fr);
     height: auto;
   }
+  /* The inspector was simply hidden on phone before; tapping a comment now opens it as a bottom
+     sheet instead, the way a native iOS detail view slides up over a list. */
   .console .console__insight {
-    display: none;
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-height: 78vh;
+    overflow-y: auto;
+    z-index: 30;
+    border-radius: 18px 18px 0 0;
+    background: var(--mac-box);
+    box-shadow: var(--shadow-pop);
+    padding: 14px 16px calc(16px + env(safe-area-inset-bottom));
+    transform: translateY(110%);
+    transition: transform 0.22s ease;
+  }
+  .console .console__insight--open {
+    transform: translateY(0);
+  }
+  .console__insight-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    background: rgba(0, 0, 0, 0.35);
   }
   .console__feed {
     min-height: 60vh;
+  }
+  /* Session stats as tap-height rows on a striped background, instead of a dense desktop kv
+     list — the numbers a seller glances at mid-live (runtime, drafts, needs review) stay easy
+     to read one-handed. */
+  .console__stats .kv {
+    gap: 0;
+    margin-top: 8px;
+  }
+  .console__stats .kv dt,
+  .console__stats .kv dd {
+    padding: 10px 2px;
+    border-bottom: 0.5px solid var(--mac-border);
+  }
+  .console__stats .kv dt {
+    text-align: left;
+  }
+  .console__stats .kv dd {
+    font-size: var(--fs-title3);
+    font-weight: 700;
+    text-align: right;
   }
   .icon-btn {
     width: 44px;
@@ -2654,4 +2713,361 @@
 }
 .ads__copy-result p:last-child {
   margin-bottom: 0;
+}
+
+/* ---- Product photo: Stock table / Receive / POS cart thumbnails ---- */
+.sku-thumb {
+  display: inline-block;
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--mac-under);
+  flex: none;
+}
+.sku-thumb--empty {
+  border: 1px dashed var(--mac-border);
+}
+.sku-photo-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sku-photo-pick__preview {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex: none;
+}
+
+/* ---- "Thanh Toán" (POS): a dark register/kiosk screen, both platforms ---- */
+.posui {
+  --p-bg: #0b0f17;
+  --p-card: #121826;
+  --p-line: rgba(255, 255, 255, 0.1);
+  --p-text: rgba(255, 255, 255, 0.92);
+  --p-dim: rgba(255, 255, 255, 0.55);
+  --p-accent: #cdfb3f;
+  --p-ok: #32d74b;
+  --p-bad: #ff453a;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 960px) {
+  .posui:not(.posui--phone) {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: start;
+  }
+}
+.posui__panel {
+  background: var(--p-bg);
+  color: var(--p-text);
+  border-radius: 18px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+.posui__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.posui__title {
+  margin: 0;
+  font-size: var(--fs-title1);
+  font-family: var(--font-display);
+}
+.posui__subtitle {
+  margin: 2px 0 0;
+  color: var(--p-dim);
+  font-size: var(--fs-callout);
+}
+.posui__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--p-dim);
+  font-size: var(--fs-callout);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.posui__badge--ok {
+  background: color-mix(in srgb, var(--p-ok) 22%, transparent);
+  color: var(--p-ok);
+}
+.posui__scanrow .scanbox__input {
+  background: var(--p-card);
+  border-color: var(--p-line);
+  color: var(--p-text);
+}
+.posui__hint {
+  margin: 0;
+  color: var(--p-dim);
+  font-size: var(--fs-callout);
+}
+.posui__hint--error {
+  color: var(--p-bad);
+}
+.posui__empty {
+  margin: 8px 0;
+  color: var(--p-dim);
+  font-size: var(--fs-body);
+  text-align: center;
+  padding: 24px 0;
+}
+.posui__orderline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--fs-callout);
+}
+.posui__orderid {
+  color: var(--p-dim);
+  font-family: var(--font-mono);
+}
+.posui__status {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--sys-orange) 25%, transparent);
+  color: var(--sys-orange);
+  font-weight: 600;
+}
+.posui__cart {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+.posui__item {
+  display: grid;
+  grid-template-columns: 48px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--p-card);
+  border: 0.5px solid var(--p-line);
+}
+.posui__item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.posui__item-info strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.posui__item-qty {
+  color: var(--p-dim);
+  font-size: var(--fs-callout);
+}
+.posui__item-price {
+  font-weight: 700;
+}
+.posui__remove {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--p-text);
+}
+.posui__totals {
+  display: flex;
+  justify-content: space-between;
+  color: var(--p-dim);
+  font-size: var(--fs-callout);
+}
+.posui__grandtotal {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--p-line);
+}
+.posui__grandtotal strong {
+  font-size: var(--fs-large-title);
+  color: var(--p-accent);
+}
+.posui__segmented {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.posui__segmented button {
+  flex: 1 1 auto;
+  min-height: var(--ctl-h-lg);
+  border-radius: 10px;
+  border: 0.5px solid var(--p-line);
+  background: var(--p-card);
+  color: var(--p-text);
+  font-weight: 600;
+}
+.posui__segmented button[aria-pressed="true"] {
+  background: var(--p-accent);
+  border-color: transparent;
+  color: #10210a;
+}
+.posui__segmented--wide button {
+  min-height: var(--ctl-h);
+}
+.posui__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.posui__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: 0;
+  font-weight: 700;
+  font-size: var(--fs-title3);
+}
+.posui__btn kbd {
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  opacity: 0.6;
+  border: 0.5px solid currentColor;
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.posui__btn--primary {
+  background: var(--p-accent);
+  color: #10210a;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--p-accent) 45%, transparent);
+}
+.posui__btn--primary:disabled {
+  opacity: 0.55;
+  box-shadow: none;
+}
+.posui__btn--ghost {
+  background: var(--p-card);
+  color: var(--p-text);
+  border: 0.5px solid var(--p-line);
+}
+.posui__btn--ghost:disabled {
+  opacity: 0.45;
+}
+.posui__btn--text {
+  background: transparent;
+  color: var(--p-dim);
+  height: 36px;
+}
+
+.posui__history {
+  background: var(--p-card);
+  color: var(--p-text);
+  border-radius: 18px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.posui__history-title {
+  margin: 0;
+  font-size: var(--fs-headline);
+  color: var(--p-dim);
+}
+.posui__historylist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.posui__historylist li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 0.5px solid var(--p-line);
+  font-size: var(--fs-callout);
+}
+.posui__history-when {
+  color: var(--p-dim);
+}
+.posui__history-method {
+  color: var(--p-dim);
+}
+
+/* Phone: big central scan stage, matching the "kiosk" bottom-nav QR tab. */
+.posui--phone {
+  background: var(--p-bg);
+  color: var(--p-text);
+  border-radius: 18px;
+  padding: 16px;
+}
+.posui__phonehead h1 {
+  margin: 0 0 10px;
+  font-size: var(--fs-title1);
+  font-family: var(--font-display);
+}
+.posui__bigscan {
+  display: flex;
+  justify-content: center;
+  padding: 18px 0;
+}
+.posui__bigscan .btn--scan {
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+    circle at 50% 40%,
+    color-mix(in srgb, var(--p-accent) 30%, transparent),
+    var(--p-card)
+  );
+  border: 2px solid var(--p-accent);
+  color: var(--p-accent);
+  font-weight: 700;
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--p-accent) 8%, transparent);
+}
+.posui__bigscan .btn--scan .icon {
+  width: 44px;
+  height: 44px;
+}
+.posui--phone .scanbox__input {
+  background: var(--p-card);
+  border-color: var(--p-line);
+  color: var(--p-text);
+}
+.posui__sentlist {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.posui__sentlist li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--p-card);
+  font-size: var(--fs-callout);
 }
