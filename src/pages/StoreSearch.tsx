@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { useI18n } from "../i18n";
 import type { ShipClient, StoreHit } from "../ship/client";
 import { matchScore, parseStoreQuery } from "../ship/storeQuery";
+import { TAIWAN_REGIONS, type TaiwanRegion } from "../ship/taiwanRegions";
 
 // Type-ahead search of 7-ELEVEN stores. Accepts a store number, Chinese, English or pinyin
 // (turned into Chinese first, shown as "understood as"), and lists suggestions as you type.
@@ -28,7 +29,7 @@ export function StoreSearch({
   api: Pick<ShipClient, "searchStores">;
   onPick: (h: StoreHit) => void;
 }) {
-  const { t } = useI18n();
+  const { t, fmt } = useI18n();
   const f = t.ship.form;
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<StoreHit[]>();
@@ -36,6 +37,8 @@ export function StoreSearch({
   const [error, setError] = useState(false);
   const [active, setActive] = useState(0);
   const [open, setOpen] = useState(false);
+  const [browsing, setBrowsing] = useState(false);
+  const [city, setCity] = useState<TaiwanRegion>();
   const listId = useId();
   const inputId = useId();
   const cache = useRef(new Map<string, StoreHit[]>());
@@ -96,6 +99,17 @@ export function StoreSearch({
     setQuery("");
     setHits(undefined);
     setOpen(false);
+  };
+
+  // Clicking a district sends 7-ELEVEN's own city+district text straight into the same free-text
+  // search above (parseStoreQuery passes Chinese through unchanged) and opens the result list —
+  // picking the live, current entry instead of typing or remembering a store number that may have
+  // changed since it was last used.
+  const pickDistrict = (c: TaiwanRegion, district: string) => {
+    setQuery(c.zh + district);
+    setOpen(true);
+    setBrowsing(false);
+    setCity(undefined);
   };
 
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -171,6 +185,58 @@ export function StoreSearch({
           </ul>
         )}
       </div>
+      <button
+        type="button"
+        className="btn store-search__toggle"
+        onClick={() => {
+          setBrowsing((b) => !b);
+          setCity(undefined);
+        }}
+      >
+        {browsing ? f.storeBrowseClose : f.storeBrowse}
+      </button>
+      {browsing && (
+        <div className="store-search__browse">
+          {!city ? (
+            <>
+              <span className="muted">{f.storePickCity}</span>
+              <div className="store-search__chips">
+                {TAIWAN_REGIONS.map((c) => (
+                  <button key={c.zh} type="button" className="btn" onClick={() => setCity(c)}>
+                    <span>{c.vi}</span>
+                    <span className="store-search__zh">{c.zh}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="store-search__back"
+                onClick={() => setCity(undefined)}
+              >
+                {f.storeBrowseBack}
+              </button>
+              <span className="muted">
+                {fmt(f.storePickDistrict, { city: `${city.vi} ${city.zh}` })}
+              </span>
+              <div className="store-search__chips">
+                {city.districts.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className="btn"
+                    onClick={() => pickDistrict(city, d)}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
       {parsed.understood.length > 0 && (
         <span className="muted">
           {f.storeUnderstood}: <strong>{parsed.understood.join(" · ")}</strong>

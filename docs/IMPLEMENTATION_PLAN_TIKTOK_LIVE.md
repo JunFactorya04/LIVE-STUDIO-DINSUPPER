@@ -694,3 +694,31 @@ vào trang của MyShip.
 
 Lệnh mới `ship_reveal_export` (Rust) chỉ mở được đúng file app vừa tự ghi ra trong thư mục export
 của chính nó (so khớp thư mục cha với `out_dir`) — không nhận đường dẫn tuỳ ý từ frontend.
+
+## 40.
+
+Thêm cách "Duyệt theo tỉnh/thành" vào ô tìm cửa hàng (StoreSearch, dùng trong form tạo đơn ship)
+— song song với ô gõ chữ đã có sẵn, không thay thế. Lý do: gõ mã cửa hàng đôi khi sai vì mã có
+thể đã đổi; duyệt theo khu vực và bấm chọn (giống hệt luồng của trang emap.pcsc.com.tw gốc của
+7-ELEVEN mà người dùng gửi ảnh) luôn cho kết quả đang tồn tại thật, không bị lệch.
+
+Cách hoạt động: bấm "Duyệt theo tỉnh/thành" → hiện lưới 22 tỉnh/thành Đài Loan, mỗi nút có cả tên
+tiếng Việt (phiên âm Hán Việt chuẩn) lẫn tên chữ Hán gốc → bấm 1 tỉnh/thành → hiện lưới quận/huyện
+của tỉnh đó (giữ nguyên chữ Hán gốc, không dịch — xem lý do bên dưới) → bấm 1 quận/huyện → ghép
+thành chuỗi "tỉnh+huyện" (vd "台北市大安區") đẩy thẳng vào đúng ô tìm kiếm đã có sẵn, tự động gọi
+`searchStores` giống hệt như gõ tay, hiện danh sách cửa hàng thật để bấm chọn — không có backend
+mới, dùng lại 100% `ship_store_search` đã có (vốn đã gọi đúng `emap.pcsc.com.tw/mobilemap/Id/Data.aspx`
+— cùng nguồn dữ liệu với trang trong ảnh người dùng gửi).
+
+Dữ liệu 22 tỉnh/thành + 370 quận/huyện lấy từ bảng mã bưu chính công khai của Đài Loan
+(`src/ship/taiwanRegions.ts`). Tên quận/huyện giữ nguyên chữ Hán, không tự dịch sang tiếng Việt —
+370 đơn vị là quá nhiều để dịch tay chính xác, dịch sai còn tệ hơn không dịch; chỉ 22 tên tỉnh/
+thành cấp cao được dịch (ít, dễ kiểm tra lại).
+
+**Yêu cầu đã trao đổi và thống nhất không làm:** người dùng muốn nút "Xuất & mở MyShip" (mục 38-39)
+tự động điền/chọn file vào ô upload trên trang MyShip thật, và sau đó đề xuất tự viết riêng một
+browser extension để làm việc đó. Đã giải thích: gói dưới hình thức nào (nút trong app hay
+extension ngoài) cũng là cùng một loại automation (script hoá DOM một trang web của công ty khác)
+mà dự án chủ động không làm, giữ nguyên lập trường. Người dùng đồng ý tự làm phần đó bên ngoài dự
+án nếu cần; dự án giữ nguyên hướng hiện tại (xuất file + copy đường dẫn + mở Explorer/Finder + mở
+trang MyShip thật, người dùng tự dán/kéo file).

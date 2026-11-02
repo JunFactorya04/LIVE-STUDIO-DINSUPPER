@@ -1028,6 +1028,47 @@
     min-height: 44px;
   }
 }
+.store-search__toggle {
+  margin-top: 6px;
+}
+.store-search__browse {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: var(--box-radius);
+  background: var(--mac-under);
+  display: grid;
+  gap: 8px;
+}
+.store-search__back {
+  justify-self: start;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--sys-blue);
+  font-size: var(--fs-callout);
+  cursor: pointer;
+}
+.store-search__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.store-search__chips .btn {
+  height: auto;
+  min-height: var(--ctl-h);
+  padding: 5px 10px;
+  white-space: normal;
+  text-align: left;
+}
+.store-search__zh {
+  color: var(--mac-label-2);
+  margin-left: 4px;
+}
+@media (max-width: 760px) {
+  .store-search__chips .btn {
+    min-height: 44px;
+  }
+}
 
 /* Sticker template */
 .sticker {
