@@ -98,6 +98,28 @@ export function ConsolePage() {
   const [printedIds, setPrintedIds] = useState<ReadonlySet<string>>(new Set());
   const searchRef = useRef<HTMLInputElement>(null);
   const stock = useStockOverview(store);
+  // How many units of each sku this session has already confirmed, so the live panel can show
+  // what's actually selling right now, not just a static catalog list.
+  const soldToday = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const d of s.drafts) {
+      if (d.status !== "CONFIRMED" || !d.sku) continue;
+      m.set(d.sku, (m.get(d.sku) ?? 0) + (d.quantity ?? 1));
+    }
+    return m;
+  }, [s.drafts]);
+  // Hot sellers first (most sold today), then in-stock items, out-of-stock pushed to the bottom —
+  // the seller glances here mid-live and sees what to call out next, not an alphabetical list.
+  const sortedStock = useMemo(() => {
+    return [...stock].sort((a, b) => {
+      const soldDiff = (soldToday.get(b.sku) ?? 0) - (soldToday.get(a.sku) ?? 0);
+      if (soldDiff !== 0) return soldDiff;
+      const stockDiff = Number(b.stock > 0) - Number(a.stock > 0);
+      if (stockDiff !== 0) return stockDiff;
+      return a.name.localeCompare(b.name);
+    });
+  }, [stock, soldToday]);
+  const LOW_STOCK = 3;
 
   // Cmd/Ctrl+F focuses the feed search (desktop keyboard standard).
   useEffect(() => {
@@ -265,26 +287,43 @@ export function ConsolePage() {
           <p className="muted caption">{t.console.stock.empty}</p>
         ) : (
           <ul className="stock-list">
-            {stock.map((item) => (
-              <li key={item.sku} className="stock-list__row">
-                <div className="stock-list__name">
-                  <span className="stock-list__title" title={item.name}>
-                    {item.name}
-                  </span>
-                  <span className="caption muted">{item.sku}</span>
-                </div>
-                <div className="stock-list__meta">
-                  <span className="num">
-                    {item.price === undefined ? t.console.stock.noPrice : money(item.price)}
-                  </span>
-                  <span className={`chip ${item.stock > 0 ? "tone-blue" : "tone-red"}`}>
-                    {item.stock > 0
-                      ? fmt(t.console.stock.left, { n: item.stock })
-                      : t.console.stock.out}
-                  </span>
-                </div>
-              </li>
-            ))}
+            {sortedStock.map((item) => {
+              const sold = soldToday.get(item.sku) ?? 0;
+              const stockTone =
+                item.stock <= 0
+                  ? "tone-red"
+                  : item.stock <= LOW_STOCK
+                    ? "tone-orange"
+                    : "tone-blue";
+              return (
+                <li key={item.sku} className="stock-list__row">
+                  <div className="stock-list__name">
+                    <span className="stock-list__title" title={item.name}>
+                      {item.name}
+                    </span>
+                    <span className="caption muted">{item.sku}</span>
+                  </div>
+                  <div className="stock-list__meta">
+                    <span className="num">
+                      {item.price === undefined ? t.console.stock.noPrice : money(item.price)}
+                    </span>
+                    {sold > 0 && (
+                      <span
+                        className="chip tone-green"
+                        title={fmt(t.console.stock.sold, { n: sold })}
+                      >
+                        {fmt(t.console.stock.sold, { n: sold })}
+                      </span>
+                    )}
+                    <span className={`chip ${stockTone}`}>
+                      {item.stock > 0
+                        ? fmt(t.console.stock.left, { n: item.stock })
+                        : t.console.stock.out}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

@@ -232,6 +232,7 @@ export const vi: Messages = {
       left: "còn {n}",
       out: "Hết hàng",
       noPrice: "Chưa có giá",
+      sold: "+{n} hôm nay",
     },
   },
   insight: {

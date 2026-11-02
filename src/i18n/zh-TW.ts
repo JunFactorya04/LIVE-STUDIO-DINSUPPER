@@ -220,6 +220,7 @@ export const zhTW = {
       left: "剩 {n}",
       out: "缺貨",
       noPrice: "尚未設定價格",
+      sold: "今天 +{n}",
     },
   },
   insight: {

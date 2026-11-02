@@ -561,3 +561,20 @@ rồi các trang khác tự nhận" bằng đúng màn hình quét QR như TikTo
   nút chính.
 - Nhãn nút và thông báo i18n cập nhật để phản ánh hành vi gộp (`vi.ts`/`zh-TW.ts`:
   `flow.actions.ask`, `ship.customers.copied`).
+
+## 34. Bảng tồn kho tab Live hiển thị thêm thông tin, không thêm bước chọn sản phẩm
+
+- Hỏi lại trước khi làm: chủ dự án muốn màn hình live "nhiều thông tin hơn cho đỉnh" khi bắt đầu
+  phiên — ba lựa chọn đưa ra là (a) thêm bước tick chọn "sản phẩm hôm nay" từ kho, (b) ô tìm kiếm
+  thêm nhanh từng sản phẩm, (c) giữ nguyên danh sách đầy đủ như hiện tại, chỉ làm đẹp hiển thị.
+  Chủ dự án chọn (c) — không thêm bước chọn sản phẩm nào cả.
+- **Việc đã làm** (`src/pages/ConsolePage.tsx`): bảng tồn kho ở tab Bảng điều khiển Live giờ:
+  - Hiện thêm chip xanh lá "+{n} hôm nay" cạnh mỗi sản phẩm đã bán được trong phiên live hiện tại
+    (tính từ `s.drafts` có `status === "CONFIRMED"`, cộng dồn theo sku) — người live nhìn ngay sản
+    phẩm nào đang bán chạy mà không cần qua tab khác.
+  - Sắp xếp lại danh sách: sản phẩm bán chạy nhất hôm nay lên đầu, rồi đến còn hàng, hết hàng rơi
+    xuống cuối — thay vì thứ tự alphabet cố định như trước.
+  - Chip tồn kho giờ có 3 mức màu: xanh dương (còn nhiều), cam (sắp hết, ≤3 cái — `LOW_STOCK`),
+    đỏ (hết hàng) — trước chỉ có 2 mức xanh/đỏ.
+  - Không thêm bước chọn sản phẩm nào ở màn hình bắt đầu live (`SetupPage.tsx` không đổi) —
+    danh sách vẫn là toàn bộ danh mục/kho như trước, chỉ cải thiện cách hiển thị.
