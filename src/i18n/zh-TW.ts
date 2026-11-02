@@ -406,7 +406,7 @@ export const zhTW = {
     },
     openTikTok: "開啟買家的 TikTok 頁面",
     openTikTokHint:
-      "在 App 內的獨立視窗開啟買家真實的 TikTok 頁面，讓您用自己的 TikTok 帳號登入並親自傳送訊息——App 不會替您登入或傳送。",
+      "在獨立視窗開啟買家真實的 TikTok 頁面（可拖到螢幕角落，永遠在最上層），讓您用自己的 TikTok 帳號登入並親自傳送訊息——App 不會替您登入或傳送。",
     openTikTokFailed: "無法開啟 TikTok 視窗，請再試一次。",
   },
   ship: {

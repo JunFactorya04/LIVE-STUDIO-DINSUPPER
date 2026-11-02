@@ -427,7 +427,7 @@ export const vi: Messages = {
     },
     openTikTok: "Mở trang TikTok của khách",
     openTikTokHint:
-      "Mở trang TikTok thật của khách ngay trong app (cửa sổ riêng), để bạn đăng nhập TikTok của chính mình và tự gửi tin nhắn — app không đăng nhập hay gửi thay bạn.",
+      "Mở trang TikTok thật của khách trong một cửa sổ riêng (có thể kéo đặt ở góc màn hình, luôn nổi trên cùng), để bạn đăng nhập TikTok của chính mình và tự gửi tin nhắn — app không đăng nhập hay gửi thay bạn.",
     openTikTokFailed: "Không mở được cửa sổ TikTok, hãy thử lại.",
   },
   ship: {

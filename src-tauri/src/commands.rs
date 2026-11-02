@@ -788,13 +788,16 @@ pub fn flow_mark(
     ship::flow_mark(&*db(&state)?, &tiktok_id, &step, &now).map_err(err)
 }
 
-/// Open one buyer's real TikTok page in its own small window inside the app, so the seller can
-/// read the "ask for address" worklist and send the pre-drafted message without switching away
-/// from Live Studio. This is NOT automation: the window is a plain TikTok webview the seller logs
-/// into (or is already logged into) with their own real TikTok session — the app never sees,
-/// stores or touches that login, and never reads or writes anything inside the window. Reusing
-/// the same window per buyer (by label) means a second click on the same buyer brings the window
-/// forward instead of piling up duplicates.
+/// Open one buyer's real TikTok page in its own small window — a separate, draggable OS window,
+/// not a tab inside the app's main window — so the seller can read the "ask for address"
+/// worklist and send the pre-drafted message without switching away from Live Studio, and can
+/// park this window in a corner of their screen while they keep working in the main app. Always
+/// on top (per the seller's own choice) so the main window never covers it back up. This is NOT
+/// automation: the window is a plain TikTok webview the seller logs into (or is already logged
+/// into) with their own real TikTok session — the app never sees, stores or touches that login,
+/// and never reads or writes anything inside the window. Reusing the same window per buyer (by
+/// label) means a second click on the same buyer brings the window forward instead of piling up
+/// duplicates.
 #[tauri::command]
 pub fn ship_open_buyer_page(app: AppHandle, tiktok_id: String) -> Result<(), String> {
     let id = ship::clean_tiktok_id(&tiktok_id).ok_or("BAD_ID")?;
@@ -810,6 +813,7 @@ pub fn ship_open_buyer_page(app: AppHandle, tiktok_id: String) -> Result<(), Str
     tauri::WebviewWindowBuilder::new(&app, label, tauri::WebviewUrl::External(url))
         .title(format!("TikTok — @{id}"))
         .inner_size(430.0, 780.0)
+        .always_on_top(true)
         .build()
         .map_err(err)?;
     Ok(())
