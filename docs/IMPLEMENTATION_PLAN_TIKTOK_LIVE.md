@@ -722,3 +722,38 @@ extension ngoài) cũng là cùng một loại automation (script hoá DOM một
 mà dự án chủ động không làm, giữ nguyên lập trường. Người dùng đồng ý tự làm phần đó bên ngoài dự
 án nếu cần; dự án giữ nguyên hướng hiện tại (xuất file + copy đường dẫn + mở Explorer/Finder + mở
 trang MyShip thật, người dùng tự dán/kéo file).
+
+## 41.
+
+Thêm tab **"Tính tiền"** vào Kho mã vạch: trạm bán hàng tại cửa hàng (POS) cho khách mua trực
+tiếp, không qua đơn live/ship. Theo đúng yêu cầu "giống xuất kho bán online": quét từng món (máy
+quét, gõ tay, hoặc điện thoại chia sẻ gửi mã qua — dùng lại 100% cơ chế relay `scan_push` đã có,
+điện thoại vẫn chỉ cần nút quét to như cũ, không có UI riêng), giỏ hàng tự cộng tổng tiền từ giá
+trên tem mỗi món, chọn hình thức thanh toán (Tiền mặt / Chuyển khoản / Khác), bấm Tính tiền.
+
+Tab chỉ hiện trên máy tính (không thêm vào danh sách tab của điện thoại) vì điện thoại chỉ đóng
+vai trò máy quét gửi mã, không tự vận hành giỏ hàng/thanh toán.
+
+**Kiến trúc tái dùng tối đa, gần như không động gì ở báo cáo tài chính:** việc "Tính tiền" gọi
+đúng `wh_ship` (lệnh Rust có sẵn, y hệt tab Xuất kho đang dùng) để đánh dấu các món đã bán và trừ
+kho. Vì Dashboard (`FinancePanel`/`ProfitPanel`) và Phân tích kho đều đã có sẵn `unitSales()` —
+hàm gộp các món đã xuất kho mà không gắn với đơn ship nào thành doanh thu — nên doanh thu bán tại
+quầy tự động lên báo cáo tài chính ngay khi dùng tab mới, không cần sửa `finance.ts`/`ledger.ts`/
+`analysis.ts`/`DashboardPage.tsx`.
+
+Phần mới duy nhất ở backend: bảng `pos_sales` (migration 11) + lệnh `pos_sale_save`/`pos_sales_list`
+— chỉ lưu đúng phần `wh_ship` không lưu: hình thức thanh toán và số biên nhận nội bộ (nếu có). Lưu
+sau khi `wh_ship` đã chạy xong; nếu lưu lỗi thì không huỷ đơn bán (hàng đã xuất kho là phần quan
+trọng, mất 1 dòng lịch sử thanh toán không đáng huỷ cả đơn).
+
+**Biên nhận nội bộ, không phải hoá đơn thuế thật:** theo yêu cầu người dùng xác nhận rõ ("hoá đơn
+là biên nhận nội bộ"), biên nhận in ra chỉ là phiếu bán hàng của shop. Có thêm tuỳ chọn đánh số
+thứ tự trong Cài đặt (`InvoiceSection`, tiền tố + số bắt đầu, lưu `localStorage`, tắt theo mặc
+định) để tiện theo dõi — người dùng xác nhận đây CHƯA phải dải số 統一發票 thật do Tổng cục Thuế
+cấp (chưa đăng ký), chỉ để sau này có dải số thật thì nối vào, tắt phần đánh số nội bộ này đi.
+Giao diện và code đều ghi rõ ràng đây không phải hoá đơn thuế hợp pháp để tránh hiểu lầm pháp lý.
+
+File mới: `src-tauri/src/pos.rs`, `src/pos/client.ts`, `src/pos/settings.ts`, `src/pos/receipt.ts`,
+`src/pages/InvoiceSection.tsx`, `src/pages/WarehousePage.pos.test.tsx`. Sửa: `db.rs` (migration 11),
+`commands.rs`/`lib.rs` (2 lệnh mới), `WarehousePage.tsx` (tab mới), `SettingsPage.tsx` (mục mới),
+`vi.ts`/`zh-TW.ts` (khoá `warehouse.pos.*`, `warehouse.tabs.pos`, `settings.invoice.*`).

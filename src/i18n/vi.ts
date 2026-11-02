@@ -719,6 +719,7 @@ export const vi: Messages = {
       stock: "Tồn kho",
       receive: "Nhập hàng",
       ship: "Xuất kho",
+      pos: "Tính tiền",
       count: "Kiểm kê",
       history: "Nhật ký",
       analysis: "Phân tích",
@@ -907,6 +908,15 @@ export const vi: Messages = {
       title: "PHIẾU XUẤT KHO",
       total: "Tổng tiền",
       items: "Số món",
+    },
+    pos: {
+      title: "Tính tiền tại cửa hàng",
+      help: "Quét từng món khách mua (máy quét, gõ tay hoặc điện thoại chia sẻ gửi qua), chọn hình thức thanh toán rồi bấm Tính tiền. Giống hệt xuất kho bán online, chỉ khác không cần mã đơn.",
+      payment: "Hình thức thanh toán",
+      methods: { CASH: "Tiền mặt", TRANSFER: "Chuyển khoản", OTHER: "Khác" },
+      go: "Tính tiền",
+      receiptTitle: "BIÊN NHẬN BÁN HÀNG",
+      receiptNo: "Số biên nhận",
     },
     countTitle: "Kiểm kê",
     countHelp:
@@ -1427,6 +1437,13 @@ export const vi: Messages = {
     apiRemove: "Xóa",
     apiSaved: "Đã lưu",
     apiRemoved: "Đã xóa",
+    invoice: {
+      title: "Đánh số biên nhận (tab Tính tiền)",
+      help: "Chỉ là số thứ tự in trên biên nhận nội bộ của shop để dễ theo dõi — không phải hóa đơn thuế 統一發票 thật (số đó phải do Tổng cục Thuế cấp). Để sau này nối hóa đơn thuế thật thì tắt mục này.",
+      enable: "Đánh số biên nhận",
+      prefix: "Tiền tố",
+      next: "Số tiếp theo",
+    },
     ai: {
       title: "Dịch vụ AI",
       help: "Chọn dịch vụ AI sẽ dùng (nhập khóa ở trên). Phân loại và gợi ý trả lời sau này sẽ gửi các bình luận liên quan tới dịch vụ bạn chọn; chi phí tính vào tài khoản của bạn.",

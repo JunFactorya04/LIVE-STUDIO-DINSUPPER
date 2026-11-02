@@ -3,6 +3,7 @@ import { LOCALES, useI18n, type Locale } from "../i18n";
 import { AiSection } from "./AiSection";
 import { ApiKeysSection } from "./ApiKeysSection";
 import { THEMES, loadTheme, saveTheme, type Theme } from "../theme/theme";
+import { InvoiceSection } from "./InvoiceSection";
 import { PrinterSection } from "./PrinterSection";
 import { ShareSection } from "./ShareSection";
 import { StickerSection } from "./StickerSection";
@@ -78,6 +79,7 @@ export function SettingsPage() {
           <PrinterSection />
           <PrinterSection kind="label" />
           <StickerSection />
+          <InvoiceSection />
         </>
       )}
       {tab === "phone" && <ShareSection />}

@@ -14,6 +14,7 @@ mod euler;
 mod live;
 mod orders;
 mod overlay;
+mod pos;
 mod printer;
 mod replies;
 mod secrets;
@@ -109,6 +110,8 @@ pub fn run() {
             commands::ship_order_delete,
             commands::wh_receive,
             commands::wh_ship,
+            commands::pos_sale_save,
+            commands::pos_sales_list,
             commands::wh_unit_get,
             commands::wh_units_list,
             commands::wh_move,

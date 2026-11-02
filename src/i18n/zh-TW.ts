@@ -694,6 +694,7 @@ export const zhTW = {
       stock: "庫存",
       receive: "進貨",
       ship: "出庫",
+      pos: "結帳收銀",
       count: "盤點",
       history: "異動紀錄",
       analysis: "分析",
@@ -879,6 +880,15 @@ export const zhTW = {
       title: "出庫單",
       total: "總金額",
       items: "件數",
+    },
+    pos: {
+      title: "店內結帳收銀",
+      help: "掃描顧客購買的每件商品(掃描器、手動輸入或手機分享傳來的條碼),選擇付款方式後按「結帳」。跟線上出庫一樣,只是不需要訂單編號。",
+      payment: "付款方式",
+      methods: { CASH: "現金", TRANSFER: "轉帳", OTHER: "其他" },
+      go: "結帳",
+      receiptTitle: "銷售憑單",
+      receiptNo: "憑單號碼",
     },
     countTitle: "盤點",
     countHelp:
@@ -1374,6 +1384,13 @@ export const zhTW = {
     apiRemove: "移除",
     apiSaved: "已儲存",
     apiRemoved: "已移除",
+    invoice: {
+      title: "憑單編號（結帳收銀頁）",
+      help: "只是印在店家內部憑單上的流水號，方便整理對帳——不是真正的統一發票號碼（那必須由財政部核發）。日後要接真正的電子發票時，請關閉此項。",
+      enable: "啟用憑單編號",
+      prefix: "前置碼",
+      next: "下一個號碼",
+    },
     ai: {
       title: "AI 服務",
       help: "選擇要使用的 AI 服務（金鑰在上方輸入）。之後的分類與回覆建議會把相關留言傳送給你選的服務，費用由你的帳號負擔。",

@@ -242,6 +242,23 @@ CREATE TABLE order_slips (
 );
 ";
 
+// In-person checkout at the "Tính tiền" (POS) tab: just the sale's own metadata (how it was
+// paid, the internal receipt number if the seller turned numbering on). The goods themselves
+// are the same `wh_units` rows the sale's scan already shipped (order_id = this sale's id);
+// revenue is picked up automatically wherever `unitSales()` already merges shipped units that
+// point at no ship order, so this table carries nothing about money or items.
+const MIGRATION_11: &str = "
+CREATE TABLE pos_sales (
+    id             TEXT PRIMARY KEY,
+    created_at     TEXT NOT NULL,
+    total          INTEGER NOT NULL,
+    payment_method TEXT NOT NULL CHECK (payment_method IN ('CASH','TRANSFER','OTHER')),
+    receipt_no     TEXT NOT NULL DEFAULT '',
+    note           TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX pos_sales_created ON pos_sales(created_at);
+";
+
 fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -302,6 +319,11 @@ pub fn migrate(conn: &Connection) -> Result<()> {
             "BEGIN;{MIGRATION_10}PRAGMA user_version = 10;COMMIT;"
         ))?;
     }
+    if version < 11 {
+        conn.execute_batch(&format!(
+            "BEGIN;{MIGRATION_11}PRAGMA user_version = 11;COMMIT;"
+        ))?;
+    }
     Ok(())
 }
 
@@ -332,7 +354,7 @@ mod tests {
         let v: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 10);
+        assert_eq!(v, 11);
     }
 
     #[test]

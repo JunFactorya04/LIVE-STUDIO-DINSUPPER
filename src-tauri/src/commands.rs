@@ -1189,6 +1189,28 @@ pub fn wh_ship(
     Ok(r)
 }
 
+/// Stores one in-person sale's payment method / receipt number, after its units have already
+/// been shipped with `wh_ship` using this same id as the order id (see `pos::sale_save`).
+#[tauri::command]
+pub fn pos_sale_save(
+    state: State<'_, DbState>,
+    sale: crate::pos::PosSaleDto,
+    now: String,
+) -> Result<(), String> {
+    crate::pos::sale_save(&*db(&state)?, &sale, &now).map_err(err)?;
+    log(&state, "POS_SALE_SAVED", &sale.id);
+    Ok(())
+}
+
+/// Most recent in-person sales first, for the "Tính tiền" tab's own till history.
+#[tauri::command]
+pub fn pos_sales_list(
+    state: State<'_, DbState>,
+    limit: i64,
+) -> Result<Vec<crate::pos::PosSaleDto>, String> {
+    crate::pos::sales_list(&*db(&state)?, limit).map_err(err)
+}
+
 #[tauri::command]
 pub fn wh_unit_get(
     state: State<'_, DbState>,

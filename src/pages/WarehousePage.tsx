@@ -23,11 +23,20 @@ import { createScanRelay, type ScanRelay } from "../warehouse/relay";
 import { ScanBox } from "../warehouse/ScanBox";
 import { addScan, bySku, expectedMissing, nextSku } from "../warehouse/stats";
 import { createBizClient } from "../biz/client";
+import {
+  createPosClient,
+  PAYMENT_METHODS,
+  type PaymentMethod,
+  type PosClient,
+} from "../pos/client";
+import { nextReceiptNo } from "../pos/settings";
+import { posReceipt } from "../pos/receipt";
 
 // Warehouse with a barcode on every unit: see what is on the shelf, receive stock and print the
 // labels, scan units out to ship (the total comes from their prices), and count the shelves.
 
-type Tab = "stock" | "receive" | "ship" | "count" | "history" | "analysis" | "guide" | "send";
+type Tab =
+  "stock" | "receive" | "ship" | "pos" | "count" | "history" | "analysis" | "guide" | "send";
 const money = (n: number) => `NT$ ${Math.round(n).toLocaleString("en-US")}`;
 const pad = (n: number) => String(n).padStart(2, "0");
 /** Local date and time for a datetime-local field: 2026-10-30T18:40. */
@@ -42,6 +51,7 @@ const whenOf = (iso: string, locale: string) =>
 
 export function WarehousePage({
   client,
+  posClient,
   labels,
   receipts,
   camera,
@@ -49,6 +59,7 @@ export function WarehousePage({
 }: {
   relay?: ScanRelay;
   client?: WarehouseClient;
+  posClient?: PosClient;
   labels?: PrintService;
   receipts?: PrintService;
   /** Camera scanner (phone); given the scan handler, returns the button that opens it. */
@@ -58,6 +69,7 @@ export function WarehousePage({
   const w = t.warehouse;
   const remote = isRemote();
   const [api] = useState(() => client ?? createWarehouseClient());
+  const [posApi] = useState(() => posClient ?? createPosClient());
   const [labelSvc] = useState(() => labels ?? getLabelService());
   const [receiptSvc] = useState(() => receipts ?? getPrintService());
   const [relayApi] = useState(() => relay ?? createScanRelay());
@@ -68,9 +80,11 @@ export function WarehousePage({
   }, []);
   const [note, setNote] = useState<{ text: string; error: boolean }>();
 
+  // "Tính tiền" (POS) stays desktop-only: the phone side keeps the same big scan button it
+  // already has on the "send" tab, which relays to whichever of these tabs is open.
   const tabs: Tab[] = remote
     ? ["send", "ship", "count", "stock", "analysis", "history", "guide"]
-    : ["stock", "receive", "ship", "count", "analysis", "history", "guide"];
+    : ["stock", "receive", "ship", "pos", "count", "analysis", "history", "guide"];
 
   const explain = useCallback(
     (e: unknown): string => {
@@ -141,6 +155,17 @@ export function WarehousePage({
       {tab === "ship" && (
         <ShipTab
           api={api}
+          receiptSvc={receiptSvc}
+          say={say}
+          explain={explain}
+          camera={camera}
+          register={register}
+        />
+      )}
+      {tab === "pos" && (
+        <PosTab
+          api={api}
+          posApi={posApi}
           receiptSvc={receiptSvc}
           say={say}
           explain={explain}
@@ -830,6 +855,197 @@ function ShipTab({
                 onClick={() => void finish()}
               >
                 {busy ? w.working : w.shipGo}
+              </button>
+            </div>
+          </>
+        )}
+      </section>
+    </>
+  );
+}
+
+// ------------------------------------------------------------------ pos (in-person checkout)
+
+// "Tính tiền": scan goods out exactly like ShipTab above (same cart, same total from each
+// unit's own label price), but for a walk-in sale instead of fulfilling an existing order —
+// payment method replaces the order reference, and the receipt gets an internal number when the
+// seller turned that on in Settings. Ships through the same `api.ship`, so the sale's revenue
+// already reaches the dashboard with nothing extra to wire (see ../warehouse/sales.ts).
+function PosTab({
+  api,
+  posApi,
+  receiptSvc,
+  say,
+  explain,
+  camera,
+  register,
+}: Common & {
+  posApi: PosClient;
+  receiptSvc: PrintService;
+  camera?: (onScan: (code: string) => void) => React.ReactNode;
+  register: (h: ((code: string) => void) | undefined) => void;
+}) {
+  const { t } = useI18n();
+  const w = t.warehouse;
+  const [units, setUnits] = useState<Unit[]>([]);
+  const [payment, setPayment] = useState<PaymentMethod>("CASH");
+  const [note, setNoteText] = useState("");
+  const [printAfter, setPrintAfter] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const total = units.reduce((n, u) => n + u.price, 0);
+  const printerReady = receiptSvc.available && isConfigured(loadPrinter());
+
+  const labelsOf = {
+    title: w.pos.receiptTitle,
+    total: w.receipt.total,
+    items: w.receipt.items,
+    currency: "NT$",
+    receiptNo: w.pos.receiptNo,
+    payment: w.pos.payment,
+    methods: w.pos.methods,
+  };
+
+  const scan = async (raw: string) => {
+    const a = addScan(
+      units.map((u) => u.code),
+      raw,
+    );
+    if (!a.added) return say(w.alreadyScanned.replace("{code}", a.code), true);
+    try {
+      const u = await api.unit(a.code);
+      if (!u) return say(`${w.errors.UNKNOWN} (${a.code})`, true);
+      if (u.status !== "IN_STOCK") return say(`${w.errors.NOT_IN_STOCK} (${a.code})`, true);
+      setUnits((prev) => [...prev, u]);
+      say(`${u.sku} · ${money(u.price)}`);
+    } catch (e) {
+      say(explain(e), true);
+    }
+  };
+
+  useEffect(() => {
+    register((c) => void scan(c));
+    return () => register(undefined);
+  });
+
+  const finish = async () => {
+    if (units.length === 0) return;
+    setBusy(true);
+    const saleId = newId();
+    try {
+      const r = await api.ship(
+        units.map((u) => u.code),
+        saleId,
+        false,
+      );
+      const receiptNo = nextReceiptNo();
+      try {
+        await posApi.save({
+          id: saleId,
+          createdAt: new Date().toISOString(),
+          total: r.total,
+          paymentMethod: payment,
+          receiptNo,
+          note: note.trim(),
+        });
+      } catch {
+        // the goods are already shipped (that is the part that matters for stock and revenue);
+        // losing this till-history row is not worth undoing the sale over.
+      }
+      if (printAfter && printerReady)
+        await receiptSvc.print(posReceipt(r.units, payment, receiptNo, labelsOf));
+      say(w.shipped.replace("{n}", String(r.units.length)).replace("{total}", money(r.total)));
+      setUnits([]);
+      setNoteText("");
+    } catch (e) {
+      say(explain(e), true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <section className="box">
+        <h2 className="section-title">{w.pos.title}</h2>
+        <p className="caption">{w.pos.help}</p>
+        <ScanBox
+          onScan={(c) => void scan(c)}
+          placeholder={w.scanHere}
+          label={w.scanHere}
+          extra={camera?.((c) => void scan(c))}
+        />
+      </section>
+      <section className="box">
+        {units.length === 0 ? (
+          <p className="caption">{w.listEmpty}</p>
+        ) : (
+          <>
+            <ul className="wh-list">
+              {units.map((u) => (
+                <li key={u.code}>
+                  <span>
+                    <strong>{u.sku}</strong> <span className="muted">{u.code}</span>
+                  </span>
+                  <span>{money(u.price)}</span>
+                  <button
+                    type="button"
+                    className="btn"
+                    aria-label={`${w.remove} ${u.code}`}
+                    onClick={() => setUnits((p) => p.filter((x) => x.code !== u.code))}
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="wh-total">
+              <span>
+                {w.receipt.items}: {units.length}
+              </span>
+              <strong>{money(total)}</strong>
+            </div>
+            <div className="segmented" role="group" aria-label={w.pos.payment}>
+              {PAYMENT_METHODS.map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={payment === m}
+                  onClick={() => setPayment(m)}
+                >
+                  {w.pos.methods[m]}
+                </button>
+              ))}
+            </div>
+            <label className="field">
+              {w.orderRef}
+              <input
+                className="input"
+                value={note}
+                maxLength={60}
+                onChange={(e) => setNoteText(e.target.value)}
+              />
+            </label>
+            {printerReady && (
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={printAfter}
+                  onChange={(e) => setPrintAfter(e.target.checked)}
+                />
+                {w.printReceipt}
+              </label>
+            )}
+            <div className="actions">
+              <button type="button" className="btn" onClick={() => setUnits([])}>
+                {w.clear}
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={busy}
+                onClick={() => void finish()}
+              >
+                {busy ? w.working : w.pos.go}
               </button>
             </div>
           </>
