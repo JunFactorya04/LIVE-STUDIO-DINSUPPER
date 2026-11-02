@@ -40,6 +40,7 @@ function fake(over: Partial<ShipClient> = {}): ShipClient {
     markFlow: vi.fn(async () => undefined),
     openBuyerPage: vi.fn(async () => undefined),
     openTikTokLogin: vi.fn(async () => undefined),
+    openCarrierPage: vi.fn(async () => undefined),
     ...over,
   };
 }

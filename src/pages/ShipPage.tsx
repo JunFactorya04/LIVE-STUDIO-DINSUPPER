@@ -1,4 +1,5 @@
 import { readStage } from "../carriers/env";
+import { CARRIERS } from "../carriers/registry";
 import { useLiveSession } from "../live/useLiveSession";
 import { StoreSearch } from "./StoreSearch";
 import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
@@ -26,6 +27,11 @@ import {
   total,
   type ShipForm,
 } from "../ship/validate";
+
+// The 7-ELEVEN order-import workbook this page already writes (see exportXlsx) is exactly what
+// MyShip's own upload page accepts — opening that page here just saves hunting for the link; the
+// seller still drags the file in and clicks upload themselves, same as any other carrier login.
+const MYSHIP_URL = CARRIERS.find((c) => c.id === "seven")!.consoleUrl;
 
 type Tab = "orders" | "customers" | "stores";
 type Filter = "pending" | "exported" | "all";
@@ -260,6 +266,32 @@ function OrdersTab({
     }
   };
 
+  // The MyShip alternative to the ECPay button above: write this one order into the same
+  // 7-ELEVEN import workbook exportXlsx() already produces for the batch button, then open
+  // MyShip's own upload page so the seller can drag that file in and upload it themselves — the
+  // app never signs in or uploads anything on their behalf, same as every other carrier page.
+  const [myshipping, setMyshipping] = useState<string>();
+  const myship = async (o: ShipOrder) => {
+    setMyshipping(o.id);
+    try {
+      const path = await api.exportXlsx([o.id], true);
+      onNote({ text: fmt(t.ship.export.done, { path }), error: false });
+      await onChanged();
+    } catch (e) {
+      const empty = e === "EMPTY";
+      onNote({ text: empty ? t.ship.export.empty : t.ship.export.failed, error: true });
+      setMyshipping(undefined);
+      return;
+    }
+    try {
+      await api.openCarrierPage(MYSHIP_URL);
+    } catch {
+      onNote({ text: t.carriers.openFail, error: true });
+    } finally {
+      setMyshipping(undefined);
+    }
+  };
+
   const print = async (o: ShipOrder) => {
     const ok = await printer.print(shipSlip(o, t.ship.slip));
     if (ok) onNote({ text: t.ship.printed, error: false });
@@ -405,6 +437,14 @@ function OrdersTab({
                           onClick={() => void waybill(o)}
                         >
                           {waybilling === o.id ? t.ship.waybill.creating : t.ship.waybill.create}
+                        </button>{" "}
+                        <button
+                          type="button"
+                          className="btn"
+                          disabled={myshipping === o.id}
+                          onClick={() => void myship(o)}
+                        >
+                          {myshipping === o.id ? t.ship.waybill.myshipBusy : t.ship.waybill.myship}
                         </button>{" "}
                       </>
                     )}

@@ -59,6 +59,7 @@ function fake(over: Partial<ShipClient> = {}, orders = [order()], customers: Shi
     exportXlsx: vi.fn(async () => "/Downloads/x.xlsx"),
     openBuyerPage: vi.fn(async () => undefined),
     openTikTokLogin: vi.fn(async () => undefined),
+    openCarrierPage: vi.fn(async () => undefined),
     ...over,
   };
   return c;
@@ -255,5 +256,30 @@ describe("ECPay waybill", () => {
     mount(fake({}, [order({ carrier: "ecpay", tracking: "F1239" })]));
     await screen.findByText(/F1239/);
     expect(screen.queryByRole("button", { name: zhTW.ship.waybill.create })).toBeNull();
+  });
+});
+
+describe("MyShip export", () => {
+  it("writes the order into the workbook, marks it exported, then opens MyShip", async () => {
+    const exportXlsx = vi.fn(async () => "/Downloads/7-eleven-orders-1.xlsx");
+    const openCarrierPage = vi.fn(async () => undefined);
+    mount(fake({ exportXlsx, openCarrierPage }));
+    fireEvent.click(await screen.findByRole("button", { name: zhTW.ship.waybill.myship }));
+    await waitFor(() => expect(exportXlsx).toHaveBeenCalledWith(["o1"], true));
+    expect(await screen.findByText(/7-eleven-orders-1\.xlsx/)).toBeTruthy();
+    await waitFor(() =>
+      expect(openCarrierPage).toHaveBeenCalledWith(expect.stringContaining("myship.7-11.com.tw")),
+    );
+  });
+
+  it("reports when the workbook could not be written and never opens MyShip", async () => {
+    const exportXlsx = vi.fn(async () => {
+      throw "EMPTY";
+    });
+    const openCarrierPage = vi.fn(async () => undefined);
+    mount(fake({ exportXlsx, openCarrierPage }));
+    fireEvent.click(await screen.findByRole("button", { name: zhTW.ship.waybill.myship }));
+    await screen.findByText(zhTW.ship.export.empty);
+    expect(openCarrierPage).not.toHaveBeenCalled();
   });
 });

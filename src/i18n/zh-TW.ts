@@ -419,6 +419,8 @@ export const zhTW = {
     waybill: {
       create: "建立 ECPay 託運單",
       creating: "建立中…",
+      myship: "匯出並開啟 MyShip",
+      myshipBusy: "匯出中…",
       done: "ECPay 託運單 {no}（{env}）。",
       envTest: "測試環境，不會真的出貨",
       envLive: "正式環境",

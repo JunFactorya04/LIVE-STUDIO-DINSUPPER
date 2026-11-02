@@ -440,6 +440,8 @@ export const vi: Messages = {
     waybill: {
       create: "Tạo vận đơn ECPay",
       creating: "Đang tạo…",
+      myship: "Xuất & mở MyShip",
+      myshipBusy: "Đang xuất…",
       done: "Vận đơn ECPay {no} ({env}).",
       envTest: "môi trường thử, không gửi hàng thật",
       envLive: "môi trường thật",

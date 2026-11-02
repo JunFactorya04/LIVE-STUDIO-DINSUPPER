@@ -651,3 +651,28 @@ nút "Message" trên trang hồ sơ đó (một chạm, vì giờ đã ở bố 
 thường.
 
 **Build 51** đã được xác nhận chạy ổn trên máy Mac thật của chủ dự án.
+
+## 38.
+
+Thêm nút "Xuất & mở MyShip" ở từng dòng đơn ship (trang Đơn ship), bên cạnh nút "Tạo vận đơn
+ECPay" đã có — chỗ đó giờ không còn bó buộc vào ECPay nữa, người bán tự chọn 1 trong 2:
+
+- **ECPay** (như cũ): gọi API thật, tạo vận đơn, có mã vận đơn ngay trong app.
+- **MyShip** (mới): ghi đơn đó vào đúng file Excel mẫu 賣貨便 v1.5 đã có sẵn (`export_xlsx`,
+  dùng chung với nút "Xuất Excel" hàng loạt ở đầu trang), đánh dấu đã xuất, rồi mở
+  myship.7-11.com.tw trong trình duyệt thật — người bán tự kéo file vào và bấm tải lên.
+
+Không có API MyShip công khai cho người bán cá nhân, nên không thể "liên kết tài khoản" theo
+nghĩa app tự xác thực/đọc profile như ECPay. Mục Hãng vận chuyển cho MyShip chỉ làm được 2 việc,
+đều đã có sẵn từ trước và giữ nguyên nguyên tắc không tự động hoá:
+1. Lưu tài khoản/mật khẩu vào kho khóa hệ điều hành — thuần làm ghi chú riêng, app không bao giờ
+   đọc lại hay tự điền vào đâu.
+2. Nút "Mở trang đăng nhập" mở myship.7-11.com.tw thật — người bán tự đăng nhập, tự thấy profile
+   thật của mình trong cửa sổ đó.
+
+Trạng thái "Đã xác thực" trong app chỉ dành cho ECPay (carrier duy nhất có API thật để app tự
+kiểm tra khóa) — với MyShip trạng thái cao nhất mãi mãi là "Đã lưu thông tin", đúng như
+`carriers.note` đã ghi rõ ("App không bao giờ ghi 'Đã xác thực' nếu hãng chưa trả lời thật").
+Việc hiện profile MyShip thật sự chỉ xảy ra trong cửa sổ trình duyệt đó, không phản chiếu ngược
+lại vào UI của LIVE STUDIO — đọc được điều đó đòi hỏi tự động đăng nhập giùm hoặc đọc cookie/phiên
+của người bán, đúng loại automation dự án chủ động không làm (cùng nguyên tắc với TikTok).

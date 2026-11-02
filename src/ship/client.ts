@@ -91,18 +91,21 @@ export interface ShipClient {
   searchStores(query: string): Promise<StoreHit[]>;
   /** Writes the 7-ELEVEN order-import workbook to Downloads and returns its path. */
   exportXlsx(ids: string[], markExported: boolean): Promise<string>;
-  /** Opens this buyer's real TikTok page in its own small window inside the app (not the OS
-   *  browser), so the seller can log in with their own TikTok session and send the pre-drafted
-   *  "ask for address" message without leaving Live Studio. The app never sees that login and
-   *  never reads or sends anything inside the window — it only asks the window to exist and to
-   *  show that URL. A second call for the same buyer brings the existing window forward instead
-   *  of opening a duplicate. */
+  /** Opens this buyer's real TikTok page at phone width in the seller's own Chrome/Edge (the OS
+   *  browser, in "app mode" — its own window, no tab bar), so the seller can log in with their
+   *  own TikTok session and send the pre-drafted "ask for address" message without it looking
+   *  like switching away to a browser. The app never sees that login and never reads or sends
+   *  anything inside the window — it only tells the browser which URL to show. */
   openBuyerPage(tiktokId: string): Promise<void>;
-  /** Opens the single, shared "sign in to TikTok" window — TikTok's own QR-code login page,
-   *  scanned with the TikTok app on the seller's phone. Signing in here once is enough for every
-   *  openBuyerPage() window too: they all share the same browser profile/cookies (see the Rust
-   *  side), the same way one browser tab staying signed in keeps every other tab signed in. */
+  /** Opens TikTok's own QR-code login page in the seller's real Chrome/Edge — scanned with the
+   *  TikTok app on the seller's phone. Signing in here once is enough for every openBuyerPage()
+   *  window too: they all share the same browser profile/cookies (see the Rust side), the same
+   *  way one browser tab staying signed in keeps every other tab signed in. */
   openTikTokLogin(): Promise<void>;
+  /** Opens any carrier's own page (console, login, tracking) in the seller's real browser — the
+   *  same one CarriersPage uses to connect a carrier. Used from the order list so, say, opening
+   *  MyShip to upload the exported workbook doesn't mean leaving the Ship page first. */
+  openCarrierPage(url: string): Promise<void>;
 }
 
 class TauriShipClient implements ShipClient {
@@ -179,6 +182,9 @@ class TauriShipClient implements ShipClient {
   async openTikTokLogin() {
     await this.call<null>("ship_open_tiktok_login");
   }
+  async openCarrierPage(url: string) {
+    await this.call<null>("open_carrier_page", { url });
+  }
 }
 
 class UnavailableShipClient implements ShipClient {
@@ -203,6 +209,7 @@ class UnavailableShipClient implements ShipClient {
   exportXlsx = () => this.no();
   openBuyerPage = () => this.no();
   openTikTokLogin = () => this.no();
+  openCarrierPage = () => this.no();
 }
 
 export function createShipClient(): ShipClient {
