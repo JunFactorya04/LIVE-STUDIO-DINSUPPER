@@ -100,13 +100,23 @@ export function WorkflowPage({
       return;
     }
     if (step === "ask") {
+      // One click does two things, both harmless on their own: copies the ask-for-address
+      // message to the clipboard, and opens the buyer's real TikTok page in its own window.
+      // Nothing is pasted or sent by the app — the seller still does Ctrl+V and Enter themselves
+      // inside that window, on their own TikTok session.
       try {
         await navigator.clipboard.writeText(fmt(t.ship.askMessage, { id: `@${b.tiktokId}` }));
         await api.markFlow(b.tiktokId, "ASK_COPIED");
-        setNote({ text: t.ship.customers.copied, error: false });
         await load();
       } catch {
         setNote({ text: t.ship.customers.copyFailed, error: true });
+        return;
+      }
+      try {
+        await api.openBuyerPage(b.tiktokId);
+        setNote({ text: t.ship.customers.copied, error: false });
+      } catch (e) {
+        setNote({ text: fmt(w.openTikTokFailed, { error: String(e) }), error: true });
       }
       return;
     }
@@ -286,7 +296,7 @@ export function WorkflowPage({
                           >
                             {w.actions[b.next]}
                           </button>
-                          {(b.next === "ask" || b.next === "info") && (
+                          {b.next === "info" && (
                             <button
                               type="button"
                               className="btn"

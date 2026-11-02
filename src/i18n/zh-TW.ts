@@ -400,7 +400,7 @@ export const zhTW = {
     actions: {
       order: "確認訂單",
       slip: "列印暫存單",
-      ask: "複製索取資料訊息",
+      ask: "複製訊息並開啟買家 TikTok",
       info: "填寫收件資料",
       ship: "建立出貨單",
     },
@@ -547,7 +547,7 @@ export const zhTW = {
       incomplete: "待補資料",
       createOrder: "建立出貨單",
       copyAsk: "複製索取資料訊息",
-      copied: "已複製。請自行貼到 TikTok 傳送，App 不會自動發送。",
+      copied: "已複製訊息並開啟買家的 TikTok 頁面。請自行貼上（Ctrl+V）傳送，App 不會自動發送。",
       copyFailed: "無法複製。",
       delete: "刪除",
     },

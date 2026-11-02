@@ -542,3 +542,22 @@ rồi các trang khác tự nhận" bằng đúng màn hình quét QR như TikTo
   trên cùng một hàng ngang — tên sản phẩm bị bóp chỉ còn 1 ký tự vì giá + chip chiếm hết chỗ. Đổi
   `.stock-list__row` sang xếp 2 dòng (tên ở dòng riêng, giá + chip ở dòng dưới) nên tên sản phẩm
   đọc được đầy đủ (`src/pages/ConsolePage.tsx`, `src/theme/live.css`).
+
+## 33. Gộp 1 nút "copy tin nhắn xin thông tin" + "mở trang TikTok của khách"
+
+- **Yêu cầu bị từ chối (ghi lại để không lặp lại):** chủ dự án yêu cầu tự động dán tin nhắn mẫu
+  vào khung chat TikTok rồi tự script bấm gửi, và sau đó yêu cầu thêm ký tự đặc biệt vào tin nhắn
+  mẫu (số điện thoại/địa chỉ) để né bộ lọc chống spam/PII của TikTok. Cả hai đều bị từ chối: tự
+  động gửi phá đúng nguyên tắc nền tảng của dự án ("app không bao giờ tự gửi tin nhắn/bình luận
+  vào TikTok"), và né bộ lọc của TikTok là cố ý lách hệ thống chống gian lận của họ — cả hai đều
+  tạo rủi ro tài khoản bán hàng bị TikTok coi là bot/spam. Không có code nào cho hai yêu cầu này.
+- **Việc đã làm (an toàn, không đụng tới nguyên tắc trên):** bước "Xin địa chỉ" (`act(b, "ask")`
+  trong `WorkflowPage.tsx`) giờ làm 2 việc trong 1 lần bấm — copy tin nhắn mẫu vào clipboard (như
+  cũ) VÀ mở luôn cửa sổ TikTok thật của khách đó (`api.openBuyerPage`). Người bán vẫn phải tự
+  Ctrl+V và Enter để gửi — tool không chạm vào DOM/nội dung trang TikTok, không tự điền, không tự
+  bấm gửi.
+- Nút "Mở trang TikTok của khách" riêng giờ chỉ còn hiện ở bước "info" (khách đã cung cấp thông
+  tin, người bán muốn mở lại trang để hỏi thêm) — không còn hiện riêng ở bước "ask" vì đã gộp vào
+  nút chính.
+- Nhãn nút và thông báo i18n cập nhật để phản ánh hành vi gộp (`vi.ts`/`zh-TW.ts`:
+  `flow.actions.ask`, `ship.customers.copied`).

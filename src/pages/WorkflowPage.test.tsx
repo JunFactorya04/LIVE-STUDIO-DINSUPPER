@@ -54,7 +54,7 @@ const mount = (c: ShipClient, onNavigate = vi.fn()) =>
   );
 
 describe("WorkflowPage", () => {
-  it("shows the buyer and copies the ask message, recording the step", async () => {
+  it("shows the buyer and copies the ask message, recording the step, then opens their TikTok page", async () => {
     const writeText = vi.fn(async () => undefined);
     Object.assign(navigator, { clipboard: { writeText } });
     const c = fake();
@@ -63,13 +63,16 @@ describe("WorkflowPage", () => {
     fireEvent.click(screen.getByRole("button", { name: zhTW.flow.actions.ask }));
     await waitFor(() => expect(c.markFlow).toHaveBeenCalledWith("mai", "ASK_COPIED"));
     expect(String((writeText.mock.calls[0] as unknown[])[0])).toContain("@mai");
+    await waitFor(() => expect(c.openBuyerPage).toHaveBeenCalledWith("mai"));
   });
 
-  it("opens the buyer's TikTok page in its own window instead of copying a message", async () => {
-    const c = fake();
+  it("opens the buyer's TikTok page in its own window for the info step", async () => {
+    const c = fake({
+      flow: async () => [{ tiktokId: "mai", slipPrintedAt: "t", askCopiedAt: "t" }],
+    });
     mount(c);
     expect(await screen.findByText("@mai")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: zhTW.flow.openTikTok }));
+    fireEvent.click(await screen.findByRole("button", { name: zhTW.flow.openTikTok }));
     await waitFor(() => expect(c.openBuyerPage).toHaveBeenCalledWith("mai"));
   });
 

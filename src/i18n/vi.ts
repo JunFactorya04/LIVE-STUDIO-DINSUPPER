@@ -421,7 +421,7 @@ export const vi: Messages = {
     actions: {
       order: "Chốt đơn",
       slip: "In tem tạm",
-      ask: "Copy tin nhắn xin thông tin",
+      ask: "Copy tin nhắn & mở TikTok của khách",
       info: "Nhập thông tin nhận hàng",
       ship: "Tạo đơn ship",
     },
@@ -569,7 +569,8 @@ export const vi: Messages = {
       incomplete: "Chờ bổ sung",
       createOrder: "Tạo đơn ship",
       copyAsk: "Copy tin nhắn xin thông tin",
-      copied: "Đã copy. Bạn tự dán vào TikTok để gửi, app không tự gửi.",
+      copied:
+        "Đã copy tin nhắn & mở trang TikTok của khách. Bạn tự dán (Ctrl+V) và gửi, app không tự gửi.",
       copyFailed: "Không copy được.",
       delete: "Xóa",
     },
