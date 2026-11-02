@@ -736,6 +736,47 @@ pub fn ship_export_xlsx(
     Ok(path.display().to_string())
 }
 
+/// Opens the Downloads folder with one exported file highlighted, so the seller can drag it
+/// straight into MyShip's own upload page rather than hunting for it. This is as far as the app
+/// goes toward "uploading to MyShip": it cannot attach the file into MyShip's own file picker
+/// itself (MyShip has no API, and reaching into its page to do that would mean scripting a site
+/// we don't own — the same kind of automation this project avoids for TikTok, just aimed at a
+/// different company). Only ever reveals a file this app itself just wrote to its own export
+/// folder, never an arbitrary path from the frontend.
+#[tauri::command]
+pub fn ship_reveal_export(app: AppHandle, path: String) -> Result<(), String> {
+    let dir = out_dir(&app)?;
+    let target = std::path::PathBuf::from(&path);
+    let parent = target.parent().ok_or("BAD_PATH")?;
+    if parent != dir || !target.is_file() {
+        return Err("BAD_PATH".into());
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer.exe")
+            .arg(format!("/select,{path}"))
+            .spawn()
+            .map(|_| ())
+            .map_err(err)
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .args(["-R", &path])
+            .spawn()
+            .map(|_| ())
+            .map_err(err)
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(dir)
+            .spawn()
+            .map(|_| ())
+            .map_err(err)
+    }
+}
+
 /// Look a 7-ELEVEN store up by number, name or address, using the public map page of 7-ELEVEN
 /// (the same request its own store picker makes). Called only when the seller types a search;
 /// usable results are kept locally so the number works offline next time.

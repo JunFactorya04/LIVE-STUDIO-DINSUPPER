@@ -676,3 +676,21 @@ kiểm tra khóa) — với MyShip trạng thái cao nhất mãi mãi là "Đã 
 Việc hiện profile MyShip thật sự chỉ xảy ra trong cửa sổ trình duyệt đó, không phản chiếu ngược
 lại vào UI của LIVE STUDIO — đọc được điều đó đòi hỏi tự động đăng nhập giùm hoặc đọc cookie/phiên
 của người bán, đúng loại automation dự án chủ động không làm (cùng nguyên tắc với TikTok).
+
+## 39.
+
+Thêm bước nữa vào nút "Xuất & mở MyShip" (mục 38): sau khi ghi file Excel, giờ còn copy sẵn
+đường dẫn file đó vào clipboard và mở Explorer/Finder với file đó được chọn sẵn, rồi mới mở
+myship.7-11.com.tw. Người bán chỉ cần dán (Ctrl+V) đường dẫn vào ô tên file trong hộp thoại tải
+lên của MyShip, hoặc kéo thả file từ cửa sổ Explorer/Finder đã mở sẵn — giảm bớt 1 bước tìm file.
+
+**Lưu ý đã cân nhắc và từ chối:** người dùng đề xuất muốn nút này "tự áp file vào chọn" ngay trên
+trang MyShip (tự động điền vào ô upload của MyShip). Việc đó đòi hỏi tự động hoá/script hoá một
+trang web của công ty khác (MyShip) — không có cách nào làm được mà không dùng công cụ kiểu
+Playwright/CDP để điều khiển DOM trang đó, đúng loại automation dự án đã từ chối làm với TikTok
+(đề xuất "Playwright + Chrome" ở mục 36), chỉ khác đối tượng là MyShip thay vì TikTok. Thay vào
+đó chọn giải pháp: copy đường dẫn + mở sẵn Explorer/Finder — giảm tối đa số bước tay mà không động
+vào trang của MyShip.
+
+Lệnh mới `ship_reveal_export` (Rust) chỉ mở được đúng file app vừa tự ghi ra trong thư mục export
+của chính nó (so khớp thư mục cha với `out_dir`) — không nhận đường dẫn tuỳ ý từ frontend.

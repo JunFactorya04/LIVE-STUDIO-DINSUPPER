@@ -106,6 +106,11 @@ export interface ShipClient {
    *  same one CarriersPage uses to connect a carrier. Used from the order list so, say, opening
    *  MyShip to upload the exported workbook doesn't mean leaving the Ship page first. */
   openCarrierPage(url: string): Promise<void>;
+  /** Opens the file manager (Explorer/Finder) with one just-exported file highlighted, so it's
+   *  right there to drag into a carrier's own upload page. This is as far as the app goes toward
+   *  "uploading" to a carrier with no API: it never reaches into that carrier's page to attach
+   *  the file itself — only a path this app itself just wrote is ever accepted. */
+  revealExport(path: string): Promise<void>;
 }
 
 class TauriShipClient implements ShipClient {
@@ -185,6 +190,9 @@ class TauriShipClient implements ShipClient {
   async openCarrierPage(url: string) {
     await this.call<null>("open_carrier_page", { url });
   }
+  async revealExport(path: string) {
+    await this.call<null>("ship_reveal_export", { path });
+  }
 }
 
 class UnavailableShipClient implements ShipClient {
@@ -210,6 +218,7 @@ class UnavailableShipClient implements ShipClient {
   openBuyerPage = () => this.no();
   openTikTokLogin = () => this.no();
   openCarrierPage = () => this.no();
+  revealExport = () => this.no();
 }
 
 export function createShipClient(): ShipClient {

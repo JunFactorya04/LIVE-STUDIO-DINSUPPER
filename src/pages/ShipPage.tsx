@@ -267,15 +267,18 @@ function OrdersTab({
   };
 
   // The MyShip alternative to the ECPay button above: write this one order into the same
-  // 7-ELEVEN import workbook exportXlsx() already produces for the batch button, then open
-  // MyShip's own upload page so the seller can drag that file in and upload it themselves — the
-  // app never signs in or uploads anything on their behalf, same as every other carrier page.
+  // 7-ELEVEN import workbook exportXlsx() already produces for the batch button, copy that
+  // file's path to the clipboard and reveal it in Explorer/Finder, then open MyShip's own upload
+  // page — so the file is right there to paste into the picker's filename box or drag in. This
+  // is as far as the app goes: it cannot attach the file into MyShip's own file picker itself,
+  // because doing that would mean scripting a page on a site the app doesn't own, the same kind
+  // of automation this project avoids on TikTok — the seller still clicks "upload" themselves.
   const [myshipping, setMyshipping] = useState<string>();
   const myship = async (o: ShipOrder) => {
     setMyshipping(o.id);
+    let path: string;
     try {
-      const path = await api.exportXlsx([o.id], true);
-      onNote({ text: fmt(t.ship.export.done, { path }), error: false });
+      path = await api.exportXlsx([o.id], true);
       await onChanged();
     } catch (e) {
       const empty = e === "EMPTY";
@@ -284,7 +287,18 @@ function OrdersTab({
       return;
     }
     try {
+      await navigator.clipboard.writeText(path);
+    } catch {
+      /* clipboard is a convenience; the file is still revealed and MyShip still opens */
+    }
+    try {
+      await api.revealExport(path);
+    } catch {
+      /* same — not fatal, the path is already copied and MyShip still opens below */
+    }
+    try {
       await api.openCarrierPage(MYSHIP_URL);
+      onNote({ text: fmt(t.ship.export.myshipDone, { path }), error: false });
     } catch {
       onNote({ text: t.carriers.openFail, error: true });
     } finally {

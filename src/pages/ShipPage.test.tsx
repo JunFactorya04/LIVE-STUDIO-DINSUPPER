@@ -60,6 +60,7 @@ function fake(over: Partial<ShipClient> = {}, orders = [order()], customers: Shi
     openBuyerPage: vi.fn(async () => undefined),
     openTikTokLogin: vi.fn(async () => undefined),
     openCarrierPage: vi.fn(async () => undefined),
+    revealExport: vi.fn(async () => undefined),
     ...over,
   };
   return c;
@@ -260,16 +261,25 @@ describe("ECPay waybill", () => {
 });
 
 describe("MyShip export", () => {
-  it("writes the order into the workbook, marks it exported, then opens MyShip", async () => {
+  it("writes the order, copies and reveals the file, then opens MyShip", async () => {
+    const writeText = vi.fn(async () => undefined);
+    Object.assign(navigator, { clipboard: { writeText } });
     const exportXlsx = vi.fn(async () => "/Downloads/7-eleven-orders-1.xlsx");
     const openCarrierPage = vi.fn(async () => undefined);
-    mount(fake({ exportXlsx, openCarrierPage }));
+    const revealExport = vi.fn(async () => undefined);
+    mount(fake({ exportXlsx, openCarrierPage, revealExport }));
     fireEvent.click(await screen.findByRole("button", { name: zhTW.ship.waybill.myship }));
     await waitFor(() => expect(exportXlsx).toHaveBeenCalledWith(["o1"], true));
-    expect(await screen.findByText(/7-eleven-orders-1\.xlsx/)).toBeTruthy();
+    await waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith("/Downloads/7-eleven-orders-1.xlsx"),
+    );
+    await waitFor(() =>
+      expect(revealExport).toHaveBeenCalledWith("/Downloads/7-eleven-orders-1.xlsx"),
+    );
     await waitFor(() =>
       expect(openCarrierPage).toHaveBeenCalledWith(expect.stringContaining("myship.7-11.com.tw")),
     );
+    expect(await screen.findByText(/7-eleven-orders-1\.xlsx/)).toBeTruthy();
   });
 
   it("reports when the workbook could not be written and never opens MyShip", async () => {

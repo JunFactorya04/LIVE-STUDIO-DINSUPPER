@@ -546,6 +546,8 @@ export const vi: Messages = {
       done: "Đã xuất ra: {path}",
       empty: "Không có đơn nào để xuất.",
       failed: "Xuất không được.",
+      myshipDone:
+        "Đã xuất file & mở MyShip. File đã copy đường dẫn (dán Ctrl+V vào ô tên file) và đã mở trong Explorer/Finder: {path}",
     },
     printed: "Đã gửi tới máy in.",
     slip: {

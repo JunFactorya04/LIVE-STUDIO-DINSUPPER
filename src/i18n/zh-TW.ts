@@ -525,6 +525,8 @@ export const zhTW = {
       done: "已匯出到：{path}",
       empty: "沒有可匯出的訂單。",
       failed: "匯出失敗。",
+      myshipDone:
+        "已匯出檔案並開啟 MyShip。路徑已複製（貼上 Ctrl+V 到檔名欄）並在檔案總管/Finder 開啟：{path}",
     },
     printed: "已送到印表機。",
     slip: {

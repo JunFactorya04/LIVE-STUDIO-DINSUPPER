@@ -104,6 +104,7 @@ pub fn run() {
             commands::ship_open_buyer_page,
             commands::ship_open_tiktok_login,
             commands::ship_export_xlsx,
+            commands::ship_reveal_export,
             commands::ship_order_save,
             commands::ship_order_delete,
             commands::wh_receive,
