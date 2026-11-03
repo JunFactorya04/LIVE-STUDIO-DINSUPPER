@@ -172,6 +172,7 @@ pub fn run() {
             commands::ship_stores_import,
             commands::ship_store_lookup,
             commands::ship_store_search,
+            commands::ship_store_area,
             commands::ship_stores_count,
             commands::share_new_link,
             commands::ui_set_labels,

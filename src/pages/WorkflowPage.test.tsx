@@ -35,6 +35,7 @@ function fake(over: Partial<ShipClient> = {}): ShipClient {
     lookupStore: vi.fn(),
     storesCount: vi.fn(),
     searchStores: vi.fn(),
+    storesInArea: vi.fn(),
     exportXlsx: vi.fn(),
     flow: async () => [{ tiktokId: "mai", slipPrintedAt: "t", askCopiedAt: null }],
     markFlow: vi.fn(async () => undefined),

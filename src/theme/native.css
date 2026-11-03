@@ -842,3 +842,54 @@
   display: grid;
   gap: 4px;
 }
+/* Phone mode in the Browser tab: the page sits in a phone-wide column; the sides stay calm. */
+.browser__viewport--phone {
+  background: var(--mac-under);
+  background-image: linear-gradient(
+    90deg,
+    transparent calc(50% - 216px),
+    var(--mac-border) calc(50% - 216px),
+    var(--mac-border) calc(50% - 215px),
+    transparent calc(50% - 215px),
+    transparent calc(50% + 215px),
+    var(--mac-border) calc(50% + 215px),
+    var(--mac-border) calc(50% + 216px),
+    transparent calc(50% + 216px)
+  );
+}
+/* Phone: a closed bottom sheet (comment details on the Live screen) is not just moved off
+   screen but hidden, so nothing can ever leave it hanging over the list. */
+@media (max-width: 760px) {
+  .console .console__insight:not(.console__insight--open) {
+    visibility: hidden;
+    transition:
+      transform 0.22s ease,
+      visibility 0s linear 0.22s;
+  }
+  /* Room for the floating tab bar and the home indicator under the last row. */
+  .content {
+    padding-bottom: calc(108px + env(safe-area-inset-bottom));
+  }
+}
+/* The stores of one district (browse by area): a scrolling list under its filter. */
+.store-search__area {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  border-radius: var(--ctl-radius);
+  background: var(--mac-box);
+  box-shadow: var(--shadow-box);
+}
+.store-search__area li + li {
+  border-top: 0.5px solid var(--mac-separator);
+}
+.store-search__area .store-search__item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}

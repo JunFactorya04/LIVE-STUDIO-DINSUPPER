@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useMemo, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { useI18n } from "../i18n";
 import type { ShipClient, StoreHit } from "../ship/client";
 import { matchScore, parseStoreQuery } from "../ship/storeQuery";
@@ -26,7 +26,7 @@ export function StoreSearch({
   api,
   onPick,
 }: {
-  api: Pick<ShipClient, "searchStores">;
+  api: Pick<ShipClient, "searchStores"> & Partial<Pick<ShipClient, "storesInArea">>;
   onPick: (h: StoreHit) => void;
 }) {
   const { t, fmt } = useI18n();
@@ -113,7 +113,31 @@ export function StoreSearch({
   // changed since it was last used. 7-ELEVEN's search itself needs more than an administrative
   // area to match anything, so the district name is left selected (not just appended) and the
   // field focused, ready for the seller to type over it with a street or store name.
+  // The district's own store list (7-ELEVEN's 依地區查詢), with a filter for a street or name.
+  const [area, setArea] = useState<{
+    city: TaiwanRegion;
+    district: string;
+    hits?: StoreHit[];
+    failed?: boolean;
+  }>();
+  const [areaFilter, setAreaFilter] = useState("");
+  const openArea = (c: TaiwanRegion, district: string) => {
+    setArea({ city: c, district });
+    setAreaFilter("");
+    api.storesInArea!(c.zh, district).then(
+      (hits) => setArea((a) => (a?.district === district ? { ...a, hits } : a)),
+      () => setArea((a) => (a?.district === district ? { ...a, failed: true } : a)),
+    );
+  };
+  const areaShown = useMemo(() => {
+    const words = areaFilter.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return (area?.hits ?? []).filter((h) =>
+      words.every((w) => `${h.code} ${h.name} ${h.address}`.toLowerCase().includes(w)),
+    );
+  }, [area, areaFilter]);
+
   const pickDistrict = (c: TaiwanRegion, district: string) => {
+    if (api.storesInArea) return openArea(c, district);
     setQuery(c.zh + district);
     setOpen(true);
     setFromDistrict(true);
@@ -203,13 +227,70 @@ export function StoreSearch({
         onClick={() => {
           setBrowsing((b) => !b);
           setCity(undefined);
+          setArea(undefined);
         }}
       >
         {browsing ? f.storeBrowseClose : f.storeBrowse}
       </button>
       {browsing && (
         <div className="store-search__browse">
-          {!city ? (
+          {area ? (
+            <>
+              <button
+                type="button"
+                className="store-search__back"
+                onClick={() => setArea(undefined)}
+              >
+                {f.storeBrowseBack}
+              </button>
+              <span className="muted">
+                {area.hits
+                  ? fmt(f.storeAreaCount, {
+                      area: `${area.city.zh}${area.district}`,
+                      n: area.hits.length,
+                    })
+                  : area.failed
+                    ? f.storeOffline
+                    : f.storeSearching}
+              </span>
+              {area.hits && area.hits.length > 0 && (
+                <>
+                  <input
+                    className="input"
+                    type="search"
+                    aria-label={f.storeAreaFilter}
+                    placeholder={f.storeAreaFilter}
+                    value={areaFilter}
+                    onChange={(e) => setAreaFilter(e.target.value)}
+                  />
+                  <ul className="store-search__area" aria-label={f.storeSearch}>
+                    {areaShown.map((h) => (
+                      <li key={h.code}>
+                        <button
+                          type="button"
+                          className="store-search__item"
+                          onClick={() => {
+                            pick(h);
+                            setBrowsing(false);
+                            setArea(undefined);
+                            setCity(undefined);
+                          }}
+                        >
+                          <span className="store-search__code">{h.code}</span>
+                          <span className="store-search__text">
+                            <strong>{h.name}</strong>
+                            <span className="muted">{h.address}</span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {areaShown.length === 0 && <span className="muted">{f.storeNone}</span>}
+                </>
+              )}
+              {area.hits && area.hits.length === 0 && <span className="muted">{f.storeNone}</span>}
+            </>
+          ) : !city ? (
             <>
               <span className="muted">{f.storePickCity}</span>
               <div className="store-search__chips">

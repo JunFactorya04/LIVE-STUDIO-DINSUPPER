@@ -574,6 +574,8 @@ export const vi: Messages = {
       storeBrowse: "Duyệt theo tỉnh/thành",
       storeBrowseClose: "Đóng",
       storeBrowseBack: "← Chọn tỉnh/thành khác",
+      storeAreaCount: "{n} cửa hàng 7-ELEVEN ở {area}",
+      storeAreaFilter: "Lọc theo tên đường hoặc tên cửa hàng",
       storePickCity: "Chọn tỉnh/thành",
       storePickDistrict: "Chọn quận/huyện ở {city}",
       pickProduct: "Sản phẩm gửi đi (chọn từ kho: tự trừ đúng màu/size và tính giá vốn)",
@@ -1698,5 +1700,6 @@ export const vi: Messages = {
     downloaded: 'Đã lưu "{name}" vào thư mục Tải về.',
     downloadFail: 'Không tải được "{name}".',
     showFile: "Xem file",
+    blockedApp: "Trang muốn mở app hoặc kho ứng dụng; app giữ bạn ở lại trang web.",
   },
 };

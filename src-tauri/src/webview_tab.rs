@@ -22,12 +22,37 @@ use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Webview, 
 const LABEL: &str = "browser-tab";
 const MAIN_WINDOW: &str = "main";
 
-/// A real iPhone Safari UA, so sites that branch on it (not just on viewport width) still give
-/// their mobile layout — this is what TikTok's own login/profile pages need to avoid the desktop
-/// sidebar overflowing a narrow panel. The seller can turn it off per-site from the address bar
-/// if a desktop layout is what they want instead.
+/// A phone browser's UA, so sites that branch on it (not just on viewport width) give their
+/// mobile layout — TikTok's login/profile pages need it. An Android Chrome one, not iPhone
+/// Safari: with an iPhone UA TikTok keeps sending the page to its iOS app / the App Store,
+/// which on a Mac with Apple silicon opens the TikTok app or the App Store instead of the page.
+/// The seller can turn phone mode off from the address bar for a desktop layout.
 const MOBILE_UA: &str =
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
+    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36";
+
+/// App stores and app-only links a site may push the tab to ("open in the TikTok app",
+/// "get the app"). The tab stays on the web page instead; the seller is told why.
+fn leaves_the_web(u: &url::Url) -> bool {
+    if u.scheme() != "https"
+        && u.scheme() != "http"
+        && u.scheme() != "about"
+        && u.scheme() != "blob"
+        && u.scheme() != "data"
+    {
+        return true; // snssdk1233://, tiktok://, intent://, itms-apps://, market://
+    }
+    let host = u.host_str().unwrap_or("");
+    const STORES: [&str; 4] = [
+        "apps.apple.com",
+        "itunes.apple.com",
+        "play.google.com",
+        "app.adjust.com",
+    ];
+    STORES
+        .iter()
+        .any(|h| host == *h || host.ends_with(&format!(".{h}")))
+        || host.ends_with("onelink.me")
+}
 
 #[derive(Default)]
 pub struct BrowserTabState(pub Mutex<Option<Webview>>);
@@ -150,6 +175,13 @@ pub fn browser_open(
     let mut builder =
         tauri::webview::WebviewBuilder::new(LABEL, WebviewUrl::External(target.clone()))
             .on_navigation(move |u| {
+                if leaves_the_web(u) {
+                    let _ = app_for_events.emit(
+                        "browser-tab://blocked",
+                        BrowserNavigated { url: u.to_string() },
+                    );
+                    return false;
+                }
                 let _ = app_for_events.emit(
                     "browser-tab://navigated",
                     BrowserNavigated { url: u.to_string() },
@@ -385,6 +417,28 @@ mod tests {
         assert_eq!(download_name(Path::new(""), &u), "waybill.pdf");
         assert_eq!(download_name(Path::new("/tmp/AB123.pdf"), &u), "AB123.pdf");
         std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn keeps_the_tab_on_the_web_instead_of_an_app_or_store() {
+        let u = |s: &str| url::Url::parse(s).unwrap();
+        assert!(leaves_the_web(&u("snssdk1233://user/profile/1")));
+        assert!(leaves_the_web(&u(
+            "intent://user#Intent;scheme=snssdk1233;end"
+        )));
+        assert!(leaves_the_web(&u(
+            "itms-apps://apps.apple.com/app/id835599320"
+        )));
+        assert!(leaves_the_web(&u(
+            "https://apps.apple.com/app/tiktok/id835599320"
+        )));
+        assert!(leaves_the_web(&u(
+            "https://play.google.com/store/apps/details?id=x"
+        )));
+        assert!(leaves_the_web(&u("https://tiktok.onelink.me/abc")));
+        assert!(!leaves_the_web(&u("https://www.tiktok.com/@mai")));
+        assert!(!leaves_the_web(&u("https://myship.7-11.com.tw/")));
+        assert!(!leaves_the_web(&u("about:blank")));
     }
 
     #[test]

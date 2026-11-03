@@ -814,6 +814,47 @@ pub async fn ship_store_search(
     Ok(hits)
 }
 
+/// Every 7-ELEVEN store of one district (city + district), for browsing by area. The plain
+/// search above needs a street or store name; this is the map's own area list.
+#[tauri::command]
+pub async fn ship_store_area(
+    state: State<'_, DbState>,
+    city: String,
+    town: String,
+) -> Result<Vec<ship::StoreHit>, String> {
+    let city = ship::clean_area(&city).ok_or("BAD_QUERY")?;
+    let town = ship::clean_area(&town).ok_or("BAD_QUERY")?;
+    let body = url::form_urlencoded::Serializer::new(String::new())
+        .append_pair("commandid", "SearchStore")
+        .append_pair("city", &city)
+        .append_pair("town", &town)
+        .append_pair("roadname", "")
+        .append_pair("ID", "")
+        .append_pair("StoreName", "")
+        .append_pair("SpecialStore_Kind", "")
+        .append_pair("leftMenuChecked", "")
+        .append_pair("address", "")
+        .finish();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|_| "NETWORK")?;
+    let resp = client
+        .post(ship::AREA_URL)
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .body(body)
+        .send()
+        .await
+        .map_err(|_| "NETWORK")?;
+    if !resp.status().is_success() {
+        return Err("NETWORK".into());
+    }
+    let text = resp.text().await.map_err(|_| "NETWORK")?;
+    let hits = ship::parse_area_xml(&text);
+    ship::stores_cache(&*db(&state)?, &hits).map_err(err)?;
+    Ok(hits)
+}
+
 #[tauri::command]
 pub fn flow_list(state: State<'_, DbState>) -> Result<Vec<ship::FlowDto>, String> {
     ship::flow_list(&*db(&state)?).map_err(err)

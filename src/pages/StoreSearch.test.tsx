@@ -26,6 +26,30 @@ const mount = (searchStores: ShipClient["searchStores"], onPick = vi.fn()) => {
 };
 
 describe("browse by region", () => {
+  it("lists every store of the district from 7-ELEVEN's area list, with a street filter", async () => {
+    const storesInArea = vi.fn(async () => [
+      hit({ code: "160247", name: "大永", address: "台北市中山區明水路581巷15號" }),
+      hit({ code: "196660", name: "大吉", address: "台北市中山區吉林路97號" }),
+    ]);
+    const onPick = vi.fn();
+    render(
+      <I18nProvider initial="zh-TW">
+        <StoreSearch api={{ searchStores: vi.fn(async () => []), storesInArea }} onPick={onPick} />
+      </I18nProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: zhTW.ship.form.storeBrowse }));
+    fireEvent.click(screen.getByText("Đài Bắc"));
+    fireEvent.click(screen.getByRole("button", { name: "中山區" }));
+    await waitFor(() => expect(storesInArea).toHaveBeenCalledWith("台北市", "中山區"));
+    expect(await screen.findByText("台北市中山區共 2 間 7-ELEVEN")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(zhTW.ship.form.storeAreaFilter), {
+      target: { value: "吉林" },
+    });
+    expect(screen.queryByText("大永")).toBeNull();
+    fireEvent.click(screen.getByText("大吉"));
+    expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ code: "196660" }));
+  });
+
   it("lists cities bilingually, then that city's districts, then searches for city+district", async () => {
     const searchStores = vi.fn(async () => [hit()]);
     const onPick = mount(searchStores);

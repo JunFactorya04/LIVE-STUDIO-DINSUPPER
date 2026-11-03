@@ -50,6 +50,9 @@ const session: { opened: boolean; url?: string; mobile: boolean; from?: PageId }
   mobile: true,
 };
 
+/** Width of the phone column in phone mode (a large phone, in CSS pixels). */
+const PHONE_WIDTH = 430;
+
 type Download = { name: string; path: string; done: boolean; ok: boolean };
 
 export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => void } = {}) {
@@ -67,17 +70,27 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
   const labels = useRef(b);
   labels.current = b;
 
-  const rectOf = () => {
+  // Phone mode draws the page in a phone-wide column in the middle: a mobile site stretched
+  // across a desktop-wide tab does not fit (TikTok's profile/chat layout breaks).
+  const rectOf = (mobile = session.mobile) => {
     const el = containerRef.current;
     if (!el) return undefined;
     const r = el.getBoundingClientRect();
-    return { x: r.left, y: r.top, width: r.width, height: r.height };
+    if (!mobile || r.width <= PHONE_WIDTH) {
+      return { x: r.left, y: r.top, width: r.width, height: r.height };
+    }
+    return {
+      x: r.left + (r.width - PHONE_WIDTH) / 2,
+      y: r.top,
+      width: PHONE_WIDTH,
+      height: r.height,
+    };
   };
 
   const describeError = (code: unknown) => (isKnownError(code) ? b.errors[code] : String(code));
 
   const openAt = useCallback(async (url: string, mobile: boolean) => {
-    const rect = rectOf();
+    const rect = rectOf(mobile);
     if (!rect) return;
     setError(undefined);
     try {
@@ -159,6 +172,11 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
         setOpenedUrl(e.payload.url);
         setAddressInput(e.payload.url);
       });
+      // A site tried to send the tab to an app or an app store (TikTok's "open in app"):
+      // the tab stayed on the page (webview_tab.rs leaves_the_web); say so once in a while.
+      const offBlock = await listen<{ url: string }>("browser-tab://blocked", () => {
+        toast(labels.current.blockedApp, { tone: "info" });
+      });
       const offDl = await listen<Download>("browser-tab://download", (e) => {
         const d = e.payload;
         const l = labels.current;
@@ -174,6 +192,7 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
       });
       unlisten = () => {
         offNav();
+        offBlock();
         offDl();
       };
     })();
@@ -316,7 +335,10 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
         </p>
       )}
       <p className="muted browser__hint">{b.mobileModeHint}</p>
-      <div className="browser__viewport" ref={containerRef}>
+      <div
+        className={`browser__viewport${mobileMode && openedUrl ? " browser__viewport--phone" : ""}`}
+        ref={containerRef}
+      >
         {!openedUrl && <EmptyState title={b.emptyTitle} hint={b.emptyHint} />}
       </div>
     </div>

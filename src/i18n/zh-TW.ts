@@ -547,6 +547,8 @@ export const zhTW = {
       storeBrowse: "依縣市瀏覽",
       storeBrowseClose: "關閉",
       storeBrowseBack: "← 選擇其他縣市",
+      storeAreaCount: "{area}共 {n} 間 7-ELEVEN",
+      storeAreaFilter: "依路名或門市名稱篩選",
       storePickCity: "請選擇縣市",
       storePickDistrict: "請選擇 {city} 的鄉鎮市區",
       picker: {
@@ -1636,5 +1638,6 @@ export const zhTW = {
     downloaded: "已將「{name}」存到下載資料夾。",
     downloadFail: "無法下載「{name}」。",
     showFile: "顯示檔案",
+    blockedApp: "網頁想開啟 App 或應用程式商店；已留在網頁上。",
   },
 };

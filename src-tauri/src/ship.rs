@@ -170,6 +170,43 @@ pub fn clean_search(raw: &str) -> Option<String> {
 }
 
 pub const SEARCH_URL: &str = "https://emap.pcsc.com.tw/mobilemap/Id/Data.aspx";
+/// The same map's "by area" list (city + district), what its own 依地區查詢 menu calls.
+pub const AREA_URL: &str = "https://emap.pcsc.com.tw/EMapSDK.aspx";
+pub const MAX_AREA_HITS: usize = 400;
+
+/// A city or district name for the area list: Chinese, short. 臺 is written 台 there.
+pub fn clean_area(raw: &str) -> Option<String> {
+    let t = raw.trim().replace('臺', "台");
+    (!t.is_empty() && t.chars().count() <= 10 && !t.chars().any(|c| c.is_control() || c == '<'))
+        .then_some(t)
+}
+
+fn tag<'a>(block: &'a str, name: &str) -> Option<&'a str> {
+    let open = format!("<{name}>");
+    let close = format!("</{name}>");
+    let start = block.find(&open)? + open.len();
+    let end = block[start..].find(&close)? + start;
+    Some(block[start..end].trim())
+}
+
+/// Every store of one district, from the map's XML (`<GeoPosition>` blocks with `POIID`,
+/// `POIName`, `Address`). Only valid 6-digit numbers are kept.
+pub fn parse_area_xml(body: &str) -> Vec<StoreHit> {
+    body.split("<GeoPosition>")
+        .skip(1)
+        .filter_map(|b| {
+            Some(StoreHit {
+                code: clean_store_code(tag(b, "POIID")?)?,
+                name: text(tag(b, "POIName")?, 60)?,
+                address: tag(b, "Address")
+                    .and_then(|a| text(a, 120))
+                    .unwrap_or_default(),
+                disabled: false,
+            })
+        })
+        .take(MAX_AREA_HITS)
+        .collect()
+}
 pub const MAX_HITS: usize = 20;
 
 /// Keep hits that can receive parcels, so a later offline lookup by number works.
@@ -701,6 +738,26 @@ pub fn export_xlsx(orders: &[ShipOrderDto]) -> std::result::Result<Vec<u8>, Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_the_area_list_of_the_store_map() {
+        let xml = "<?xml version=\"1.0\"?><iMapSDKOutput><Status>ok</Status>\
+            <GeoPosition><POIID>160247              </POIID><POIName>大永</POIName>\
+            <Address>台北市中山區明水路581巷15號1樓</Address></GeoPosition>\
+            <GeoPosition><POIID>12</POIID><POIName>bad</POIName></GeoPosition>\
+            <GeoPosition><POIID>196660</POIID><POIName>大吉</POIName><Address>台北市中山區吉林路97號</Address></GeoPosition>\
+            </iMapSDKOutput>";
+        let hits = parse_area_xml(xml);
+        assert_eq!(hits.len(), 2);
+        assert_eq!(
+            (hits[0].code.as_str(), hits[0].name.as_str()),
+            ("160247", "大永")
+        );
+        assert_eq!(hits[1].address, "台北市中山區吉林路97號");
+        assert_eq!(clean_area(" 臺北市 ").as_deref(), Some("台北市"));
+        assert!(clean_area("").is_none());
+        assert!(clean_area("<x>").is_none());
+    }
     use crate::db::open_in_memory;
 
     fn sample(id: &str) -> ShipOrderDto {
