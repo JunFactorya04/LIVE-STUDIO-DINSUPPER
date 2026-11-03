@@ -38,6 +38,9 @@ fn app_info() -> serde_json::Value {
 
 pub fn run() {
     tauri::Builder::default()
+        // macOS / Windows notification center: "print failed", "new order" while the app is in
+        // the background (src/components/notify.ts). Nothing else is sent through it.
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;

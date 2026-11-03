@@ -15,7 +15,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 # "unstable" is needed only for Window::add_child / WebviewBuilder — the child webview the
 # manual-only Browser tab embeds (webview_tab.rs). Desktop-only API, matches this app's targets.
-tauri = { version = "2", features = ["unstable"] }
+# "macos-private-api" lets the macOS window be transparent, so the system glass (Liquid Glass on
+# macOS 26, the sidebar material before that; tauri.macos.conf.json) shows behind the sidebar.
+tauri = { version = "2", features = ["unstable", "macos-private-api"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.32", features = ["bundled"] }
@@ -39,6 +41,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
 # Reads/writes the 7-ELEVEN order-import template (an .xlsx is a zip of XML files).
 zip = { version = "2", default-features = false, features = ["deflate"] }
+tauri-plugin-notification = "2"
 
 # OS secret stores (Keychain on macOS, Credential Manager on Windows). Linux is for development only.
 [target.'cfg(target_os = "macos")'.dependencies]

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { onBrowserRequest } from "./browser/route";
 import { isRemote } from "./platform/backend";
 import { ShareSync } from "./share/ShareSync";
+import { ToastHost } from "./components/Toast";
 import { Sidebar, TabBar, Toolbar } from "./components/Shell";
 import { StatusChip } from "./components/StatusChip";
 import { useI18n } from "./i18n";
@@ -46,11 +47,17 @@ export function App({ initialPage = isRemote() ? "console" : "setup" }: { initia
           actions={<StatusChip status={status} />}
         />
         <div className="content">
-          <PageBody id={page} onStarted={() => setPage("console")} onNavigate={setPage} />
+          {/* Keyed by page so each switch replays the short fade-up (native.css .page-enter).
+              Not for the Browser tab: its native webview is placed by the page's position,
+              which must not be mid-animation when it is measured. */}
+          <div className={page === "browser" ? "page-host" : "page-host page-enter"} key={page}>
+            <PageBody id={page} onStarted={() => setPage("console")} onNavigate={setPage} />
+          </div>
         </div>
       </main>
       <TabBar current={page} onSelect={setPage} />
       <ShareSync />
+      <ToastHost closeLabel={t.common.close} />
       {!isRemote() && <AutoPrint />}
     </div>
   );

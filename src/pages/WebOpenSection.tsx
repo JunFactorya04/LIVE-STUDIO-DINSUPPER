@@ -17,7 +17,7 @@ export function WebOpenSection() {
     setMode((prev) => ({ ...prev, [kind]: m }));
   };
   return (
-    <section className="box">
+    <section className="box webopen">
       <h2 className="section-title">{s.title}</h2>
       <p className="caption">{s.help}</p>
       {(["carrier", "tiktok"] as const).map((kind) => (

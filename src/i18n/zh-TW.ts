@@ -55,6 +55,12 @@ export const zhTW = {
     browser: { title: "瀏覽器", subtitle: "開啟任何網址，像一般瀏覽器一樣自己操作" },
     settings: { title: "設定", subtitle: "語言與外觀" },
   },
+  notify: {
+    newOrderTitle: "直播新訂單",
+    newOrder: "{user} 的第 {n} 號訂單",
+    printFailTitle: "暫存單無法列印",
+    printFail: "第 {n} 號訂單：請到設定檢查印表機。",
+  },
   common: {
     search: "搜尋",
     cancel: "取消",

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "../components/Toast";
+import { Icon } from "../components/Icon";
 import { isRemote } from "../platform/backend";
 import { useI18n } from "../i18n";
 import {
@@ -123,7 +125,11 @@ function PosDesktop({
   const groups = useMemo(() => groupBySku(units), [units]);
   const total = units.reduce((n, u) => n + u.price, 0);
 
-  const say = (text: string, error = false) => setNote({ text, error });
+  // "Done" news goes to a toast; errors stay here, next to the scan box.
+  const say = (text: string, error = false) => {
+    if (!error && toast(text)) return setNote(undefined);
+    setNote({ text, error });
+  };
   const explain = useCallback(
     (e: unknown): string => {
       const [code, arg] = errorParts(e);
@@ -281,7 +287,13 @@ function PosDesktop({
             <p className="posui__subtitle">{w.pos.help}</p>
           </div>
           <span className={`posui__badge${units.length > 0 ? " posui__badge--ok" : ""}`}>
-            {units.length > 0 ? `✓ ${w.pos.scanned}` : w.pos.idle}
+            {units.length > 0 ? (
+              <>
+                <Icon name="check" size={13} /> {w.pos.scanned}
+              </>
+            ) : (
+              w.pos.idle
+            )}
           </span>
         </header>
 
@@ -327,7 +339,7 @@ function PosDesktop({
                     aria-label={`${w.remove} ${g.sku}`}
                     onClick={() => removeGroup(g.sku)}
                   >
-                    ✕
+                    <Icon name="close" size={14} />
                   </button>
                 </li>
               ))}
@@ -362,7 +374,7 @@ function PosDesktop({
                 disabled={busy}
                 onClick={() => void finish()}
               >
-                ✓ {busy ? w.working : w.pos.confirm} <kbd>F8</kbd>
+                <Icon name="check" size={16} /> {busy ? w.working : w.pos.confirm} <kbd>F8</kbd>
               </button>
               <button
                 type="button"

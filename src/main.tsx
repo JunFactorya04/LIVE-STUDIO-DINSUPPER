@@ -3,16 +3,23 @@ import ReactDOM from "react-dom/client";
 import "./theme/tokens.css";
 import "./theme/base.css";
 import "./theme/live.css";
+import "./theme/native.css";
 import { App } from "./App";
 import { applyTheme, loadTheme } from "./theme/theme";
 import { I18nProvider } from "./i18n";
 import { LiveSessionProvider } from "./live/useLiveSession";
 import { createReportClient } from "./report/client";
-import { isRemote } from "./platform/backend";
+import { hasTauri, isRemote } from "./platform/backend";
 import { runRetention } from "./report/retention";
 import { adoptComputerPrinter } from "./share/client";
 
 applyTheme(loadTheme());
+
+// The macOS app's window is transparent over the system glass (tauri.macos.conf.json); tell the
+// stylesheet so it lets the glass show behind the sidebar (native.css, data-vibrancy).
+if (hasTauri() && !isRemote() && /Mac/i.test(navigator.userAgent)) {
+  document.documentElement.setAttribute("data-vibrancy", "");
+}
 
 // iOS Safari ignores user-scalable=no: stop the pinch gesture and the double-tap zoom explicitly.
 for (const type of ["gesturestart", "gesturechange", "gestureend"]) {

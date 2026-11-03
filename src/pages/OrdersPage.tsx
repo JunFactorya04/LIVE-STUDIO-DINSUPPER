@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isSearchKey, searchShortcut } from "../components/shortcut";
+import { Sheet } from "../components/Sheet";
 import { EmptyState } from "../components/States";
 import { useI18n } from "../i18n";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
@@ -281,14 +282,21 @@ function DraftsTab() {
         </div>
       )}
       {slipView && (
-        <div
-          className="slip-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label={t.orders.slipModalTitle}
+        <Sheet
+          title={t.orders.slipModalTitle}
+          closeLabel={t.common.close}
+          onClose={() => setSlipView(undefined)}
+          footer={
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => setSlipView(undefined)}
+            >
+              {t.common.close}
+            </button>
+          }
         >
-          <div className="slip-modal__box box">
-            <h3 className="section-title">{t.orders.slipModalTitle}</h3>
+          <div className="slip-modal__box">
             {slipView.src === undefined ? (
               <p className="caption">{t.common.loading}</p>
             ) : slipView.src === "" ? (
@@ -296,11 +304,8 @@ function DraftsTab() {
             ) : (
               <img className="slip-modal__img" src={slipView.src} alt={t.orders.slipModalTitle} />
             )}
-            <button type="button" className="btn" onClick={() => setSlipView(undefined)}>
-              {t.common.close}
-            </button>
           </div>
-        </div>
+        </Sheet>
       )}
     </>
   );

@@ -1,4 +1,5 @@
 import { isSearchKey, searchShortcut } from "../components/shortcut";
+import { Icon } from "../components/Icon";
 import {
   useCallback,
   useEffect,
@@ -547,7 +548,7 @@ export function ConsolePage() {
               aria-label={t.common.close}
               onClick={() => setSelectedId(undefined)}
             >
-              ✕
+              <Icon name="close" size={13} />
             </button>
           )}
         </div>

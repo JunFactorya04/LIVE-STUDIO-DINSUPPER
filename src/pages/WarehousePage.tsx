@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { toast } from "../components/Toast";
 import { isRemote } from "../platform/backend";
 import { useI18n } from "../i18n";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
@@ -88,7 +89,11 @@ export function WarehousePage({
     },
     [w],
   );
-  const say = (text: string, error = false) => setNote({ text, error });
+  // "Done" news goes to a toast; errors stay here, next to what failed.
+  const say = (text: string, error = false) => {
+    if (!error && toast(text)) return setNote(undefined);
+    setNote({ text, error });
+  };
 
   // Computer: codes scanned on a phone arrive here and go to the open scan screen.
   useEffect(() => {

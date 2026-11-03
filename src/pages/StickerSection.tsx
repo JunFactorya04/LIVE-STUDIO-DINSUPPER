@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Icon } from "../components/Icon";
 import { useI18n } from "../i18n";
 import { loadPrinter } from "../print/settings";
 import {
@@ -75,7 +76,7 @@ export function StickerSection() {
                     disabled={!row.show || row.px <= PX_MIN}
                     onClick={() => setField(f, { px: Math.max(PX_MIN, row.px - 2) })}
                   >
-                    −
+                    <Icon name="minus" size={13} />
                   </button>
                   <input
                     type="range"
@@ -93,7 +94,7 @@ export function StickerSection() {
                     disabled={!row.show || row.px >= PX_MAX}
                     onClick={() => setField(f, { px: Math.min(PX_MAX, row.px + 2) })}
                   >
-                    +
+                    <Icon name="plus" size={13} />
                   </button>
                   <span className="sticker__px">{row.px}</span>
                 </div>

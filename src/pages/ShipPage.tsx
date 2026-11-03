@@ -1,4 +1,5 @@
 import { readStage } from "../carriers/env";
+import { toast } from "../components/Toast";
 import { openWeb } from "../browser/route";
 import { CARRIERS } from "../carriers/registry";
 import { useLiveSession } from "../live/useLiveSession";
@@ -12,6 +13,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import { useConfirm } from "../components/Sheet";
 import { EmptyState, ErrorState, LoadingState } from "../components/States";
 import { useI18n } from "../i18n";
 import { getPrintService } from "../print/service";
@@ -117,7 +119,12 @@ export function ShipPage({
   const [orders, setOrders] = useState<ShipOrder[]>();
   const [customers, setCustomers] = useState<ShipCustomer[]>([]);
   const [failed, setFailed] = useState(false);
-  const [note, setNote] = useState<Note>();
+  const [note, setNoteRaw] = useState<Note>();
+  // "Done" news goes to a toast; errors stay in the banner at the top of the page.
+  const setNote = useCallback((n: Note) => {
+    if (n && !n.error && toast(n.text)) return setNoteRaw(undefined);
+    setNoteRaw(n);
+  }, []);
   // The form is open when `draft` is set; `editingId` is set when it edits an existing order.
   const [draft, setDraft] = useState<ShipForm>();
   const [editingId, setEditingId] = useState<string>();
@@ -245,6 +252,7 @@ function OrdersTab({
   const { t, fmt, locale } = useI18n();
   const [filter, setFilter] = useState<Filter>("pending");
   const [confirmDelete, setConfirmDelete] = useState<string>();
+  const [confirmNode, ask] = useConfirm();
   const [markAfter, setMarkAfter] = useState(true);
   const printer = getPrintService();
   const printStatus = usePrintStatus(printer);
@@ -286,7 +294,15 @@ function OrdersTab({
   const waybill = async (o: ShipOrder) => {
     const stage = readStage();
     // A real waybill costs money: ask first. The test environment needs no question.
-    if (!stage && !window.confirm(t.ship.waybill.confirm)) return;
+    if (
+      !stage &&
+      !(await ask({
+        title: t.ship.waybill.confirm,
+        ok: t.ship.waybill.create,
+        cancel: t.common.cancel,
+      }))
+    )
+      return;
     setWaybilling(o.id);
     try {
       const r = await api.createWaybill(o, stage);
@@ -358,6 +374,7 @@ function OrdersTab({
 
   return (
     <>
+      {confirmNode}
       <div className="ship__stats">
         <div className="ship__stat">
           <span className="muted">{t.ship.stats.pending}</span>

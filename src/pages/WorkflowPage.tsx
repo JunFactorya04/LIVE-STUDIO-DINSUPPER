@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Icon } from "../components/Icon";
 import { TIKTOK_LOGIN_URL, buyerUrl, openWeb } from "../browser/route";
 import { EmptyState, ErrorState, LoadingState } from "../components/States";
 import { useI18n } from "../i18n";
@@ -314,7 +315,7 @@ export function WorkflowPage({
                             aria-current={b.next === step ? "step" : undefined}
                           >
                             <span className="flow__dot" aria-hidden="true">
-                              {b.steps[step] ? "✓" : ""}
+                              {b.steps[step] && <Icon name="check" size={11} />}
                             </span>
                             <span>{w.steps[step]}</span>
                           </li>

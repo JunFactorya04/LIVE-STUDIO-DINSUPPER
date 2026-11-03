@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Icon } from "../components/Icon";
 import { useI18n } from "../i18n";
 import { createDecoder } from "./decode";
 import { createDwell, cropRect } from "./dwell";
@@ -188,7 +189,7 @@ function Scanner({
             </div>
             {last && (
               <p className="cam__last" aria-live="polite">
-                ✓ {last} · {count}
+                <Icon name="check" size={14} /> {last} · {count}
               </p>
             )}
           </>

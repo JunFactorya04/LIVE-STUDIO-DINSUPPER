@@ -42,7 +42,7 @@ describe("BrowserPage", () => {
         mobile: true,
       }),
     );
-    fireEvent.click(screen.getByRole("button", { name: `‹ ${zhTW.nav.flow}` }));
+    fireEvent.click(screen.getByRole("button", { name: zhTW.nav.flow }));
     expect(onNavigate).toHaveBeenCalledWith("flow");
 
     // a carrier page wants the desktop layout: a fresh webview with the other user agent

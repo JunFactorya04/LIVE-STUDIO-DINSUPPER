@@ -57,6 +57,12 @@ export const vi: Messages = {
     browser: { title: "Trình duyệt", subtitle: "Mở một trang bất kỳ, tự tay dùng như trình duyệt" },
     settings: { title: "Cài đặt", subtitle: "Ngôn ngữ và giao diện" },
   },
+  notify: {
+    newOrderTitle: "Đơn mới từ Live",
+    newOrder: "Đơn #{n} của {user}",
+    printFailTitle: "Không in được tem",
+    printFail: "Đơn #{n}: kiểm tra máy in trong Cài đặt.",
+  },
   common: {
     search: "Tìm kiếm",
     cancel: "Hủy",

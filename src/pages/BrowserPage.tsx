@@ -6,6 +6,8 @@ import {
   type BrowserRequest,
 } from "../browser/route";
 import { CARRIERS } from "../carriers/registry";
+import { Icon } from "../components/Icon";
+import { toast } from "../components/Toast";
 import { EmptyState } from "../components/States";
 import type { PageId } from "../navigation";
 import { hasTauri, invoke } from "../platform/backend";
@@ -61,6 +63,9 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
   const [error, setError] = useState<string>();
   const [download, setDownload] = useState<Download>();
   const openedRef = useRef(session.opened);
+  // Labels for the download listener, which is subscribed once.
+  const labels = useRef(b);
+  labels.current = b;
 
   const rectOf = () => {
     const el = containerRef.current;
@@ -154,7 +159,19 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
         setOpenedUrl(e.payload.url);
         setAddressInput(e.payload.url);
       });
-      const offDl = await listen<Download>("browser-tab://download", (e) => setDownload(e.payload));
+      const offDl = await listen<Download>("browser-tab://download", (e) => {
+        const d = e.payload;
+        const l = labels.current;
+        // Finished: a toast with "Xem file"; while it runs (or with no toast area) the line here.
+        if (d.done) {
+          const text = (d.ok ? l.downloaded : l.downloadFail).replace("{name}", d.name);
+          const reveal = () =>
+            void invoke("browser_reveal_download", { path: d.path }).catch(() => undefined);
+          const action = d.ok ? { label: l.showFile, run: reveal } : undefined;
+          if (toast(text, { tone: d.ok ? "ok" : "error", action })) return setDownload(undefined);
+        }
+        setDownload(d);
+      });
       unlisten = () => {
         offNav();
         offDl();
@@ -186,7 +203,7 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
       <div className="browser__shortcuts" role="group" aria-label={b.shortcuts}>
         {from && onNavigate && (
           <button type="button" className="btn browser__return" onClick={() => onNavigate(from)}>
-            ‹ {t.nav[from]}
+            <Icon name="back" size={14} /> {t.nav[from]}
           </button>
         )}
         {CARRIERS.map((c) => (
@@ -216,7 +233,7 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
           aria-label={b.back}
           title={b.back}
         >
-          ‹
+          <Icon name="back" size={16} />
         </button>
         <button
           type="button"
@@ -226,7 +243,7 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
           aria-label={b.forward}
           title={b.forward}
         >
-          ›
+          <Icon name="forward" size={16} />
         </button>
         <button
           type="button"
@@ -236,7 +253,7 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
           aria-label={b.reload}
           title={b.reload}
         >
-          ↻
+          <Icon name="reload" size={15} />
         </button>
         <input
           className="input browser__address"
@@ -262,6 +279,7 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
           disabled={!openedUrl}
           onClick={() => tool("browser_print")}
         >
+          <Icon name="print" />
           {b.print}
         </button>
         <button
@@ -270,6 +288,7 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
           disabled={!openedUrl}
           onClick={() => openedUrl && tool("browser_open_external", { url: openedUrl })}
         >
+          <Icon name="external" />
           {b.external}
         </button>
       </div>
