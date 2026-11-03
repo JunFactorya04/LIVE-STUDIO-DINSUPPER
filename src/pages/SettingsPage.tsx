@@ -7,6 +7,7 @@ import { InvoiceSection } from "./InvoiceSection";
 import { PrinterSection } from "./PrinterSection";
 import { ScannerSection } from "./ScannerSection";
 import { ShareSection } from "./ShareSection";
+import { WebOpenSection } from "./WebOpenSection";
 import { StickerSection } from "./StickerSection";
 
 type Tab = "general" | "printing" | "phone" | "scanner" | "ai";
@@ -75,6 +76,7 @@ export function SettingsPage() {
           <p className="caption">{t.settings.themeHelp}</p>
         </section>
       )}
+      {tab === "general" && <WebOpenSection />}
       {tab === "printing" && (
         <>
           <PrinterSection />

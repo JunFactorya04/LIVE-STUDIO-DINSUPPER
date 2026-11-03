@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { onBrowserRequest } from "./browser/route";
 import { isRemote } from "./platform/backend";
 import { ShareSync } from "./share/ShareSync";
 import { Sidebar, TabBar, Toolbar } from "./components/Shell";
@@ -32,6 +33,8 @@ export function App({ initialPage = isRemote() ? "console" : "setup" }: { initia
   const { t } = useI18n();
   const { status } = useLiveSession();
   const meta = t.pages[page];
+  // A carrier or TikTok page asked to open inside the app: go to the Browser tab, which loads it.
+  useEffect(() => onBrowserRequest(() => setPage("browser")), []);
 
   return (
     <div className="app">
@@ -94,7 +97,7 @@ function PageBody({
     case "ads":
       return <AdsPage />;
     case "browser":
-      return <BrowserPage />;
+      return <BrowserPage onNavigate={onNavigate} />;
     case "settings":
       return <SettingsPage />;
     default:

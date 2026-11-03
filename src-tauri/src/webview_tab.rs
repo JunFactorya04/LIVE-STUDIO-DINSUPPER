@@ -14,7 +14,9 @@
 //! string from the frontend or from anywhere else.
 
 use serde::Serialize;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use tauri::webview::DownloadEvent;
 use tauri::{AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, Webview, WebviewUrl};
 
 const LABEL: &str = "browser-tab";
@@ -33,6 +35,63 @@ pub struct BrowserTabState(pub Mutex<Option<Webview>>);
 #[derive(Serialize, Clone)]
 pub struct BrowserNavigated {
     pub url: String,
+}
+
+/// A file the page downloaded (a waybill PDF, an exported sheet): where it went, and whether the
+/// download finished. The embedded webview has no download bar of its own, so the app says it.
+#[derive(Serialize, Clone)]
+pub struct BrowserDownload {
+    pub name: String,
+    pub path: String,
+    pub done: bool,
+    pub ok: bool,
+}
+
+/// A free name in `dir` for `wanted`: "phieu.pdf", then "phieu (1).pdf", "phieu (2).pdf"...
+fn free_path(dir: &Path, wanted: &str) -> PathBuf {
+    let clean: String = wanted
+        .chars()
+        .map(|c| {
+            if c.is_control() || "/\\:*?\"<>|".contains(c) {
+                '_'
+            } else {
+                c
+            }
+        })
+        .collect();
+    let clean = clean.trim().trim_matches('.').to_string();
+    let name = if clean.is_empty() {
+        "download".to_string()
+    } else {
+        clean
+    };
+    let first = dir.join(&name);
+    if !first.exists() {
+        return first;
+    }
+    let (stem, ext) = match name.rsplit_once('.') {
+        Some((s, e)) if !s.is_empty() => (s.to_string(), format!(".{e}")),
+        _ => (name.clone(), String::new()),
+    };
+    (1..10_000)
+        .map(|i| dir.join(format!("{stem} ({i}){ext}")))
+        .find(|p| !p.exists())
+        .unwrap_or(first)
+}
+
+/// The file name a download should get: the one the webview suggests, else the url's last part.
+fn download_name(suggested: &Path, url: &url::Url) -> String {
+    suggested
+        .file_name()
+        .and_then(|n| n.to_str())
+        .filter(|n| !n.is_empty())
+        .map(str::to_string)
+        .or_else(|| {
+            url.path_segments()
+                .and_then(|mut s| s.next_back().map(str::to_string))
+                .filter(|n| !n.is_empty())
+        })
+        .unwrap_or_else(|| "download".into())
 }
 
 fn normalize(input: &str) -> Result<url::Url, String> {
@@ -96,6 +155,52 @@ pub fn browser_open(
                     BrowserNavigated { url: u.to_string() },
                 );
                 true
+            })
+            .on_download({
+                let app = app.clone();
+                let last = std::sync::Arc::new(Mutex::new(String::new()));
+                move |_wv, event| {
+                    match event {
+                        DownloadEvent::Requested { url, destination } => {
+                            let Ok(dir) = app.path().download_dir() else {
+                                return true; // let the webview put it where it would anyway
+                            };
+                            let path = free_path(&dir, &download_name(destination, &url));
+                            *destination = path.clone();
+                            if let Ok(mut l) = last.lock() {
+                                *l = path.to_string_lossy().into_owned();
+                            }
+                            let _ = app.emit(
+                                "browser-tab://download",
+                                BrowserDownload {
+                                    name: file_label(&path),
+                                    path: path.to_string_lossy().into_owned(),
+                                    done: false,
+                                    ok: true,
+                                },
+                            );
+                        }
+                        DownloadEvent::Finished { path, success, .. } => {
+                            // macOS never passes the path here; use the one picked above.
+                            let p = path
+                                .map(|p| p.to_string_lossy().into_owned())
+                                .unwrap_or_else(|| {
+                                    last.lock().map(|l| l.clone()).unwrap_or_default()
+                                });
+                            let _ = app.emit(
+                                "browser-tab://download",
+                                BrowserDownload {
+                                    name: file_label(Path::new(&p)),
+                                    path: p,
+                                    done: true,
+                                    ok: success,
+                                },
+                            );
+                        }
+                        _ => {}
+                    }
+                    true
+                }
             });
     if mobile {
         builder = builder.user_agent(MOBILE_UA);
@@ -164,6 +269,52 @@ pub fn browser_forward(state: tauri::State<'_, BrowserTabState>) -> Result<(), S
     wv.eval("history.forward()").map_err(|e| e.to_string())
 }
 
+/// The page's own print dialog, for a waybill or label page. macOS needs the webview's native
+/// print (WKWebView ignores the page's `window.print()`); elsewhere the fixed literal
+/// `window.print()` is what the page's own Print button does.
+#[tauri::command]
+pub fn browser_print(state: tauri::State<'_, BrowserTabState>) -> Result<(), String> {
+    let guard = state.0.lock().map_err(|_| "LOCK".to_string())?;
+    let wv = guard.as_ref().ok_or_else(|| "NOT_OPEN".to_string())?;
+    #[cfg(target_os = "macos")]
+    return wv.print().map_err(|e| e.to_string());
+    #[cfg(not(target_os = "macos"))]
+    wv.eval("window.print()").map_err(|e| e.to_string())
+}
+
+/// The seller's own "open this in my real browser" button: hands the address the tab shows to
+/// the system browser, for a site that does not behave inside the app.
+#[tauri::command]
+pub fn browser_open_external(url: String) -> Result<(), String> {
+    crate::browser::open_system(&normalize(&url)?)
+}
+
+/// Shows a downloaded file in Finder / Explorer.
+#[tauri::command]
+pub fn browser_reveal_download(app: AppHandle, path: String) -> Result<(), String> {
+    let p = PathBuf::from(&path);
+    let dir = app.path().download_dir().map_err(|e| e.to_string())?;
+    // Only files this tab saved, i.e. inside the Downloads folder.
+    if !p.starts_with(&dir) || !p.exists() {
+        return Err("NOT_FOUND".into());
+    }
+    #[cfg(target_os = "windows")]
+    let r = std::process::Command::new("explorer.exe")
+        .arg(format!("/select,{}", p.display()))
+        .spawn();
+    #[cfg(target_os = "macos")]
+    let r = std::process::Command::new("open").arg("-R").arg(&p).spawn();
+    #[cfg(all(not(target_os = "windows"), not(target_os = "macos")))]
+    let r = std::process::Command::new("xdg-open").arg(&dir).spawn();
+    r.map(|_| ()).map_err(|_| "OPEN_FAILED".to_string())
+}
+
+fn file_label(p: &Path) -> String {
+    p.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default()
+}
+
 /// Hides the tab (switching away in the app's own nav) without losing its page or history.
 #[tauri::command]
 pub fn browser_hide(state: tauri::State<'_, BrowserTabState>) -> Result<(), String> {
@@ -219,6 +370,21 @@ mod tests {
             normalize("https://x.com/a").unwrap().as_str(),
             "https://x.com/a"
         );
+    }
+
+    #[test]
+    fn downloads_get_a_free_safe_name() {
+        let dir = std::env::temp_dir().join(format!("lsdl-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        assert_eq!(free_path(&dir, "phieu.pdf"), dir.join("phieu.pdf"));
+        std::fs::write(dir.join("phieu.pdf"), b"x").unwrap();
+        assert_eq!(free_path(&dir, "phieu.pdf"), dir.join("phieu (1).pdf"));
+        assert_eq!(free_path(&dir, "../a/b:c.pdf"), dir.join("_a_b_c.pdf"));
+        assert_eq!(free_path(&dir, ""), dir.join("download"));
+        let u = url::Url::parse("https://x.tw/files/waybill.pdf?id=1").unwrap();
+        assert_eq!(download_name(Path::new(""), &u), "waybill.pdf");
+        assert_eq!(download_name(Path::new("/tmp/AB123.pdf"), &u), "AB123.pdf");
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     #[test]

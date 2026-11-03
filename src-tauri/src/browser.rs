@@ -31,6 +31,14 @@ pub fn allowed(url: &str) -> Option<Url> {
 
 pub fn open_carrier(url: &str) -> Result<(), String> {
     let u = allowed(url).ok_or_else(|| "NOT_ALLOWED".to_string())?;
+    open_system(&u)
+}
+
+/// Hand one http(s) address to the system's default browser, as a single argument (no shell).
+pub fn open_system(u: &Url) -> Result<(), String> {
+    if u.scheme() != "https" && u.scheme() != "http" {
+        return Err("BAD_SCHEME".into());
+    }
     #[cfg(target_os = "windows")]
     let mut cmd = {
         let mut c = Command::new("explorer.exe");

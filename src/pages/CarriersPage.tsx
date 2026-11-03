@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { openWeb } from "../browser/route";
 import { readStage, writeStage } from "../carriers/env";
 import { CARRIER_LOGOS } from "../carriers/logos";
 import {
@@ -24,7 +25,10 @@ export interface EcpayCheck {
 }
 
 const defaultCheck = (stage: boolean) => invoke<EcpayCheck>("ecpay_check", { stage });
-const defaultOpen = (url: string) => invoke<void>("open_carrier_page", { url });
+// In the app's own Browser tab unless the seller chose the system browser in Settings.
+const defaultOpen = async (url: string) => {
+  await openWeb("carrier", url, () => invoke<void>("open_carrier_page", { url }), "carriers");
+};
 
 export function CarriersPage({
   secrets,

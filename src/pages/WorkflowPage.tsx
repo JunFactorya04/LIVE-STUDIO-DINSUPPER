@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { TIKTOK_LOGIN_URL, buyerUrl, openWeb } from "../browser/route";
 import { EmptyState, ErrorState, LoadingState } from "../components/States";
 import { useI18n } from "../i18n";
 import { useLiveSession } from "../live/useLiveSession";
@@ -131,7 +132,7 @@ export function WorkflowPage({
         // Best effort: still try to open the buyer's page below even if this failed.
       }
       try {
-        await api.openBuyerPage(b.tiktokId);
+        await openWeb("tiktok", buyerUrl(b.tiktokId), () => api.openBuyerPage(b.tiktokId), "flow");
         setNote({
           text: copyOk ? t.ship.customers.copied : t.ship.customers.copyFailed,
           error: !copyOk,
@@ -146,16 +147,16 @@ export function WorkflowPage({
     onNavigate("ship");
   };
 
-  // Opens the buyer's real TikTok page in the seller's own Chrome/Edge, in "app mode" (its own
-  // window, no tab bar) rather than a Tauri-managed webview — see the Rust-side comment on
-  // ship_open_buyer_page for why: endpoint security software on at least one seller's machine
-  // reset connections from the app's own embedded webview but not from their real browser. Login
-  // and sending both stay entirely inside that window, on the seller's own TikTok session — this
-  // only tells the browser which buyer's page to show.
+  // Opens the buyer's real TikTok page in the app's own Browser tab (phone layout), or — when
+  // the seller picks "trình duyệt ngoài" in Settings — in their own Chrome/Edge in "app mode".
+  // The outside choice exists because endpoint security software on at least one seller's
+  // machine reset connections from an embedded webview but not from the real browser (see the
+  // Rust-side comment on ship_open_buyer_page). Either way, login and sending stay on the
+  // seller's own TikTok session; this only says which buyer's page to show.
   const openPage = async (b: BuyerFlow) => {
     setNote(undefined);
     try {
-      await api.openBuyerPage(b.tiktokId);
+      await openWeb("tiktok", buyerUrl(b.tiktokId), () => api.openBuyerPage(b.tiktokId), "flow");
     } catch (e) {
       setNote({ text: tiktokOpenFailedText(w, fmt, e), error: true });
     }
@@ -167,7 +168,7 @@ export function WorkflowPage({
   const openLogin = async () => {
     setNote(undefined);
     try {
-      await api.openTikTokLogin();
+      await openWeb("tiktok", TIKTOK_LOGIN_URL, () => api.openTikTokLogin(), "flow");
     } catch (e) {
       setNote({ text: tiktokOpenFailedText(w, fmt, e), error: true });
     }

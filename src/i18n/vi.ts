@@ -1500,6 +1500,16 @@ export const vi: Messages = {
     ai: "AI & khóa",
   },
   settings: {
+    webOpen: {
+      title: "Mở trang vận chuyển và TikTok",
+      help: "Mở ngay trong tab Trình duyệt của app (không phải nhảy ra ngoài), hoặc bằng trình duyệt của máy. Lần đầu mở trong app, hãy đăng nhập từng trang một lần; app nhớ đăng nhập như trình duyệt bình thường và không đọc hay lưu mật khẩu.",
+      carrier: "Trang vận chuyển (7-ELEVEN, FamilyMart, ECPay, Shopee, T-cat, HCT, Bưu điện)",
+      tiktok: "TikTok (đăng nhập, trang người mua)",
+      app: "Trong app",
+      external: "Trình duyệt ngoài",
+      tiktokNote:
+        'Nếu TikTok không tải được hoặc báo trình duyệt không hỗ trợ trong app (một số phần mềm diệt virus/bảo mật chặn trình duyệt nhúng), chọn "Trình duyệt ngoài" cho TikTok, hoặc bấm "Mở bằng trình duyệt ngoài" ngay trên trang.',
+    },
     scanner: {
       title: "Máy quét mã",
       help: "Có 3 cách quét tem trong app. Cách nào cũng dùng được ở Thanh Toán, Tạo đơn ship, Xuất kho và Kiểm kê.",
@@ -1605,6 +1615,16 @@ export const vi: Messages = {
       BAD_SCHEME: "Chỉ mở được địa chỉ http hoặc https.",
       NOT_OPEN: "Chưa mở trang nào.",
       NO_MAIN_WINDOW: "Không tìm thấy cửa sổ chính.",
+      NOT_FOUND: "Không tìm thấy file đã tải.",
+      OPEN_FAILED: "Không mở được trình duyệt ngoài.",
     },
+    shortcuts: "Mở nhanh",
+    tiktokLogin: "Đăng nhập TikTok",
+    print: "In trang này",
+    external: "Mở bằng trình duyệt ngoài",
+    downloading: 'Đang tải "{name}" về thư mục Tải về…',
+    downloaded: 'Đã lưu "{name}" vào thư mục Tải về.',
+    downloadFail: 'Không tải được "{name}".',
+    showFile: "Xem file",
   },
 };

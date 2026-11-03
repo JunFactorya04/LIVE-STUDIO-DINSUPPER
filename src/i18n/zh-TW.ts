@@ -1445,6 +1445,16 @@ export const zhTW = {
     ai: "AI 與金鑰",
   },
   settings: {
+    webOpen: {
+      title: "開啟物流與 TikTok 網頁",
+      help: "直接在 App 的「瀏覽器」分頁開啟（不必跳到外面），或用電腦的瀏覽器開啟。第一次在 App 內開啟時，請在每個網站登入一次；App 會像一般瀏覽器一樣記住登入，不會讀取或儲存密碼。",
+      carrier: "物流網站（7-ELEVEN、全家、綠界、蝦皮、黑貓、新竹、郵局）",
+      tiktok: "TikTok（登入、買家頁面）",
+      app: "App 內",
+      external: "外部瀏覽器",
+      tiktokNote:
+        "若 TikTok 在 App 內無法載入或顯示不支援此瀏覽器（部分防毒／資安軟體會阻擋內嵌瀏覽器），請將 TikTok 改為「外部瀏覽器」，或直接按頁面上的「用外部瀏覽器開啟」。",
+    },
     scanner: {
       title: "條碼掃描器",
       help: "App 內有 3 種掃描方式，都能用在結帳、建立出貨單、出庫與盤點。",
@@ -1545,7 +1555,17 @@ export const zhTW = {
       BAD_URL: "網址格式不正確。",
       BAD_SCHEME: "只能開啟 http 或 https 網址。",
       NOT_OPEN: "尚未開啟任何網頁。",
+      NOT_FOUND: "找不到已下載的檔案。",
+      OPEN_FAILED: "無法開啟外部瀏覽器。",
       NO_MAIN_WINDOW: "找不到主視窗。",
     },
+    shortcuts: "快速開啟",
+    tiktokLogin: "登入 TikTok",
+    print: "列印此頁",
+    external: "用外部瀏覽器開啟",
+    downloading: "正在下載「{name}」到下載資料夾…",
+    downloaded: "已將「{name}」存到下載資料夾。",
+    downloadFail: "無法下載「{name}」。",
+    showFile: "顯示檔案",
   },
 };

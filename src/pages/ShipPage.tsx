@@ -1,4 +1,5 @@
 import { readStage } from "../carriers/env";
+import { openWeb } from "../browser/route";
 import { CARRIERS } from "../carriers/registry";
 import { useLiveSession } from "../live/useLiveSession";
 import { StoreSearch } from "./StoreSearch";
@@ -341,7 +342,7 @@ function OrdersTab({
       /* same — not fatal, the path is already copied and MyShip still opens below */
     }
     try {
-      await api.openCarrierPage(MYSHIP_URL);
+      await openWeb("carrier", MYSHIP_URL, () => api.openCarrierPage(MYSHIP_URL), "ship");
       onNote({ text: fmt(t.ship.export.myshipDone, { path }), error: false });
     } catch {
       onNote({ text: t.carriers.openFail, error: true });

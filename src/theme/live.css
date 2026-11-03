@@ -3546,3 +3546,12 @@
 .units-fold[open] > summary {
   margin-bottom: 12px;
 }
+.browser__shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.browser__return {
+  font-weight: 600;
+}
