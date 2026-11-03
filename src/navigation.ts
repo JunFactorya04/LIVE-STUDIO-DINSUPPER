@@ -51,7 +51,8 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "settings", section: "manage", tab: false },
 ];
 
-/** A phone opened from the sharing link works the orders; setup, overlay and settings stay on the computer. */
+/** A phone opened from the sharing link works the orders; setup and overlay stay on the computer
+ *  (its Settings page shows only the phone's own language and light/dark). */
 const REMOTE_PAGES: ReadonlySet<PageId> = new Set([
   "home",
   "scan",
@@ -64,6 +65,7 @@ const REMOTE_PAGES: ReadonlySet<PageId> = new Set([
   "warehouse",
   "replies",
   "report",
+  "settings",
 ]);
 
 /** The phone's own start screen and scan screen: only on a phone opened from the sharing link. */

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { isRemote } from "../platform/backend";
 import { LOCALES, useI18n, type Locale } from "../i18n";
 import { AiSection } from "./AiSection";
 import { ApiKeysSection } from "./ApiKeysSection";
@@ -18,25 +19,30 @@ const TABS: Tab[] = ["general", "printing", "phone", "scanner", "ai"];
 export function SettingsPage() {
   const { t, locale, setLocale } = useI18n();
   const locales = Object.keys(LOCALES) as Locale[];
+  // A phone (sharing link) sets only what belongs to the phone itself: language and light/dark.
+  // Printers, sharing, scanner and AI keys live on the computer.
+  const remote = isRemote();
   const [tab, setTab] = useState<Tab>("general");
   const [theme, setThemeState] = useState<Theme>(loadTheme);
 
   return (
     <div className="page page--no-inspector">
-      <div className="segmented" role="tablist" aria-label={t.nav.settings}>
-        {TABS.map((id) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            aria-pressed={tab === id}
-            onClick={() => setTab(id)}
-          >
-            {t.settingsTabs[id]}
-          </button>
-        ))}
-      </div>
+      {!remote && (
+        <div className="segmented" role="tablist" aria-label={t.nav.settings}>
+          {TABS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              aria-pressed={tab === id}
+              onClick={() => setTab(id)}
+            >
+              {t.settingsTabs[id]}
+            </button>
+          ))}
+        </div>
+      )}
       {tab === "general" && (
         <section className="box">
           <h2 className="section-title">{t.settings.languageTitle}</h2>
@@ -76,7 +82,8 @@ export function SettingsPage() {
           <p className="caption">{t.settings.themeHelp}</p>
         </section>
       )}
-      {tab === "general" && <WebOpenSection />}
+      {tab === "general" && !remote && <WebOpenSection />}
+      {remote && <p className="caption">{t.settings.phoneOnly}</p>}
       {tab === "printing" && (
         <>
           <PrinterSection />

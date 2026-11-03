@@ -1574,6 +1574,8 @@ export const vi: Messages = {
     ai: "AI & khóa",
   },
   settings: {
+    phoneOnly:
+      "Đây là cài đặt riêng của điện thoại này. Máy in, chia sẻ, máy quét và AI cài trên máy tính.",
     webOpen: {
       title: "Mở trang vận chuyển và TikTok",
       help: "Mở ngay trong tab Trình duyệt của app (không phải nhảy ra ngoài), hoặc bằng trình duyệt của máy. Lần đầu mở trong app, hãy đăng nhập từng trang một lần; app nhớ đăng nhập như trình duyệt bình thường và không đọc hay lưu mật khẩu.",
