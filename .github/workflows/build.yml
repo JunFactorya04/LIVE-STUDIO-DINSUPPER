@@ -5,28 +5,50 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
+  # Run by hand from the Actions tab (or the API) to build only one platform.
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: "Which builds: both, mac or windows"
+        type: choice
+        options: [both, mac, windows]
+        default: both
 
 permissions:
   contents: write
 
 jobs:
+  # Which platforms this run builds: both, unless a manual run asked for one.
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.m.outputs.matrix }}
+    steps:
+      - id: m
+        shell: bash
+        run: |
+          p="${{ github.event.inputs.platforms || 'both' }}"
+          mac='{"os":"macos-latest","target":"universal-apple-darwin"}'
+          win='{"os":"windows-latest","target":"x86_64-pc-windows-msvc"}'
+          case "$p" in
+            mac) inc="[$mac]" ;;
+            windows) inc="[$win]" ;;
+            *) inc="[$mac,$win]" ;;
+          esac
+          echo "matrix={\"include\":$inc}" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: plan
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          # GitHub no longer runs hosted macOS builds on real Intel hardware (that machine type
-          # was retired); every macOS runner is Apple Silicon now, so building "for Intel" here
-          # means cross-compiling. A plain cross-compiled x86_64 binary built this way came out
-          # unsigned (no LC_CODE_SIGNATURE at all) and real Intel Macs refused to open it
-          # ("...is not supported on this Mac"). Tauri's own answer to this is a *universal*
-          # build: both architectures are compiled and lipo-merged into one signed binary by the
-          # same `tauri build` step, which is the path Tauri tests for exactly this CI setup.
-          - os: macos-latest
-            target: universal-apple-darwin
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+      # The two platforms (see plan above):
+      # - macOS: universal-apple-darwin. GitHub no longer runs hosted macOS builds on real
+      #   Intel hardware; every macOS runner is Apple Silicon, so "for Intel" means
+      #   cross-compiling, and a plain cross-compiled x86_64 binary came out unsigned and was
+      #   refused by real Intel Macs. A universal build compiles both architectures and
+      #   lipo-merges them into one signed binary in the same `tauri build` step.
+      # - Windows: x86_64-pc-windows-msvc.
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -104,7 +126,7 @@ jobs:
   # matrix entry) so the release is created exactly once instead of racing.
   release:
     needs: build
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Download release files
@@ -120,6 +142,6 @@ jobs:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('build-{0}', github.run_number) }}
           name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('LIVE STUDIO build {0}', github.run_number) }}
           target_commitish: ${{ github.sha }}
-          body: ${{ github.event.head_commit.message }}
+          body: ${{ github.event.head_commit.message || format('Build of {0} ({1})', github.sha, github.event.inputs.platforms) }}
           make_latest: true
           files: release-files/*
