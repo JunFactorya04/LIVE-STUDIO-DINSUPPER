@@ -8,6 +8,7 @@ const load = async () => {
 
 beforeEach(() => {
   sessionStorage.clear();
+  localStorage.clear();
   window.history.replaceState(null, "", "/");
 });
 afterEach(() => vi.unstubAllGlobals());
@@ -20,16 +21,22 @@ describe("backend transport", () => {
     await expect(b.invoke("x")).rejects.toThrow("NOT_DESKTOP");
   });
 
-  it("takes the token from the link, keeps it for the tab and hides it from the address bar", async () => {
+  it("takes the token from the link, keeps it in the link and on the phone", async () => {
     window.history.replaceState(null, "", "/?t=abc123&x=1");
     const b = await load();
     expect(b.isRemote()).toBe(true);
     expect(b.hasBackend()).toBe(true);
-    expect(window.location.search).toBe("?x=1");
-    expect(sessionStorage.getItem("live-studio.share-token")).toBe("abc123");
-    // after a reload the address no longer has it, the tab still does
+    // the address keeps it, so an icon saved to the home screen opens signed in
+    expect(window.location.search).toBe("?t=abc123&x=1");
+    expect(localStorage.getItem("live-studio.share-token")).toBe("abc123");
+    // opened again without it (an older home-screen icon): the phone still has it
+    window.history.replaceState(null, "", "/");
     const again = await load();
     expect(again.isRemote()).toBe(true);
+    // a newer link wins over the remembered one
+    window.history.replaceState(null, "", "/?t=new456");
+    expect((await load()).isRemote()).toBe(true);
+    expect(localStorage.getItem("live-studio.share-token")).toBe("new456");
   });
 
   it("posts the command with the token and returns the data", async () => {

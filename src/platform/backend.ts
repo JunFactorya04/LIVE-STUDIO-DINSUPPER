@@ -9,22 +9,27 @@ export const hasTauri = (): boolean =>
 
 let token: string | undefined | null = null; // null = not read yet
 
-/** The sharing token: taken from the link (`?t=...`), kept for this tab, removed from the address bar. */
+/**
+ * The sharing token: taken from the link (`?t=...`) and remembered on the phone. The link keeps
+ * it, so "Add to Home Screen" saves an icon that opens the app already signed in (iOS keeps the
+ * address as it is when the icon is added). The computer keeps the same token between restarts
+ * until the seller makes a new link in Settings, which signs every saved phone out.
+ */
 export function remoteToken(): string | undefined {
   if (hasTauri() || typeof window === "undefined") return undefined;
   if (token !== null) return token;
   token = undefined;
   try {
-    const url = new URL(window.location.href);
-    const fromUrl = url.searchParams.get("t");
+    const fromUrl = new URL(window.location.href).searchParams.get("t");
     if (fromUrl) {
-      sessionStorage.setItem(TOKEN_KEY, fromUrl);
-      url.searchParams.delete("t");
-      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+      localStorage.setItem(TOKEN_KEY, fromUrl);
+      token = fromUrl;
+    } else {
+      token = localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY) ?? undefined;
     }
-    token = sessionStorage.getItem(TOKEN_KEY) ?? undefined;
   } catch {
-    // storage blocked: the link still works until the page is reloaded
+    // storage blocked: the token in the link still works for this visit
+    token = new URL(window.location.href).searchParams.get("t") ?? undefined;
   }
   return token;
 }

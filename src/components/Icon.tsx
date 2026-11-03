@@ -16,6 +16,7 @@ const PATHS = {
   download: "M12 4v11M7 10l5 5 5-5M5 20h14",
   folder: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
   minus: "M6 12h12",
+  flash: "M13 3L5 13.5h6L10 21l8-10.5h-6z",
   plus: "M12 6v12M6 12h12",
 } as const;
 

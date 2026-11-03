@@ -21,6 +21,7 @@ mod replies;
 mod secrets;
 mod share;
 mod ship;
+mod tray;
 mod webview_tab;
 mod wh;
 
@@ -59,6 +60,14 @@ pub fn run() {
             app.manage(overlay);
             app.manage(share::ShareState::default());
             app.manage(webview_tab::BrowserTabState::default());
+            app.manage(commands::UiLabels::default());
+            app.manage(tray::TrayItems::default());
+            app.manage(tray::HiddenNoticeShown::default());
+            // Sharing that was on when the app closed comes back on, with the same link.
+            share::autostart(app.handle(), &app.state::<share::ShareState>());
+            if let Err(e) = tray::setup(app.handle()) {
+                eprintln!("tray: {e}");
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -164,7 +173,18 @@ pub fn run() {
             commands::ship_store_lookup,
             commands::ship_store_search,
             commands::ship_stores_count,
+            commands::share_new_link,
+            commands::ui_set_labels,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running LIVE STUDIO");
+        .on_window_event(tray::on_window_event)
+        .build(tauri::generate_context!())
+        .expect("error while building LIVE STUDIO")
+        .run(|app, event| {
+            // macOS: a click on the Dock icon brings back a window hidden while sharing.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = event {
+                tray::show_main(app);
+            }
+            let _ = (app, event);
+        });
 }

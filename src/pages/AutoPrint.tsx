@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useI18n } from "../i18n";
-import { useLiveSession } from "../live/useLiveSession";
+import { useLiveSession, useLiveStore } from "../live/useLiveSession";
 import { getPrintService, type PrintService } from "../print/service";
 import { isConfigured, loadPrinter } from "../print/settings";
 import { printTempSlip } from "../print/tempPrint";
@@ -16,6 +16,7 @@ import { toast } from "../components/Toast";
 export function AutoPrint({ service }: { service?: PrintService }) {
   const { t, fmt } = useI18n();
   const s = useLiveSession();
+  const store = useLiveStore();
   const startedAt = useRef(new Date().toISOString());
   const done = useRef(new Set<string>());
   const told = useRef(new Set<string>());
@@ -39,12 +40,15 @@ export function AutoPrint({ service }: { service?: PrintService }) {
 
   useEffect(() => {
     const settings = loadPrinter();
-    if (!settings.autoTemp || !isConfigured(settings)) return;
+    if (!isConfigured(settings)) return;
     const svc = service ?? getPrintService();
     for (const d of s.drafts) {
       if (done.current.has(d.id) || d.createdAt < startedAt.current || d.status === "CANCELLED") {
         continue;
       }
+      // Every new order when auto-print is on; an order made on a phone always — the phone
+      // does not print it itself, only this computer does.
+      if (!settings.autoTemp && !store.isFromPhone(d.id)) continue;
       done.current.add(d.id);
       const n = draftSeq(s.drafts, d.id);
       void printTempSlip(d, s.comments, t.print.slip, { service: svc, drafts: s.drafts }).then(
@@ -56,7 +60,7 @@ export function AutoPrint({ service }: { service?: PrintService }) {
         },
       );
     }
-  }, [s.drafts, s.comments, t, fmt, service]);
+  }, [s.drafts, s.comments, t, fmt, service, store]);
 
   return null;
 }

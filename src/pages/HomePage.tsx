@@ -65,10 +65,10 @@ export function HomePage({
         onNavigate("scan");
       },
     },
+    { id: "console", label: h.createLive, badge: liveOn ? "dot" : undefined },
     { id: "ship", label: t.nav.ship, badge: toShip || undefined },
     { id: "orders", label: t.nav.orders, badge: review || undefined },
     { id: "replies", label: t.nav.replies },
-    { id: "console", label: t.nav.console, badge: liveOn ? "dot" : undefined },
     { id: "report", label: t.nav.report },
     { id: "warehouse", label: t.nav.warehouse },
     { id: "flow", label: t.nav.flow },

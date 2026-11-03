@@ -4,8 +4,10 @@ import { useI18n } from "../i18n";
 import { createShareClient, NOT_SHARING, type ShareClient, type ShareInfo } from "../share/client";
 import { setSharing } from "../share/sharing";
 
-// Turns the phone link on and off and shows it as a QR code. Off by default and off again when
-// the app closes. The link carries a secret that changes at every start.
+// Turns the phone link on and off and shows it as a QR code. Off by default; once on it stays on
+// (also after the app restarts) until turned off, and keeps answering while the window is
+// closed. The link carries a secret that stays the same until "Tạo link mới", so a phone can
+// keep it on its home screen.
 
 function Qr({ text, label }: { text: string; label: string }) {
   const svg = useMemo(() => {
@@ -56,7 +58,20 @@ export function ShareSection({ client }: { client?: ShareClient }) {
     }
   };
 
-  const url = info.urls[0];
+  // The HTTPS link first (camera works there, once the phone trusts this computer's
+  // certificate); the plain one is the fallback below.
+  const url = info.secureUrls?.[0] ?? info.urls[0];
+  const plain = info.secureUrls?.[0] ? info.urls[0] : undefined;
+  const renew = async () => {
+    setBusy(true);
+    try {
+      apply(await svc.newLink());
+    } catch {
+      setError(s.errors.DEFAULT);
+    } finally {
+      setBusy(false);
+    }
+  };
   const copy = async () => {
     if (!url) return;
     try {
@@ -85,7 +100,13 @@ export function ShareSection({ client }: { client?: ShareClient }) {
         >
           {info.running ? s.stop : s.start}
         </button>
+        {info.running && (
+          <button type="button" className="btn" disabled={busy} onClick={() => void renew()}>
+            {s.newLink}
+          </button>
+        )}
       </div>
+      {info.running && <p className="caption">{s.background}</p>}
       {error && (
         <p className="note note--error" role="alert">
           {error}
@@ -102,7 +123,24 @@ export function ShareSection({ client }: { client?: ShareClient }) {
             <button type="button" className="btn" onClick={copy}>
               {copied ? s.copied : s.copy}
             </button>
+            {plain && (
+              <span className="caption">
+                {s.plainLink} <code className="share-url">{plain}</code>
+              </span>
+            )}
           </div>
+        </div>
+      )}
+      {info.running && url && (
+        <div className="share-home">
+          <h3 className="section-title">{s.homeTitle}</h3>
+          <ol className="share-home__steps">
+            {s.homeSteps.map((x) => (
+              <li key={x} className="caption">
+                {x}
+              </li>
+            ))}
+          </ol>
         </div>
       )}
       {info.running && (

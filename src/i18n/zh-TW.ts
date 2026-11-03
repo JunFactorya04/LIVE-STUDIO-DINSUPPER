@@ -68,6 +68,7 @@ export const zhTW = {
     toShip: "未寄出出貨單",
     tools: "工具",
     scanPay: "掃描結帳",
+    createLive: "建立直播訂單",
     liveOn: "直播中",
   },
   scan: {
@@ -98,6 +99,12 @@ export const zhTW = {
     shippedAt: "出庫時間 {when}",
     order: "訂單 {id}",
     needHttps: "分享連結為 https 時才能開相機。仍可用藍牙掃描器或輸入號碼。",
+  },
+  tray: {
+    open: "開啟 LIVE STUDIO",
+    quit: "結束 LIVE STUDIO",
+    hiddenTitle: "LIVE STUDIO 仍在執行",
+    hiddenBody: "正在分享給手機，所以 App 在背景執行。可從圖示重新開啟；選「結束」即可完全關閉。",
   },
   notify: {
     newOrderTitle: "直播新訂單",
@@ -202,6 +209,7 @@ export const zhTW = {
     },
   },
   console: {
+    phoneCreated: "已建立訂單，電腦會列印暫存單。",
     createOrder: "建立訂單",
     hasOrder: "已有訂單",
     printSlip: "列印暫存單",
@@ -1099,6 +1107,7 @@ export const zhTW = {
   camera: {
     open: "用相機掃描",
     close: "完成",
+    torch: "手電筒",
     title: "相機掃描條碼",
     hold: "把條碼放進框內並保持 3 秒不動",
     holding: "保持中",
@@ -1435,10 +1444,20 @@ export const zhTW = {
     link: "或輸入連結",
     copy: "複製連結",
     copied: "已複製",
+    newLink: "建立新連結",
+    background:
+      "分享中：關閉 App 視窗後仍會在背景執行，持續接收手機的資料（圖示在選單列／系統匣，選「結束」才會完全關閉）。重新開機後分享會自動以同一個連結開啟。",
+    plainLink: "未加密連結（手機尚未安裝憑證時）：",
+    homeTitle: "加到手機主畫面",
+    homeSteps: [
+      "iPhone：用 Safari 開啟連結 → 分享 → 加入主畫面。Android：Chrome → ⋮ → 加到主畫面。",
+      "之後只要點 LIVE STUDIO 圖示就能直接進入，不必再掃 QR 碼。",
+      "手機遺失或想讓所有已儲存的手機失效時，按「建立新連結」，再重新掃描新的 QR 碼。",
+    ],
     noAddress: "找不到這台電腦的網路位址，請連上 Wi-Fi 後再試。",
     warnings: [
       "僅在自己的私人 Wi-Fi 開啟，不要在公共 Wi-Fi 使用。",
-      "連結包含祕密代碼，每次開啟都會更換。擁有連結的人都能操作，請勿傳給陌生人。",
+      "連結包含祕密代碼，在按下「建立新連結」前都不會變。擁有連結的人都能操作，請勿傳給陌生人。",
       "第一次 Windows 可能詢問防火牆：請選擇私人網路（Private）。",
       "連線為區域網路內的 HTTP，未加密。不使用時請關閉分享。",
     ],

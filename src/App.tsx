@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { onBrowserRequest } from "./browser/route";
-import { hasTauri, isRemote } from "./platform/backend";
+import { hasTauri, invoke, isRemote } from "./platform/backend";
+import { createShareClient } from "./share/client";
+import { setSharing } from "./share/sharing";
 import { requestWarehouseTab, routeScan, scopeOf, type ScanTarget } from "./warehouse/relay";
 import { ShareSync } from "./share/ShareSync";
 import { ToastHost } from "./components/Toast";
@@ -44,6 +46,32 @@ export function App({ initialPage = isRemote() ? "home" : "setup" }: { initialPa
   const { t } = useI18n();
   const { status } = useLiveSession();
   const meta = t.pages[page];
+  // Sharing switched itself back on at start (src-tauri share::autostart): show it as on and
+  // give the phone the printers. And the tray menu / "still running" notice in this language.
+  useEffect(() => {
+    if (isRemote() || !hasTauri()) return;
+    const share = createShareClient();
+    void share
+      .status()
+      .then((i) => {
+        if (!i.running) return;
+        setSharing(true);
+        void share.syncPrinter().catch(() => undefined);
+      })
+      .catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    if (isRemote() || !hasTauri()) return;
+    void invoke("ui_set_labels", {
+      labels: {
+        open: t.tray.open,
+        quit: t.tray.quit,
+        hiddenTitle: t.tray.hiddenTitle,
+        hiddenBody: t.tray.hiddenBody,
+      },
+    }).catch(() => undefined);
+  }, [t]);
+
   // A carrier or TikTok page asked to open inside the app: go to the Browser tab, which loads it.
   useEffect(() => onBrowserRequest(() => setPage("browser")), []);
 

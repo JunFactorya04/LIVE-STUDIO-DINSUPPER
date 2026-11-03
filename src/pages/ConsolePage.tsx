@@ -1,4 +1,6 @@
 import { isSearchKey, searchShortcut } from "../components/shortcut";
+import { toast } from "../components/Toast";
+import { isRemote } from "../platform/backend";
 import { Icon } from "../components/Icon";
 import {
   useCallback,
@@ -199,6 +201,7 @@ export function ConsolePage() {
   // sticker in the same tap. The second button only appears afterwards, to print it again.
   const createOrder = (c: LiveCommentEvent, print: boolean) => {
     const draft = store.draftFromComment(c.eventId);
+    if (draft && isRemote()) toast(t.console.phoneCreated);
     if (!draft || !print) return;
     setPrintedIds((prev) => new Set(prev).add(c.eventId));
     void printTempSlip(draft, s.comments, t.print.slip, { drafts: s.drafts });
@@ -497,7 +500,9 @@ export function ConsolePage() {
                           className="btn btn--primary"
                           onClick={(e) => {
                             e.stopPropagation();
-                            createOrder(c, printerReady);
+                            // A phone never prints itself: the computer prints the slip of
+                            // an order made on a phone (pages/AutoPrint.tsx).
+                            createOrder(c, printerReady && !isRemote());
                           }}
                         >
                           {t.console.createOrder}

@@ -959,9 +959,40 @@ pub fn share_start(app: AppHandle, state: State<'_, ShareState>) -> Result<Share
 
 #[tauri::command]
 pub fn share_stop(app: AppHandle, state: State<'_, ShareState>) -> Result<ShareInfo, String> {
-    let info = share::stop(&state)?;
+    let info = share::switch_off(&app, &state)?;
     log(&app.state::<DbState>(), "SHARE_STOP", "");
     Ok(info)
+}
+
+/// A new sharing link; phones that saved the old one are signed out.
+#[tauri::command]
+pub fn share_new_link(app: AppHandle, state: State<'_, ShareState>) -> Result<ShareInfo, String> {
+    let info = share::new_link(&app, &state)?;
+    log(&app.state::<DbState>(), "SHARE_NEW_LINK", "");
+    Ok(info)
+}
+
+/// Words for the tray menu and the "still running" notice, in the seller's language.
+#[derive(Default)]
+pub struct UiLabels(pub Mutex<Labels>);
+
+#[derive(Clone, Default, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Labels {
+    pub open: String,
+    pub quit: String,
+    pub hidden_title: String,
+    pub hidden_body: String,
+}
+
+#[tauri::command]
+pub fn ui_set_labels(app: AppHandle, labels: Labels) -> Result<(), String> {
+    crate::tray::relabel(&app, &labels);
+    *app.state::<UiLabels>()
+        .0
+        .lock()
+        .map_err(|_| "lock".to_string())? = labels;
+    Ok(())
 }
 
 #[tauri::command]

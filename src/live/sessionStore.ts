@@ -232,6 +232,14 @@ export class LiveSessionStore {
    * Computer is sharing: pick up orders and replies the phone saved, keeping the newer copy of
    * each. Comments are never taken from the database here (the provider is their source).
    */
+  /** Drafts this computer first saw through `mergeFromDb`: made on a phone (sharing link). */
+  private readonly phoneDrafts = new Set<string>();
+
+  /** A draft a phone made: the computer prints its temporary slip (AutoPrint). */
+  isFromPhone(draftId: string): boolean {
+    return this.phoneDrafts.has(draftId);
+  }
+
   async mergeFromDb(): Promise<void> {
     const sessionId = this.snapshot.sessionId;
     if (!sessionId) return;
@@ -253,6 +261,8 @@ export class LiveSessionStore {
         }
         return changed ? [...map.values()] : undefined;
       };
+      const known = new Set(this.snapshot.drafts.map((x) => x.id));
+      for (const x of drafts) if (!known.has(x.id)) this.phoneDrafts.add(x.id);
       const d = newer(this.snapshot.drafts, drafts);
       const r = newer(this.snapshot.replies, replies);
       if (d || r) {

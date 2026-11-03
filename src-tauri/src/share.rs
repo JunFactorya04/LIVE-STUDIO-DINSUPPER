@@ -636,6 +636,57 @@ fn info(r: &Option<Running>) -> ShareInfo {
     }
 }
 
+// The link stays the same between restarts (a phone that saved it to its home screen keeps
+// working) until the seller makes a new one, which signs every saved phone out.
+const TOKEN_FILE: &str = "share-token";
+// Present while sharing is on: the next start of the app switches it back on by itself.
+const ON_FILE: &str = "share-on";
+
+fn data_file(app: &AppHandle, name: &str) -> Option<std::path::PathBuf> {
+    app.path().app_data_dir().ok().map(|d| d.join(name))
+}
+
+fn valid_token(t: &str) -> bool {
+    t.len() == 48 && t.chars().all(|c| c.is_ascii_hexdigit())
+}
+
+fn saved_token(app: &AppHandle) -> Result<String, String> {
+    let path = data_file(app, TOKEN_FILE);
+    if let Some(t) = path
+        .as_ref()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .map(|t| t.trim().to_string())
+        .filter(|t| valid_token(t))
+    {
+        return Ok(t);
+    }
+    let t = new_token()?;
+    if let Some(p) = path {
+        let _ = std::fs::write(p, &t);
+    }
+    Ok(t)
+}
+
+/// Sharing was on when the app last closed: switch it back on (setup, at app start).
+pub fn autostart(app: &AppHandle, state: &ShareState) {
+    if data_file(app, ON_FILE).is_some_and(|p| p.exists()) {
+        let _ = start(app, state);
+    }
+}
+
+pub fn is_running(state: &ShareState) -> bool {
+    state.running.lock().map(|g| g.is_some()).unwrap_or(false)
+}
+
+/// A new link: the old one (and every phone that saved it) stops working.
+pub fn new_link(app: &AppHandle, state: &ShareState) -> Result<ShareInfo, String> {
+    stop(state)?;
+    if let Some(p) = data_file(app, TOKEN_FILE) {
+        let _ = std::fs::remove_file(p);
+    }
+    start(app, state)
+}
+
 pub fn start(app: &AppHandle, state: &ShareState) -> Result<ShareInfo, String> {
     let mut guard = state.running.lock().map_err(|_| "lock".to_string())?;
     if guard.is_some() {
@@ -643,7 +694,10 @@ pub fn start(app: &AppHandle, state: &ShareState) -> Result<ShareInfo, String> {
     }
     let listener = bind(FIRST_PORT).map_err(|_| "NO_PORT".to_string())?;
     let port = listener.local_addr().map_err(|e| e.to_string())?.port();
-    let token = new_token()?;
+    let token = saved_token(app)?;
+    if let Some(p) = data_file(app, ON_FILE) {
+        let _ = std::fs::write(p, b"1");
+    }
     let stop = Arc::new(Notify::new());
     let stop_tls = Arc::new(Notify::new());
 
@@ -688,6 +742,14 @@ pub fn start(app: &AppHandle, state: &ShareState) -> Result<ShareInfo, String> {
         stop_tls,
     });
     Ok(info(&guard))
+}
+
+/// The seller turned sharing off: it stays off at the next app start too.
+pub fn switch_off(app: &AppHandle, state: &ShareState) -> Result<ShareInfo, String> {
+    if let Some(p) = data_file(app, ON_FILE) {
+        let _ = std::fs::remove_file(p);
+    }
+    stop(state)
 }
 
 pub fn stop(state: &ShareState) -> Result<ShareInfo, String> {

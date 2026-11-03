@@ -29,6 +29,16 @@ function fake(available = true): ShareClient & { calls: string[] } {
       info = { running: false, port: null, urls: [] };
       return info;
     },
+    newLink: async () => {
+      calls.push("new");
+      info = {
+        running: true,
+        port: 47800,
+        urls: ["http://192.168.1.5:47800/?t=def"],
+        secureUrls: ["https://192.168.1.5:47900/?t=def"],
+      };
+      return info;
+    },
     syncPrinter: async () => undefined,
   };
 }
@@ -53,6 +63,17 @@ describe("ShareSection", () => {
     await waitFor(() => expect(screen.getByText(zhTW.share.off)).toBeTruthy());
     expect(isSharing()).toBe(false);
     expect(c.calls).toEqual(["start", "stop"]);
+  });
+
+  it("makes a new link, shows the HTTPS one first and how to keep it on the home screen", async () => {
+    const c = fake();
+    renderIt(c);
+    fireEvent.click(screen.getByRole("button", { name: zhTW.share.start }));
+    fireEvent.click(await screen.findByRole("button", { name: zhTW.share.newLink }));
+    expect(await screen.findAllByText("https://192.168.1.5:47900/?t=def")).not.toHaveLength(0);
+    expect(screen.getByText("http://192.168.1.5:47800/?t=def")).toBeTruthy();
+    expect(screen.getByText(zhTW.share.homeTitle)).toBeTruthy();
+    expect(c.calls).toEqual(["start", "new"]);
   });
 
   it("cannot be started outside the desktop app", () => {

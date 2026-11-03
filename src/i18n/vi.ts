@@ -70,6 +70,7 @@ export const vi: Messages = {
     toShip: "Đơn ship chưa gửi",
     tools: "Tiện ích",
     scanPay: "Quét thanh toán",
+    createLive: "Tạo đơn Live",
     liveOn: "Đang live",
   },
   scan: {
@@ -102,6 +103,13 @@ export const vi: Messages = {
     order: "Đơn {id}",
     needHttps:
       "Camera chỉ mở được khi link chia sẻ là https. Vẫn quét được bằng máy quét Bluetooth hoặc nhập mã.",
+  },
+  tray: {
+    open: "Mở LIVE STUDIO",
+    quit: "Thoát LIVE STUDIO",
+    hiddenTitle: "LIVE STUDIO vẫn đang chạy",
+    hiddenBody:
+      "Đang chia sẻ cho điện thoại nên app chạy ẩn. Mở lại từ biểu tượng; chọn Thoát để tắt hẳn.",
   },
   notify: {
     newOrderTitle: "Đơn mới từ Live",
@@ -213,6 +221,7 @@ export const vi: Messages = {
     },
   },
   console: {
+    phoneCreated: "Đã tạo đơn. Máy tính sẽ in tem tạm.",
     createOrder: "Tạo đơn",
     hasOrder: "Đã có đơn",
     printSlip: "In tem tạm",
@@ -1133,6 +1142,7 @@ export const vi: Messages = {
   camera: {
     open: "Quét bằng camera",
     close: "Xong",
+    torch: "Đèn pin",
     title: "Quét mã bằng camera",
     hold: "Đưa mã vào khung và giữ yên 3 giây",
     holding: "Đang giữ",
@@ -1490,10 +1500,20 @@ export const vi: Messages = {
     link: "Hoặc nhập đường dẫn",
     copy: "Sao chép đường dẫn",
     copied: "Đã sao chép",
+    newLink: "Tạo link mới",
+    background:
+      "Đang chia sẻ: đóng cửa sổ app thì app vẫn chạy ẩn để nhận từ điện thoại (biểu tượng ở thanh menu/khay hệ thống, chọn Thoát để tắt hẳn). Mở lại máy, chia sẻ tự bật lại với cùng link.",
+    plainLink: "Link không mã hóa (khi điện thoại chưa cài chứng chỉ):",
+    homeTitle: "Lưu vào màn hình chính điện thoại",
+    homeSteps: [
+      "iPhone: mở link bằng Safari → nút Chia sẻ → Thêm vào MH chính. Android: Chrome → ⋮ → Thêm vào màn hình chính.",
+      "Lần sau chỉ cần chạm biểu tượng LIVE STUDIO là vào thẳng, không cần quét lại mã QR.",
+      'Bấm "Tạo link mới" khi mất điện thoại hoặc muốn ngắt mọi điện thoại đã lưu; khi đó quét lại mã QR mới.',
+    ],
     noAddress: "Không tìm thấy địa chỉ mạng của máy này. Hãy kết nối Wi-Fi rồi thử lại.",
     warnings: [
       "Chỉ bật khi dùng Wi-Fi riêng của bạn; không bật trên Wi-Fi công cộng.",
-      "Đường dẫn chứa mã bí mật, đổi mỗi lần bật. Ai có đường dẫn đều thao tác được, đừng gửi cho người lạ.",
+      "Đường dẫn chứa mã bí mật, giữ nguyên cho tới khi bấm Tạo link mới. Ai có đường dẫn đều thao tác được, đừng gửi cho người lạ.",
       "Lần đầu Windows có thể hỏi về tường lửa: chọn mạng riêng (Private).",
       "Link thường là HTTP trong mạng nội bộ, không mã hóa; link HTTPS có mã hóa nhưng chỉ khi đã cài chứng chỉ. Tắt chia sẻ khi không dùng.",
     ],

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Phone sharing keeps answering while the window is hidden: no App Nap throttling. -->
+	<key>NSAppSleepDisabled</key>
+	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>LIVE STUDIO dùng camera để quét mã vạch trên tem sản phẩm.</string>
+</dict>
+</plist>

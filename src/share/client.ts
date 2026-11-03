@@ -23,6 +23,8 @@ export interface ShareClient {
   status(): Promise<ShareInfo>;
   start(): Promise<ShareInfo>;
   stop(): Promise<ShareInfo>;
+  /** A new link: phones that saved the old one are signed out. */
+  newLink(): Promise<ShareInfo>;
   /** Tell the sharing server which printer a phone prints to (the one chosen on this computer). */
   syncPrinter(): Promise<void>;
 }
@@ -38,6 +40,11 @@ class TauriShareClient implements ShareClient {
     return info;
   };
   stop = () => invoke<ShareInfo>("share_stop");
+  newLink = async () => {
+    const info = await invoke<ShareInfo>("share_new_link");
+    await this.syncPrinter();
+    return info;
+  };
   async syncPrinter(): Promise<void> {
     for (const [kind, p] of [
       ["receipt", loadPrinter()],
@@ -60,6 +67,7 @@ class UnavailableShareClient implements ShareClient {
     throw "NOT_DESKTOP";
   };
   stop = async () => NOT_SHARING;
+  newLink = async () => NOT_SHARING;
   syncPrinter = async () => undefined;
 }
 
