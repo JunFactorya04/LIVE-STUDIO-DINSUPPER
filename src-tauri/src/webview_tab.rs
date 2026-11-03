@@ -188,6 +188,34 @@ pub fn browser_open(
                 );
                 true
             })
+            // "Open in a new tab" / window.open (MyShip's "列印寄件單", a waybill PDF): this tab has
+            // no second tab, so the page loads right here, where Print and Back work as usual.
+            // App/store links are refused as above; a blank popup a page writes into itself is
+            // left to the webview.
+            .on_new_window({
+                let app = app.clone();
+                move |u, _features| {
+                    if leaves_the_web(&u) {
+                        let _ = app.emit(
+                            "browser-tab://blocked",
+                            BrowserNavigated { url: u.to_string() },
+                        );
+                        return tauri::webview::NewWindowResponse::Deny;
+                    }
+                    if u.scheme() != "https" && u.scheme() != "http" {
+                        return tauri::webview::NewWindowResponse::Allow;
+                    }
+                    let app2 = app.clone();
+                    let _ = app.run_on_main_thread(move || {
+                        if let Ok(guard) = app2.state::<BrowserTabState>().0.lock() {
+                            if let Some(wv) = guard.as_ref() {
+                                let _ = wv.navigate(u);
+                            }
+                        }
+                    });
+                    tauri::webview::NewWindowResponse::Deny
+                }
+            })
             .on_download({
                 let app = app.clone();
                 let last = std::sync::Arc::new(Mutex::new(String::new()));
