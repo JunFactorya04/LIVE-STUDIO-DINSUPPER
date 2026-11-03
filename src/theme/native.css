@@ -864,7 +864,7 @@
   }
   /* Room for the floating tab bar and the home indicator under the last row. */
   .content {
-    padding-bottom: calc(108px + env(safe-area-inset-bottom));
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
 }
 /* The stores of one district (browse by area): a scrolling list under its filter. */
@@ -980,10 +980,18 @@
     display: none;
   }
 
-  /* The floating tab bar sits above the home indicator instead of stretching under it. */
+  /* The tab bar is docked to the bottom edge, full width, like iOS: nothing scrolls under or
+     below it, so a tap near the bottom never lands on the list behind it. It sits above every
+     page layer (a selected row's outline included) and under sheets and menus. */
   .tabbar {
-    bottom: calc(8px + env(safe-area-inset-bottom));
-    padding-bottom: 6px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+    border-radius: 0;
+    box-shadow: inset 0 0.5px 0 var(--glass-edge);
+    background: color-mix(in srgb, var(--mac-window) 94%, transparent);
   }
 }
 
