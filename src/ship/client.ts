@@ -94,6 +94,17 @@ export interface ShipClient {
   searchStores(query: string): Promise<StoreHit[]>;
   /** Every 7-ELEVEN store of one district (city + district): browsing by area. */
   storesInArea(city: string, town: string): Promise<StoreHit[]>;
+  /** 7-ELEVEN's own store search: a road in a district, or part of a store name anywhere. */
+  findStores(q: {
+    city?: string;
+    town?: string;
+    road?: string;
+    name?: string;
+  }): Promise<StoreHit[]>;
+  /** The roads of a district, for suggestions. */
+  roadsInArea(city: string, town: string): Promise<string[]>;
+  /** Stores known on this computer whose number starts with these digits (offline). */
+  storesByPrefix(prefix: string): Promise<StoreHit[]>;
   /** Writes the 7-ELEVEN order-import workbook to Downloads and returns its path. */
   exportXlsx(ids: string[], markExported: boolean): Promise<string>;
   /** Opens this buyer's real TikTok page at phone width in the seller's own Chrome/Edge (the OS
@@ -186,6 +197,20 @@ class TauriShipClient implements ShipClient {
   storesInArea(city: string, town: string) {
     return this.call<StoreHit[]>("ship_store_area", { city, town });
   }
+  findStores(q: { city?: string; town?: string; road?: string; name?: string }) {
+    return this.call<StoreHit[]>("ship_store_find", {
+      city: q.city ?? "",
+      town: q.town ?? "",
+      road: q.road ?? "",
+      name: q.name ?? "",
+    });
+  }
+  roadsInArea(city: string, town: string) {
+    return this.call<string[]>("ship_area_roads", { city, town });
+  }
+  storesByPrefix(prefix: string) {
+    return this.call<StoreHit[]>("ship_store_prefix", { prefix });
+  }
   exportXlsx(ids: string[], markExported: boolean) {
     return this.call<string>("ship_export_xlsx", { ids, mark: markExported });
   }
@@ -223,6 +248,9 @@ class UnavailableShipClient implements ShipClient {
   markFlow = () => this.no();
   searchStores = () => this.no();
   storesInArea = () => this.no();
+  findStores = () => this.no();
+  roadsInArea = () => this.no();
+  storesByPrefix = () => this.no();
   exportXlsx = () => this.no();
   openBuyerPage = () => this.no();
   openTikTokLogin = () => this.no();

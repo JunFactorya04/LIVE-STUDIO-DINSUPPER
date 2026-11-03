@@ -559,6 +559,11 @@ export const zhTW = {
       storeAreaFilter: "依路名或門市名稱篩選",
       storePickCity: "請選擇縣市",
       storePickDistrict: "請選擇 {city} 的鄉鎮市區",
+      storeSuggestAreas: "符合的地區（點選查看該區所有門市）",
+      storeSuggestArea: "{area} ›",
+      storeSuggestRoads: "{area} 的路名（點選查詢該路上的門市）",
+      storeCodeSuggest: "店號開頭相符的門市",
+      storeFoundAt: "門市確認",
       picker: {
         search: "搜尋庫存商品",
         searchPh: "輸入名稱、顏色、尺寸，或掃描標籤",

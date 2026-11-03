@@ -601,6 +601,7 @@ function ShipFormView({
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string>();
   const [store, setStore] = useState<Store | "unknown">();
+  const [codeHits, setCodeHits] = useState<StoreHit[]>([]);
   const [busy, setBusy] = useState(false);
   const ids = {
     customer: useId(),
@@ -679,6 +680,23 @@ function ShipFormView({
         fill(exact);
       })
       .catch(() => live && setStore(undefined));
+    return () => {
+      live = false;
+    };
+  }, [api, form.storeCode]);
+
+  // Typing a store number: stores this computer already knows whose number starts with it.
+  useEffect(() => {
+    const digits = form.storeCode.trim();
+    if (!/^\d{2,5}$/.test(digits)) {
+      setCodeHits([]);
+      return;
+    }
+    let live = true;
+    api.storesByPrefix(digits).then(
+      (h) => live && setCodeHits(h.slice(0, 8)),
+      () => live && setCodeHits([]),
+    );
     return () => {
       live = false;
     };
@@ -798,9 +816,34 @@ function ShipFormView({
           value={form.storeCode}
           onChange={(e) => set("storeCode", e.target.value)}
         />
-        <span className="muted">{f.storeCodeHint}</span>
-        {store && store !== "unknown" && (
-          <span className="muted">{fmt(f.storeFound, { name: store.name })}</span>
+        {codeHits.length > 0 && (
+          <>
+            <span className="muted">{f.storeCodeSuggest}</span>
+            <ul className="store-search__area" aria-label={f.storeCodeSuggest}>
+              {codeHits.map((h) => (
+                <li key={h.code}>
+                  <button type="button" className="store-search__item" onClick={() => pickStore(h)}>
+                    <span className="store-search__code">{h.code}</span>
+                    <span className="store-search__text">
+                      <strong>{h.name}</strong>
+                      <span className="muted">{h.address}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {store && store !== "unknown" ? (
+          <div className="store-found" role="status" aria-label={f.storeFoundAt}>
+            <span className="store-search__code">{store.code}</span>
+            <span className="store-search__text">
+              <strong>{fmt(f.storeFound, { name: store.name })}</strong>
+              {store.address && <span className="muted">{store.address}</span>}
+            </span>
+          </div>
+        ) : (
+          <span className="muted">{f.storeCodeHint}</span>
         )}
         {store === "unknown" && <span className="muted">{f.storeUnknown}</span>}
       </div>

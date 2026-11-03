@@ -91,3 +91,54 @@ describe("browse by region", () => {
     expect(screen.queryByText("台北市")).toBeNull();
   });
 });
+
+describe("suggestions while typing", () => {
+  it("finds stores by part of the name and by an address, and suggests the district's roads", async () => {
+    const findStores = vi.fn(async (q: { name?: string; road?: string }) =>
+      q.name ? [hit({ code: "260035", name: "鈺星", address: "台南市新化區全興里" })] : [],
+    );
+    const roadsInArea = vi.fn(async () => ["中正路", "中山路", "忠孝路"]);
+    const onPick = vi.fn();
+    render(
+      <I18nProvider initial="zh-TW">
+        <StoreSearch
+          api={{ searchStores: vi.fn(async () => []), findStores, roadsInArea }}
+          onPick={onPick}
+        />
+      </I18nProvider>,
+    );
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "鈺星" } });
+    await waitFor(() => expect(findStores).toHaveBeenCalledWith({ name: "鈺星" }));
+    fireEvent.click(await screen.findByText("260035"));
+    expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ code: "260035" }));
+
+    fireEvent.change(input, { target: { value: "台南市新化區中" } });
+    await waitFor(() =>
+      expect(findStores).toHaveBeenCalledWith({ city: "台南市", town: "新化區", road: "中" }),
+    );
+    expect(await screen.findByRole("button", { name: "台南市新化區 ›" })).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "中正路" }));
+    expect((input as HTMLInputElement).value).toBe("台南市新化區中正路");
+    await waitFor(() =>
+      expect(findStores).toHaveBeenCalledWith({ city: "台南市", town: "新化區", road: "中正路" }),
+    );
+  });
+
+  it("looks up a partial store number among the stores this computer knows", async () => {
+    const storesByPrefix = vi.fn(async () => [hit({ code: "260035", name: "鈺星" })]);
+    const searchStores = vi.fn(async () => []);
+    render(
+      <I18nProvider initial="zh-TW">
+        <StoreSearch api={{ searchStores, storesByPrefix }} onPick={vi.fn()} />
+      </I18nProvider>,
+    );
+    const input = screen.getByRole("combobox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "2600" } });
+    expect(await screen.findByText("鈺星")).toBeTruthy();
+    expect(storesByPrefix).toHaveBeenCalledWith("2600");
+    expect(searchStores).not.toHaveBeenCalled();
+  });
+});

@@ -822,18 +822,74 @@ pub async fn ship_store_area(
     city: String,
     town: String,
 ) -> Result<Vec<ship::StoreHit>, String> {
+    ship_store_find(state, city, town, String::new(), String::new()).await
+}
+
+/// The map's own store search (SearchStore): by city + district, optionally a road in it, or by
+/// store name anywhere (a part of the name is enough).
+#[tauri::command]
+pub async fn ship_store_find(
+    state: State<'_, DbState>,
+    city: String,
+    town: String,
+    road: String,
+    name: String,
+) -> Result<Vec<ship::StoreHit>, String> {
+    let part = |s: &str| -> Result<String, String> {
+        if s.trim().is_empty() {
+            Ok(String::new())
+        } else {
+            ship::clean_area(s).ok_or_else(|| "BAD_QUERY".to_string())
+        }
+    };
+    let (city, town, road, name) = (part(&city)?, part(&town)?, part(&road)?, part(&name)?);
+    if name.is_empty() && (city.is_empty() || town.is_empty()) {
+        return Err("BAD_QUERY".into());
+    }
+    let text = emap_post(&[
+        ("commandid", "SearchStore"),
+        ("city", &city),
+        ("town", &town),
+        ("roadname", &road),
+        ("ID", ""),
+        ("StoreName", &name),
+        ("SpecialStore_Kind", ""),
+        ("leftMenuChecked", ""),
+        ("address", ""),
+    ])
+    .await?;
+    let hits = ship::parse_area_xml(&text);
+    ship::stores_cache(&*db(&state)?, &hits).map_err(err)?;
+    Ok(hits)
+}
+
+/// The roads of one district that the map knows, for suggesting a street to search.
+#[tauri::command]
+pub async fn ship_area_roads(city: String, town: String) -> Result<Vec<String>, String> {
     let city = ship::clean_area(&city).ok_or("BAD_QUERY")?;
     let town = ship::clean_area(&town).ok_or("BAD_QUERY")?;
+    let text = emap_post(&[
+        ("commandid", "SearchRoad"),
+        ("city", &city),
+        ("town", &town),
+        ("leftMenuChecked", ""),
+    ])
+    .await?;
+    Ok(ship::parse_roads(&text))
+}
+
+/// Stores on this computer whose number starts with the typed digits (works offline).
+#[tauri::command]
+pub fn ship_store_prefix(
+    state: State<'_, DbState>,
+    prefix: String,
+) -> Result<Vec<ship::StoreHit>, String> {
+    ship::stores_by_prefix(&*db(&state)?, &prefix).map_err(err)
+}
+
+async fn emap_post(fields: &[(&str, &str)]) -> Result<String, String> {
     let body = url::form_urlencoded::Serializer::new(String::new())
-        .append_pair("commandid", "SearchStore")
-        .append_pair("city", &city)
-        .append_pair("town", &town)
-        .append_pair("roadname", "")
-        .append_pair("ID", "")
-        .append_pair("StoreName", "")
-        .append_pair("SpecialStore_Kind", "")
-        .append_pair("leftMenuChecked", "")
-        .append_pair("address", "")
+        .extend_pairs(fields)
         .finish();
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(10))
@@ -849,10 +905,7 @@ pub async fn ship_store_area(
     if !resp.status().is_success() {
         return Err("NETWORK".into());
     }
-    let text = resp.text().await.map_err(|_| "NETWORK")?;
-    let hits = ship::parse_area_xml(&text);
-    ship::stores_cache(&*db(&state)?, &hits).map_err(err)?;
-    Ok(hits)
+    resp.text().await.map_err(|_| "NETWORK".into())
 }
 
 #[tauri::command]

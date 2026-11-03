@@ -586,6 +586,11 @@ export const vi: Messages = {
       storeAreaFilter: "Lọc theo tên đường hoặc tên cửa hàng",
       storePickCity: "Chọn tỉnh/thành",
       storePickDistrict: "Chọn quận/huyện ở {city}",
+      storeSuggestAreas: "Khu vực khớp (bấm để xem mọi cửa hàng ở đó)",
+      storeSuggestArea: "{area} ›",
+      storeSuggestRoads: "Đường ở {area} (bấm để tìm cửa hàng trên đường đó)",
+      storeCodeSuggest: "Cửa hàng có mã bắt đầu bằng số đã gõ",
+      storeFoundAt: "Đúng cửa hàng",
       pickProduct: "Sản phẩm gửi đi (chọn từ kho: tự trừ đúng màu/size và tính giá vốn)",
       picker: {
         search: "Tìm sản phẩm trong kho",

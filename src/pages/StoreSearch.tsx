@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { useI18n } from "../i18n";
 import type { ShipClient, StoreHit } from "../ship/client";
+import { guessAddress } from "../ship/storeAddress";
 import { matchScore, parseStoreQuery } from "../ship/storeQuery";
 import { TAIWAN_REGIONS, type TaiwanRegion } from "../ship/taiwanRegions";
 
@@ -26,7 +27,8 @@ export function StoreSearch({
   api,
   onPick,
 }: {
-  api: Pick<ShipClient, "searchStores"> & Partial<Pick<ShipClient, "storesInArea">>;
+  api: Pick<ShipClient, "searchStores"> &
+    Partial<Pick<ShipClient, "storesInArea" | "findStores" | "roadsInArea" | "storesByPrefix">>;
   onPick: (h: StoreHit) => void;
 }) {
   const { t, fmt } = useI18n();
@@ -49,6 +51,44 @@ export function StoreSearch({
   const cache = useRef(new Map<string, StoreHit[]>());
   const parsed = parseStoreQuery(query);
   const marks = [...parsed.understood, ...parsed.keys];
+  // Suggestions from the typed address: the districts it names (or, for a city alone, that
+  // city's districts) and, once a single district is known, the roads in it.
+  const textKey = parsed.keys.find((k) => !/^\d+$/.test(k)) ?? "";
+  const guess = useMemo(() => guessAddress(textKey), [textKey]);
+  const oneArea = guess.areas.length === 1 ? guess.areas[0] : undefined;
+  const areaKey = oneArea ? oneArea.city.zh + oneArea.district : "";
+  const [roads, setRoads] = useState<{ key: string; list: string[] }>();
+  const roadCache = useRef(new Map<string, string[]>());
+  useEffect(() => {
+    if (!oneArea || !api.roadsInArea) return;
+    const key = areaKey;
+    const known = roadCache.current.get(key);
+    if (known) return setRoads({ key, list: known });
+    let live = true;
+    api.roadsInArea(oneArea.city.zh, oneArea.district).then(
+      (list) => {
+        roadCache.current.set(key, list);
+        if (live) setRoads({ key, list });
+      },
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, areaKey]);
+  const roadChips = useMemo(() => {
+    if (!oneArea || roads?.key !== areaKey) return [];
+    const typed = guess.road;
+    const list = typed ? roads.list.filter((r) => r.includes(typed) && r !== typed) : roads.list;
+    return list.slice(0, 12);
+  }, [oneArea, roads, areaKey, guess.road]);
+  const searchFor = (text: string) => {
+    setQuery(text);
+    setOpen(true);
+    setFromDistrict(false);
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  };
 
   useEffect(() => {
     const p = parseStoreQuery(query);
@@ -62,16 +102,44 @@ export function StoreSearch({
       setBusy(true);
       setError(false);
       try {
-        const lists = await Promise.all(
-          p.keys.map(async (k) => {
-            const cached = cache.current.get(k);
-            if (cached) return cached;
-            const r = await api.searchStores(k);
-            cache.current.set(k, r);
-            return r;
-          }),
-        );
+        const once = async (key: string, get: () => Promise<StoreHit[]>) => {
+          const cached = cache.current.get(key);
+          if (cached) return cached;
+          const r = await get();
+          cache.current.set(key, r);
+          return r;
+        };
+        const tasks: Promise<StoreHit[]>[] = [];
+        for (const k of p.keys) {
+          if (/^\d+$/.test(k)) {
+            // The map finds only a complete number; a partial one is looked up among the stores
+            // this computer already knows.
+            if (k.length >= 6) tasks.push(once(k, () => api.searchStores(k)));
+            else if (api.storesByPrefix) tasks.push(once(`p:${k}`, () => api.storesByPrefix!(k)));
+            continue;
+          }
+          tasks.push(once(k, () => api.searchStores(k)));
+          if (api.findStores) {
+            // Part of a store name, anywhere in Taiwan.
+            if (k.length <= 10) tasks.push(once(`n:${k}`, () => api.findStores!({ name: k })));
+            // An address: the stores of that district, on that road when one was typed.
+            const g = guessAddress(k);
+            if (g.areas.length === 1) {
+              const [a] = g.areas;
+              tasks.push(
+                once(`r:${a.city.zh}${a.district}:${g.road}`, () =>
+                  api.findStores!({ city: a.city.zh, town: a.district, road: g.road }),
+                ),
+              );
+            }
+          }
+        }
+        const settled = await Promise.allSettled(tasks);
         if (!live) return;
+        if (settled.length > 0 && settled.every((r) => r.status === "rejected")) {
+          throw new Error("offline");
+        }
+        const lists = settled.map((r) => (r.status === "fulfilled" ? r.value : []));
         const byCode = new Map<string, StoreHit>();
         for (const h of lists.flat()) byCode.set(h.code, h);
         // Stores that match more of the typed pieces first; stores that cannot take parcels last.
@@ -221,6 +289,69 @@ export function StoreSearch({
           </ul>
         )}
       </div>
+      {query.trim() !== "" && (guess.areas.length > 0 || guess.city) && (
+        <div className="store-search__suggest">
+          {guess.areas.length > 0 ? (
+            <>
+              <span className="muted">{f.storeSuggestAreas}</span>
+              <div className="store-search__chips">
+                {guess.areas.slice(0, 8).map((a) => (
+                  <button
+                    key={a.city.zh + a.district}
+                    type="button"
+                    className="btn"
+                    onClick={() => {
+                      setBrowsing(true);
+                      setCity(a.city);
+                      if (api.storesInArea) openArea(a.city, a.district);
+                      else pickDistrict(a.city, a.district);
+                    }}
+                  >
+                    {fmt(f.storeSuggestArea, { area: `${a.city.zh}${a.district}` })}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : guess.city ? (
+            <>
+              <span className="muted">
+                {fmt(f.storePickDistrict, { city: `${guess.city.vi} ${guess.city.zh}` })}
+              </span>
+              <div className="store-search__chips">
+                {guess.city.districts.map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    className="btn"
+                    onClick={() => searchFor(guess.city!.zh + d)}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+          {oneArea && roadChips.length > 0 && (
+            <>
+              <span className="muted">
+                {fmt(f.storeSuggestRoads, { area: `${oneArea.city.zh}${oneArea.district}` })}
+              </span>
+              <div className="store-search__chips">
+                {roadChips.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    className="btn"
+                    onClick={() => searchFor(oneArea.city.zh + oneArea.district + r)}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
       <button
         type="button"
         className="btn store-search__toggle"

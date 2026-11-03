@@ -68,6 +68,9 @@ pub const ALLOWED: &[&str] = &[
     "ship_store_lookup",
     "ship_store_search",
     "ship_store_area",
+    "ship_store_find",
+    "ship_area_roads",
+    "ship_store_prefix",
     "flow_list",
     "flow_mark",
     "printer_print",
@@ -350,6 +353,16 @@ async fn dispatch(
         "ship_store_area" => {
             out(commands::ship_store_area(app.state(), arg(a, "city")?, arg(a, "town")?).await)
         }
+        "ship_store_find" => out(commands::ship_store_find(
+            app.state(),
+            arg(a, "city")?,
+            arg(a, "town")?,
+            arg(a, "road")?,
+            arg(a, "name")?,
+        )
+        .await),
+        "ship_area_roads" => out(commands::ship_area_roads(arg(a, "city")?, arg(a, "town")?).await),
+        "ship_store_prefix" => out(commands::ship_store_prefix(app.state(), arg(a, "prefix")?)),
         "flow_list" => out(commands::flow_list(app.state())),
         "flow_mark" => out(commands::flow_mark(
             app.state(),

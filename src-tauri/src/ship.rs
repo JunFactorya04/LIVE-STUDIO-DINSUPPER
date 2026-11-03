@@ -191,6 +191,49 @@ fn tag<'a>(block: &'a str, name: &str) -> Option<&'a str> {
 
 /// Every store of one district, from the map's XML (`<GeoPosition>` blocks with `POIID`,
 /// `POIName`, `Address`). Only valid 6-digit numbers are kept.
+/// Road names of one district from the map's SearchRoad list: "忠孝東路五段", once each.
+pub fn parse_roads(body: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for b in body.split("<RoadName>").skip(1) {
+        let Some(name) = tag(b, "rd_name_1").and_then(|n| text(n, 20)) else {
+            continue;
+        };
+        let section = tag(b, "section_1").map(str::trim).unwrap_or("");
+        let road = format!("{name}{section}");
+        if !out.contains(&road) {
+            out.push(road);
+        }
+    }
+    out.truncate(MAX_ROADS);
+    out
+}
+pub const MAX_ROADS: usize = 300;
+
+/// Stores already known on this computer (imported list, earlier searches) whose number starts
+/// with these digits: the map itself only finds a complete number.
+pub fn stores_by_prefix(conn: &Connection, prefix: &str) -> Result<Vec<StoreHit>> {
+    let p: String = prefix
+        .chars()
+        .filter(|c| c.is_ascii_digit())
+        .take(6)
+        .collect();
+    if p.len() < 2 {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn.prepare(
+        "SELECT code, name, address FROM ship_stores WHERE code LIKE ?1 || '%' ORDER BY code LIMIT ?2",
+    )?;
+    let rows = stmt.query_map(params![p, MAX_HITS as i64], |r| {
+        Ok(StoreHit {
+            code: r.get(0)?,
+            name: r.get(1)?,
+            address: r.get(2)?,
+            disabled: false,
+        })
+    })?;
+    rows.collect()
+}
+
 pub fn parse_area_xml(body: &str) -> Vec<StoreHit> {
     body.split("<GeoPosition>")
         .skip(1)
@@ -991,6 +1034,34 @@ mod tests {
         stores_cache(&c, &hits).unwrap();
         assert!(store_lookup(&c, "111111").unwrap().is_some());
         assert!(store_lookup(&c, "222222").unwrap().is_none());
+    }
+
+    #[test]
+    fn parses_road_list_once_each() {
+        let x =
+            "<x><RoadName><rd_name_1>忠孝東路</rd_name_1><section_1>五段</section_1></RoadName>\
+                 <RoadName><rd_name_1>忠孝東路</rd_name_1><section_1>五段</section_1></RoadName>\
+                 <RoadName><rd_name_1>吳興街</rd_name_1><section_1></section_1></RoadName></x>";
+        assert_eq!(parse_roads(x), vec!["忠孝東路五段", "吳興街"]);
+    }
+
+    #[test]
+    fn finds_known_stores_by_number_prefix() {
+        let c = open_in_memory().unwrap();
+        let h = |code: &str| StoreHit {
+            code: code.into(),
+            name: "n".into(),
+            address: "a".into(),
+            disabled: false,
+        };
+        stores_cache(&c, &[h("260035"), h("260036"), h("131386")]).unwrap();
+        let codes: Vec<_> = stores_by_prefix(&c, "2600")
+            .unwrap()
+            .into_iter()
+            .map(|s| s.code)
+            .collect();
+        assert_eq!(codes, vec!["260035", "260036"]);
+        assert!(stores_by_prefix(&c, "2").unwrap().is_empty());
     }
 
     #[test]

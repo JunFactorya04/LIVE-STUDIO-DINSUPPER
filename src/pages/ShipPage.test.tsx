@@ -62,6 +62,9 @@ function fake(over: Partial<ShipClient> = {}, orders = [order()], customers: Shi
     markFlow: vi.fn(async () => undefined),
     searchStores: vi.fn(async () => []),
     storesInArea: vi.fn(async () => []),
+    findStores: vi.fn(async () => []),
+    roadsInArea: vi.fn(async () => []),
+    storesByPrefix: vi.fn(async () => []),
     exportXlsx: vi.fn(async () => "/Downloads/x.xlsx"),
     openBuyerPage: vi.fn(async () => undefined),
     openTikTokLogin: vi.fn(async () => undefined),
@@ -271,6 +274,28 @@ describe("ShipPage", () => {
         "建盛",
       ),
     );
+  });
+
+  it("suggests stores while the number is being typed, then confirms it with the address", async () => {
+    const yx = { code: "260035", name: "鈺星", address: "台南市新化區全興里", disabled: false };
+    const c = fake(
+      {
+        storesByPrefix: vi.fn(async () => [yx]),
+        lookupStore: vi.fn(async (code: string) => (code === "260035" ? yx : undefined)),
+      },
+      [],
+    );
+    mount(c);
+    fireEvent.click(await screen.findByRole("button", { name: `+ ${zhTW.ship.create}` }));
+    fireEvent.change(screen.getByLabelText(new RegExp(zhTW.ship.form.storeCode)), {
+      target: { value: "260" },
+    });
+    fireEvent.click(await screen.findByText("鈺星"));
+    expect(
+      (screen.getByLabelText(new RegExp(zhTW.ship.form.storeCode)) as HTMLInputElement).value,
+    ).toBe("260035");
+    const card = await screen.findByRole("status", { name: zhTW.ship.form.storeFoundAt });
+    expect(card.textContent).toContain("台南市新化區全興里");
   });
 
   it("customer list: create an order from a customer and copy the ask message", async () => {
