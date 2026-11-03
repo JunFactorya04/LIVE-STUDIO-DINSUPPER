@@ -22,6 +22,17 @@ export const zhTW = {
     warehouse: "條碼倉庫",
     carriers: "物流商",
     ads: "廣告",
+    browser: "瀏覽器",
+  },
+  // Short forms for the phone tab bar only (sidebar and the "More" sheet have room for the full
+  // name); the Chinese labels above are already short, but keep a matching set so every locale
+  // has the same shape and a future, longer Chinese label does not surprise the tab bar.
+  navTab: {
+    setup: "設定",
+    console: "直播",
+    orders: "訂單",
+    pos: "收銀結帳",
+    replies: "回覆",
   },
   pages: {
     setup: { title: "直播設定", subtitle: "選擇留言來源並開始場次" },
@@ -41,6 +52,7 @@ export const zhTW = {
     warehouse: { title: "條碼倉庫", subtitle: "掃碼進貨、出庫與盤點" },
     carriers: { title: "物流商", subtitle: "連結台灣各物流商帳號" },
     ads: { title: "廣告", subtitle: "TikTok、Meta、Google — 您自己的廣告帳號" },
+    browser: { title: "瀏覽器", subtitle: "開啟任何網址，像一般瀏覽器一樣自己操作" },
     settings: { title: "設定", subtitle: "語言與外觀" },
   },
   common: {
@@ -414,6 +426,7 @@ export const zhTW = {
     openTikTokHint:
       "用電腦上真實的 Chrome/Edge 瀏覽器開啟買家真實的 TikTok 頁面（獨立視窗，沒有分頁列），讓您親自傳送訊息——App 不會替您登入或傳送。",
     openTikTokFailed: "無法開啟 TikTok：{error}",
+    openTikTokBadId: "這位買家的 TikTok ID 格式不正確，無法開啟頁面。",
   },
   ship: {
     notice:
@@ -1436,5 +1449,25 @@ export const zhTW = {
       },
     },
     apiError: "無法存取系統鑰匙圈。",
+  },
+  browser: {
+    addressPlaceholder: "輸入網址…",
+    go: "前往",
+    back: "上一頁",
+    forward: "下一頁",
+    reload: "重新載入",
+    mobileMode: "手機模式",
+    mobileModeHint: "網頁會顯示成手機版（登入 TikTok 時比較合適）。",
+    emptyTitle: "尚未開啟任何網頁",
+    emptyHint:
+      "在上方輸入網址後按「前往」。這是一般瀏覽器 — 由您自己點擊、輸入，app 不會在網頁裡自動做任何事。",
+    notDesktop: "瀏覽器只能在桌面版應用程式使用，透過手機分享連線時無法使用。",
+    errors: {
+      EMPTY_URL: "請輸入網址。",
+      BAD_URL: "網址格式不正確。",
+      BAD_SCHEME: "只能開啟 http 或 https 網址。",
+      NOT_OPEN: "尚未開啟任何網頁。",
+      NO_MAIN_WINDOW: "找不到主視窗。",
+    },
   },
 };

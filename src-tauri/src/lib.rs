@@ -21,6 +21,7 @@ mod replies;
 mod secrets;
 mod share;
 mod ship;
+mod webview_tab;
 mod wh;
 
 use std::sync::Mutex;
@@ -54,10 +55,20 @@ pub fn run() {
             }
             app.manage(overlay);
             app.manage(share::ShareState::default());
+            app.manage(webview_tab::BrowserTabState::default());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             app_info,
+            webview_tab::browser_open,
+            webview_tab::browser_navigate,
+            webview_tab::browser_set_bounds,
+            webview_tab::browser_reload,
+            webview_tab::browser_back,
+            webview_tab::browser_forward,
+            webview_tab::browser_hide,
+            webview_tab::browser_show,
+            webview_tab::browser_close,
             commands::live_create_session,
             commands::live_update_session,
             commands::live_latest_session,

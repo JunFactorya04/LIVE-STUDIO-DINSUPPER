@@ -58,6 +58,29 @@
 
   --shadow-box: 0 0 0 0.5px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-pop: 0 0 0 0.5px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.18);
+  --shadow-btn-primary: 0 1px 2px rgba(0, 0, 0, 0.12);
+
+  /* Label colour for text set on a filled control. Blue/red/selected rows keep white (matches
+     the native systemBlue/systemRed filled-button convention); green is too light for white
+     text to clear contrast, so it takes a near-black label instead — same fix already used by
+     the phone tab bar's floating accent button. */
+  --on-accent: #fff;
+  --on-green: #04210c;
+
+  /* Pure #000/#fff are an AI-default tell on their own; a hair of chroma keeps them visually
+     identical while giving them a hue to tint. Used wherever a function truly needs true
+     black/white (print paper, camera bezel, a QR code's quiet zone). */
+  --near-black: oklch(0% 0.005 240);
+  --near-white: oklch(100% 0.005 240);
+
+  /* One dimming mask for anything sitting over the page: a modal backdrop, a bottom-sheet
+     scrim, a camera viewfinder's shade. */
+  --scrim: rgba(0, 0, 0, 0.4);
+  --scrim-strong: rgba(0, 0, 0, 0.75);
+
+  /* Legible chip/muted text on a solid accent-coloured row (selected table row, POS cart line). */
+  --on-accent-dim: rgba(255, 255, 255, 0.8);
+  --on-accent-wash: rgba(255, 255, 255, 0.22);
 
   --font-ui:
     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI",

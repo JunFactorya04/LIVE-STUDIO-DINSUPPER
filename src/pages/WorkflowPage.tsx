@@ -27,6 +27,17 @@ function productLine(draft?: { sku?: string; color?: string; size?: string; quan
 
 type Note = { text: string; error: boolean } | undefined;
 
+/** "BAD_ID" is the one code-looking value this command can throw; everything else it throws is
+ * already a plain, user-facing Vietnamese/Chinese sentence from the Rust side (no OS/internal
+ * detail), so only this one code needs its own translation before being shown. */
+function tiktokOpenFailedText(
+  w: { openTikTokFailed: string; openTikTokBadId: string },
+  fmt: (s: string, vars: Record<string, string>) => string,
+  e: unknown,
+): string {
+  return String(e) === "BAD_ID" ? w.openTikTokBadId : fmt(w.openTikTokFailed, { error: String(e) });
+}
+
 // The routine for each buyer, A to Z: confirmed order, temporary slip, message asking for their
 // details, details received, shipping order. The page shows where each buyer stands and gives
 // one button for the next step. The app never sends a message: copying is the seller's own act.
@@ -116,7 +127,7 @@ export function WorkflowPage({
         await api.openBuyerPage(b.tiktokId);
         setNote({ text: t.ship.customers.copied, error: false });
       } catch (e) {
-        setNote({ text: fmt(w.openTikTokFailed, { error: String(e) }), error: true });
+        setNote({ text: tiktokOpenFailedText(w, fmt, e), error: true });
       }
       return;
     }
@@ -136,7 +147,7 @@ export function WorkflowPage({
     try {
       await api.openBuyerPage(b.tiktokId);
     } catch (e) {
-      setNote({ text: fmt(w.openTikTokFailed, { error: String(e) }), error: true });
+      setNote({ text: tiktokOpenFailedText(w, fmt, e), error: true });
     }
   };
 
@@ -148,7 +159,7 @@ export function WorkflowPage({
     try {
       await api.openTikTokLogin();
     } catch (e) {
-      setNote({ text: fmt(w.openTikTokFailed, { error: String(e) }), error: true });
+      setNote({ text: tiktokOpenFailedText(w, fmt, e), error: true });
     }
   };
 

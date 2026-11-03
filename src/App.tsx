@@ -25,6 +25,7 @@ import { CarriersPage } from "./pages/CarriersPage";
 import { ShipPage } from "./pages/ShipPage";
 import { SetupPage } from "./pages/SetupPage";
 import { AdsPage } from "./pages/AdsPage";
+import { BrowserPage } from "./pages/BrowserPage";
 
 export function App({ initialPage = isRemote() ? "console" : "setup" }: { initialPage?: PageId }) {
   const [page, setPage] = useState<PageId>(initialPage);
@@ -92,6 +93,8 @@ function PageBody({
       return <ReportPage />;
     case "ads":
       return <AdsPage />;
+    case "browser":
+      return <BrowserPage />;
     case "settings":
       return <SettingsPage />;
     default:

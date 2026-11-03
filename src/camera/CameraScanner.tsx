@@ -184,7 +184,7 @@ function Scanner({
               aria-valuemax={100}
               aria-valuenow={Math.round(progress * 100)}
             >
-              <i style={{ width: `${Math.round(progress * 100)}%` }} />
+              <i style={{ transform: `scaleX(${progress})` }} />
             </div>
             {last && (
               <p className="cam__last" aria-live="polite">

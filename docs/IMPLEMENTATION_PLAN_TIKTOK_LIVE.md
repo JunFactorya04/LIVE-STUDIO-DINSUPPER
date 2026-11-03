@@ -818,3 +818,67 @@ File mới: `src-tauri/src/images.rs`, `src/pages/PosPage.tsx`, `src/pages/PosPa
 (`PageId "pos"`), `Icons.tsx`, `Shell.tsx` (nút tab nổi), `App.tsx`, `WarehousePage.tsx` (gỡ tab
 Tính tiền, thêm ảnh ở Nhập hàng/Tồn kho), `StoreSearch.tsx`, `ConsolePage.tsx`,
 `live.css`/`base.css`, `vi.ts`/`zh-TW.ts`.
+
+## 43.
+
+Build "đánh bóng" tổng thể: rà toàn bộ UI bằng skill Hallmark (chế độ polish, giữ nguyên hệ token
+Apple UI Standard — không thay bằng hệ theme khác), thêm trang "Trình duyệt" nhúng thủ công, xóa rò
+rỉ chi tiết kỹ thuật trong thông báo lỗi, và làm lại các khối CSS điện thoại cho đúng cảm giác app.
+
+**1. Hallmark polish sweep (`src/theme/base.css`, `src/theme/live.css`):** chạy
+`sloplint --genre modern-minimal --scope app` trên `src/theme` + `src/pages`, từ 65 FAIL/159
+REFLEX/12 WARN ban đầu xuống còn 0 lỗi Floor thật (các cờ FAIL còn lại đều là false-positive đã
+xác minh — `.wha`/`.posui`/`.cam` là các "declared theme block" hợp lệ theo đúng rule 1 của
+Hallmark, chỉ scope theo component thay vì `:root`). Sửa thật: token hóa mọi màu literal còn sót
+(`--on-green`, `--on-accent*`, `--near-black/white`, `--scrim*`, `--cam-*`, `--p-ink`,
+`--p-overlay`), bỏ animate `width/height` chuyển sang `transform` (thanh tiến trình camera, 2 thanh
+tiến trình khác), gộp focus ring trùng lặp, thêm đủ 3 kênh trạng thái "disabled"
+(`opacity` + `cursor: not-allowed` + thuộc tính `disabled` gốc), sửa `overflow-x: hidden/100vw`
+thành `clip/100%`, thêm `text-wrap: balance` cho tiêu đề lớn. Mọi quyết định (sửa/giữ nguyên/lý do)
+ghi lại trong "check stamp" ở đầu mỗi file CSS, theo đúng quy ước của Hallmark cho chế độ polish
+(không bao giờ tự ý đổi cấu trúc layout/nav — phát hiện cấu trúc chỉ được ghi chú, không tự sửa).
+Tiện sửa luôn một lỗi cú pháp CSS có sẵn: comment ở đầu `live.css` chứa chuỗi `*/` giữa chừng
+(`--w-*/--p-*`) làm đóng comment sớm, khiến `prettier --check` báo lỗi cú pháp — đổi dấu `/` thành
+dấu phẩy.
+
+**2. Trang "Trình duyệt" (`src/pages/BrowserPage.tsx`, `src-tauri/src/webview_tab.rs`):** một tab
+trình duyệt nhúng thật — một webview con của Tauri (`Window::add_child`, cần bật feature
+`"unstable"` trong `Cargo.toml`) được định vị đúng khung của khối `<div>` chứa nó, tự đồng bộ khi
+cuộn/co giãn cửa sổ. Chỉ thủ công: ô địa chỉ + 3 nút (lùi/tới/tải lại) + hộp "chế độ điện thoại"
+(đặt User-Agent iPhone Safari khi bật, để các trang như TikTok trả về giao diện di động thay vì bị
+tràn cuộn ngang/dọc trong khung hẹp — đúng yêu cầu "sửa trình duyệt nhúng khi đăng nhập TikTok").
+KHÔNG có API `click()/fill()/navigate()`-kiểu tự động hóa nào: chỉ 9 lệnh Tauri cố định
+(`browser_open/navigate/set_bounds/reload/back/forward/hide/show/close`), mỗi lệnh gắn với đúng một
+nút bấm của người bán; `browser_back`/`browser_forward` là chỗ duy nhất gọi `eval()` trong trang,
+và luôn là 2 chuỗi cố định `history.back()`/`history.forward()`, không bao giờ nhận chuỗi tự do từ
+frontend. Không MCP, không lưu hồ sơ/đăng nhập riêng của app — chỉ dùng bộ nhớ mặc định của chính
+webview, như mọi trình duyệt. Trang tự ẩn (không đóng, giữ nguyên trang/lịch sử) khi rời tab, tự
+hiện lại khi quay về. Chỉ dùng được trong app desktop (không qua điện thoại chia sẻ).
+
+**3. Xóa rò rỉ chi tiết kỹ thuật:** rà toàn bộ `title=` (tooltip) và chuỗi i18n hint/title tìm từ
+khóa kỹ thuật (API, endpoint, backend, database, schema…) — không thấy rò rỉ nào ngoài tên các dịch
+vụ bên thứ ba người dùng cần biết để tự đăng ký (Euler Stream, ECPay…), vốn không phải "chi tiết
+code/API nội bộ" nên giữ nguyên. Tìm thấy rò rỉ thật ở `WorkflowPage.tsx`: lỗi mở trang TikTok hiện
+thẳng `String(e)` chưa qua ánh xạ — nếu buyer có ID sai sẽ hiện nguyên mã lỗi "BAD_ID" cho người
+dùng thay vì câu tiếng Việt. Thêm `openTikTokBadId` vào `vi.ts`/`zh-TW.ts`, map riêng mã này; các
+lỗi khác của lệnh này vốn đã là câu tiếng Việt từ phía Rust nên giữ nguyên.
+
+**4. Giao diện điện thoại giống app thật hơn:** rà toàn bộ khối `@media (max-width: 760px)`.
+Sửa 2 lỗi hiển thị thật phát hiện qua screenshot Playwright ở độ rộng 390px: (a) tiêu đề trang bị
+cắt cụt kiểu "Kho & ch…" vì chip trạng thái chèn chung hàng với tiêu đề lớn — cho `.toolbar` tự
+xuống dòng (`flex-wrap`), tiêu đề chiếm trọn hàng đầu, chip trạng thái xuống hàng dưới; (b) nhãn
+thanh tab dưới bị cắt kiểu "Thiết lậ…"/"Gợi ý tr…" vì nhãn vốn là tên đầy đủ dùng chung với sidebar
+— thêm bộ nhãn ngắn riêng cho tab bar (`t.navTab`, chỉ 5 mục có tab, không đổi nhãn sidebar/"Thêm").
+Chuyển các bảng `<table>` còn lại chưa có bản thẻ di động (`.fin-table` ở `FinancePanel.tsx`,
+`InventoryPage.tsx` ×3, `WarehousePage.tsx` ×3; bảng chiến dịch quảng cáo ở `AdsPage.tsx` dùng lại
+`.orders-table`) từ kiểu "cuộn ngang nguyên bảng thu nhỏ" sang thẻ có nhãn (mỗi `<td>` thêm
+`data-label`, theo đúng mẫu `.orders-table` đã có sẵn) — khớp với phần `.kpi-grid` đã xác minh
+trước đó là không phải lỗi (nhãn/giá trị tách dòng rõ ràng, chỉ là cách trình bày 2 dòng có chủ
+đích, đã ghi trong stamp của `base.css`).
+
+File mới: `src-tauri/src/webview_tab.rs`, `src/pages/BrowserPage.tsx`. Sửa: `Cargo.toml` (feature
+`unstable`), `lib.rs` (đăng ký module + 9 lệnh), `navigation.ts`/`App.tsx`/`Icons.tsx` (trang
+`"browser"`), `platform/backend.ts` (export `hasTauri`), `WorkflowPage.tsx` (lỗi BAD_ID),
+`FinancePanel.tsx`/`InventoryPage.tsx`/`WarehousePage.tsx`/`AdsPage.tsx` (data-label bảng),
+`components/Shell.tsx` (`t.navTab`), `theme/base.css`/`theme/live.css` (stamp, token mới, toolbar
+wrap, `.fin-table` phone, `.icon-btn` states, `.browser__*`), `vi.ts`/`zh-TW.ts`.

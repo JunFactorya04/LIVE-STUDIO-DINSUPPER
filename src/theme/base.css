@@ -1,3 +1,14 @@
+/* Hallmark · checked: 2026-11-03 · genre: modern-minimal (inferred, app scope)
+ * floor: 0 FAIL · fixed: 7 (39a, 48 x6) · structural: 2 printed (F7, 46a-adjacent kpi grid)
+ * waived: 7b (iOS true-black canvas is an intentional native convention, documented in
+ *   tokens.css), 24b (project's own Apple UI Standard spacing scale, not a model default),
+ *   29 toolbar/tabbar (Liquid Glass belongs on bars per apple-ui-standard §5), 38iii
+ *   toolbar__title (native macOS title+subtitle, not an accented word), 40 btn--primary/
+ *   btn--destructive/table[aria-selected] (white on systemBlue/systemRed, Apple's own
+ *   filled-button convention), 41 .flow__card (children set their own colour via mac-label
+ *   tokens; box only sets background, same pattern as every other card)
+ * built: the project · redesign: polish · v2.0.0 */
+
 /* Base layout, controls and responsive shell.
    Desktop (>= 761px): Sidebar | Content with unified toolbar.
    Phone (<= 760px): content only, bottom tab bar. */
@@ -311,18 +322,19 @@ button {
 .btn--primary {
   background: var(--sys-blue);
   border-color: transparent;
-  color: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-btn-primary);
 }
 
 .btn--destructive {
   background: var(--sys-red);
   border-color: transparent;
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .btn:disabled {
   opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .btn--scan {
@@ -352,8 +364,18 @@ button {
   }
 }
 
-.icon-btn:active {
+.icon-btn:hover:not(:disabled) {
+  background: var(--mac-hover);
+}
+.icon-btn:active:not(:disabled) {
   transform: scale(0.94);
+}
+.icon-btn:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .chip {
@@ -423,7 +445,7 @@ button {
 
 .table tbody tr[aria-selected="true"] {
   background: var(--sys-blue);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* ---------- Phone skin ---------- */
@@ -512,16 +534,16 @@ button {
     margin-top: -22px;
     border-radius: 50%;
     background: var(--sys-green);
-    color: #04210c;
+    color: var(--on-green);
     box-shadow:
       0 6px 16px color-mix(in srgb, var(--sys-green) 55%, transparent),
       0 0 0 4px var(--mac-toolbar);
   }
   .tabbar__item--accent[aria-current="page"] {
-    color: #04210c;
+    color: var(--on-green);
   }
   .tabbar__item--accent .icon {
-    stroke: #04210c;
+    stroke: var(--on-green);
   }
   .tabbar__item--accent .tabbar__label {
     position: absolute;

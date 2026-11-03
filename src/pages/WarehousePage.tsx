@@ -300,13 +300,13 @@ function StockTab({
                       </td>
                     )}
                     <th scope="row">{r.sku}</th>
-                    <td>{r.units}</td>
-                    <td>
+                    <td data-label={w.cols.units}>{r.units}</td>
+                    <td data-label={w.cols.price}>
                       {r.minPrice === r.maxPrice
                         ? money(r.minPrice)
                         : `${money(r.minPrice)} – ${money(r.maxPrice)}`}
                     </td>
-                    <td>{r.locations.join(", ") || "—"}</td>
+                    <td data-label={w.cols.location}>{r.locations.join(", ") || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -345,11 +345,13 @@ function StockTab({
                 {shown.map((u) => (
                   <tr key={u.code}>
                     <th scope="row">{u.code}</th>
-                    <td>{money(u.price)}</td>
-                    <td>{u.location || "—"}</td>
-                    <td>{whenOf(status === "SHIPPED" ? u.shippedAt : u.receivedAt, locale)}</td>
+                    <td data-label={w.cols.price}>{money(u.price)}</td>
+                    <td data-label={w.cols.location}>{u.location || "—"}</td>
+                    <td data-label={status === "SHIPPED" ? w.cols.shipped : w.cols.received}>
+                      {whenOf(status === "SHIPPED" ? u.shippedAt : u.receivedAt, locale)}
+                    </td>
                     {!remote && (
-                      <td className="nowrap">
+                      <td className="nowrap cell-actions">
                         {u.status === "IN_STOCK" ? (
                           <>
                             <input
@@ -1040,10 +1042,10 @@ function HistoryTab({ api, explain, say, locale }: Common & { locale: string }) 
             <tbody>
               {rows.map((m) => (
                 <tr key={m.id}>
-                  <td>{whenOf(m.at, locale)}</td>
-                  <td>{w.kinds[m.kind]}</td>
+                  <td data-label={w.cols.when}>{whenOf(m.at, locale)}</td>
+                  <td data-label={w.cols.kind}>{w.kinds[m.kind]}</td>
                   <th scope="row">{m.code}</th>
-                  <td>{m.location || "—"}</td>
+                  <td data-label={w.cols.location}>{m.location || "—"}</td>
                 </tr>
               ))}
             </tbody>

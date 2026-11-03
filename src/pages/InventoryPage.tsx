@@ -147,11 +147,11 @@ export function InventoryPage({ client }: { client?: BizClient }) {
                             {sku}
                             {name && <span className="muted"> {name}</span>}
                           </th>
-                          <td>{price ? money(price) : "—"}</td>
-                          <td>{s ? money(s.cost) : "—"}</td>
-                          <td>{m === undefined ? "—" : `${m}%`}</td>
-                          <td>{s ? s.stock : "—"}</td>
-                          <td>
+                          <td data-label={v.price}>{price ? money(price) : "—"}</td>
+                          <td data-label={v.cost}>{s ? money(s.cost) : "—"}</td>
+                          <td data-label={v.margin}>{m === undefined ? "—" : `${m}%`}</td>
+                          <td data-label={v.onHand}>{s ? s.stock : "—"}</td>
+                          <td data-label={v.status}>
                             {!s ? (
                               <span className="chip tone-gray">{v.notTracked}</span>
                             ) : s.stock < 0 ? (
@@ -198,12 +198,12 @@ export function InventoryPage({ client }: { client?: BizClient }) {
                     {purchases.map((p) => (
                       <tr key={p.id}>
                         <th scope="row">{p.at}</th>
-                        <td>{p.sku}</td>
-                        <td>{p.qty}</td>
-                        <td>{money(p.unitCost)}</td>
-                        <td>{money(p.qty * p.unitCost)}</td>
-                        <td>{p.supplier || "—"}</td>
-                        <td>
+                        <td data-label={v.sku}>{p.sku}</td>
+                        <td data-label={v.qty}>{p.qty}</td>
+                        <td data-label={v.unitCost}>{money(p.unitCost)}</td>
+                        <td data-label={v.total}>{money(p.qty * p.unitCost)}</td>
+                        <td data-label={v.supplier}>{p.supplier || "—"}</td>
+                        <td className="cell-actions">
                           <button
                             type="button"
                             className="btn"
@@ -247,11 +247,13 @@ export function InventoryPage({ client }: { client?: BizClient }) {
                     {expenses.map((e) => (
                       <tr key={e.id} className={e.active ? "" : "is-off"}>
                         <th scope="row">{e.name}</th>
-                        <td>{v.categories[e.category] ?? e.category}</td>
-                        <td>{v.kinds[e.kind]}</td>
-                        <td>{e.kind === "PERCENT" ? `${e.amount / 100}%` : money(e.amount)}</td>
-                        <td>{e.at}</td>
-                        <td>
+                        <td data-label={v.category}>{v.categories[e.category] ?? e.category}</td>
+                        <td data-label={v.kind}>{v.kinds[e.kind]}</td>
+                        <td data-label={v.amount}>
+                          {e.kind === "PERCENT" ? `${e.amount / 100}%` : money(e.amount)}
+                        </td>
+                        <td data-label={v.date}>{e.at}</td>
+                        <td className="cell-actions">
                           {e.kind !== "ONCE" && (
                             <button
                               type="button"

@@ -233,20 +233,20 @@ export function FinancePanel({ orders, now }: { orders: readonly ShipOrder[]; no
                   {[...data.buckets].reverse().map((b) => (
                     <tr key={b.key}>
                       <th scope="row">{label(b)}</th>
-                      <td>{b.orders}</td>
-                      <td>{money(b.revenue)}</td>
-                      <td>{money(b.fees)}</td>
-                      <td>{money(b.cod)}</td>
+                      <td data-label={f.orders}>{b.orders}</td>
+                      <td data-label={f.revenue}>{money(b.revenue)}</td>
+                      <td data-label={f.fees}>{money(b.fees)}</td>
+                      <td data-label={f.cod}>{money(b.cod)}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr>
                     <th scope="row">{f.total}</th>
-                    <td>{data.total.orders}</td>
-                    <td>{money(data.total.revenue)}</td>
-                    <td>{money(data.total.fees)}</td>
-                    <td>{money(data.total.cod)}</td>
+                    <td data-label={f.orders}>{data.total.orders}</td>
+                    <td data-label={f.revenue}>{money(data.total.revenue)}</td>
+                    <td data-label={f.fees}>{money(data.total.fees)}</td>
+                    <td data-label={f.cod}>{money(data.total.cod)}</td>
                   </tr>
                 </tfoot>
               </table>

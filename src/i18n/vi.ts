@@ -20,7 +20,18 @@ export const vi: Messages = {
     warehouse: "Kho mã vạch",
     carriers: "Hãng vận chuyển",
     ads: "Quảng cáo",
+    browser: "Trình duyệt",
     settings: "Cài đặt",
+  },
+  // Short forms of the labels above, for the phone tab bar only (sidebar and the "More" sheet
+  // have room for the full name; five ~70px-wide tab slots do not — the full names were clipping
+  // to "Thiết lậ…", "Bảng điề…", "Đơn từ L…", "Gợi ý tr…").
+  navTab: {
+    setup: "Thiết lập",
+    console: "Live",
+    orders: "Đơn hàng",
+    pos: "Thanh Toán",
+    replies: "Trả lời",
   },
   pages: {
     setup: { title: "Thiết lập Live", subtitle: "Chọn nguồn bình luận và bắt đầu phiên" },
@@ -40,6 +51,7 @@ export const vi: Messages = {
     warehouse: { title: "Kho mã vạch", subtitle: "Quét mã nhập, xuất và kiểm kê" },
     carriers: { title: "Hãng vận chuyển", subtitle: "Kết nối tài khoản các hãng tại Đài Loan" },
     ads: { title: "Quảng cáo", subtitle: "TikTok, Meta, Google — tài khoản quảng cáo của bạn" },
+    browser: { title: "Trình duyệt", subtitle: "Mở một trang bất kỳ, tự tay dùng như trình duyệt" },
     settings: { title: "Cài đặt", subtitle: "Ngôn ngữ và giao diện" },
   },
   common: {
@@ -435,6 +447,7 @@ export const vi: Messages = {
     openTikTokHint:
       "Mở trang TikTok thật của khách bằng trình duyệt Chrome/Edge thật của máy (cửa sổ riêng, không có thanh tab), để bạn tự gửi tin nhắn — app không đăng nhập hay gửi thay bạn.",
     openTikTokFailed: "Không mở được TikTok: {error}",
+    openTikTokBadId: "ID TikTok của khách không hợp lệ, không mở được trang.",
   },
   ship: {
     notice:
@@ -1491,5 +1504,26 @@ export const vi: Messages = {
       },
     },
     apiError: "Không truy cập được kho khóa của hệ điều hành.",
+  },
+  browser: {
+    addressPlaceholder: "Nhập địa chỉ trang web…",
+    go: "Đi",
+    back: "Quay lại",
+    forward: "Tiến",
+    reload: "Tải lại",
+    mobileMode: "Chế độ điện thoại",
+    mobileModeHint: "Trang sẽ hiển thị như trên điện thoại (phù hợp khi đăng nhập TikTok).",
+    emptyTitle: "Chưa mở trang nào",
+    emptyHint:
+      "Nhập địa chỉ ở trên rồi bấm “Đi”. Đây là trình duyệt bình thường — bạn tự bấm, tự nhập, app không tự động làm gì trong trang.",
+    notDesktop:
+      "Trình duyệt chỉ dùng được trong app trên máy tính, không dùng được qua điện thoại chia sẻ.",
+    errors: {
+      EMPTY_URL: "Hãy nhập một địa chỉ trang web.",
+      BAD_URL: "Địa chỉ không hợp lệ.",
+      BAD_SCHEME: "Chỉ mở được địa chỉ http hoặc https.",
+      NOT_OPEN: "Chưa mở trang nào.",
+      NO_MAIN_WINDOW: "Không tìm thấy cửa sổ chính.",
+    },
   },
 };

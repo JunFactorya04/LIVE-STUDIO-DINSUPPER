@@ -1,3 +1,28 @@
+/* Hallmark · checked: 2026-11-03 · genre: modern-minimal (inferred, app scope)
+ * floor: 0 FAIL (24 of the tool's 26 flags are declared-theme-block / false-positive, below)
+ * fixed: tokens for every real literal (on-green, on-accent*, near-black/white, scrim*, cam-*,
+ *   p-ink, p-overlay), 3 width/height transitions removed or moved to transform (fin-bar__fill,
+ *   split__seg, cam__progress + CameraScanner.tsx), cam-sweep keyframes moved from top to
+ *   translateY, .input focus ring de-duplicated onto the global one, 3 disabled states gained
+ *   cursor: not-allowed, overflow-x: hidden/100vw -> clip/100%, F3 text-wrap:balance on .wha h2
+ * waived 48 on .wha/.posui/.cam's own --w-*, --p-*, --cam-* declarations: these ARE declared
+ *   theme blocks (Floor rule 1's own "or a declared theme block" clause), just scoped to the
+ *   component instead of :root, because .wha and .posui are intentionally separate dark
+ *   sub-themes (control-room / kiosk) layered on the main Apple UI tokens
+ * waived 24b (project's own Apple UI Standard spacing scale, not a model default), 29
+ *   .cam__shade (camera viewfinder dimming mask, standard scanner UI, not content glass), 41
+ *   .flow__card (children set colour via mac-label tokens, same as every other card)
+ * printed, not fixed (false positives, verified by reading the surrounding code): 15
+ *   .flow__card is an <li>, never focused, no focus-visible rule targets it; 56 .inspector and
+ *   .feed-scroll thead th are sticky in two different, non-overlapping scroll containers, never
+ *   stacked in the same viewport; 19 the em dash in FinancePanel/ProfitPanel is the project's
+ *   existing "no value" table-cell glyph (f.none, used identically on 4 other pages), not
+ *   AI-written copy; 70 WarehousePage's success line follows a real api.receive() call, not a
+ *   fake send
+ * structural, printed for the owner: F7 six boxes share one container recipe (.ship__stat,
+ *   .ship__form, .store-search__browse, …) — fine for an app scope, not rebuilt here
+ * built: the project · redesign: polish · v2.0.0 */
+
 /* Live Assistant screens. Tokens only (see tokens.css); no hardcoded colours or sizes outside the scale. */
 
 .sidebar__brand {
@@ -70,11 +95,11 @@
 .input::placeholder {
   color: var(--mac-label-3);
 }
-.input:focus-visible {
-  border-color: var(--sys-blue);
-}
+/* Focus ring: the global :focus-visible box-shadow (base.css) is enough — a border-colour
+   swap on top of it duplicated the signal and used the wrong channel for it (39a). */
 .input:disabled {
   opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .check {
@@ -193,7 +218,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--scrim);
 }
 .slip-modal__box {
   display: flex;
@@ -298,11 +323,11 @@
 }
 /* Selected row is solid blue with white text: keep chips legible on it. */
 .table tbody tr[aria-selected="true"] .chip {
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
+  background: var(--on-accent-wash);
+  color: var(--on-accent);
 }
 .table tbody tr[aria-selected="true"] .muted {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--on-accent-dim);
 }
 
 /* ---------- Phone tab bar: "More" menu ---------- */
@@ -396,7 +421,7 @@
     position: fixed;
     inset: 0;
     z-index: 29;
-    background: rgba(0, 0, 0, 0.35);
+    background: var(--scrim);
   }
   .console__feed {
     min-height: 60vh;
@@ -975,7 +1000,7 @@
 .qr {
   width: 168px;
   height: 168px;
-  background: #fff;
+  background: var(--near-white);
   border-radius: var(--ctl-radius);
   padding: 6px;
   box-shadow: var(--shadow-box);
@@ -1069,7 +1094,7 @@
   font-variant-numeric: tabular-nums;
   font-size: var(--fs-subhead);
   font-weight: 600;
-  color: #fff;
+  color: var(--on-green);
   background: var(--sys-green);
 }
 .store-search__text {
@@ -1146,8 +1171,8 @@
   max-width: 100%;
   box-sizing: border-box;
   padding: 14px 10px;
-  background: #fff;
-  color: #000;
+  background: var(--near-white);
+  color: var(--near-black);
   border-radius: 12px;
   box-shadow: var(--shadow-pop);
   text-align: center;
@@ -1334,7 +1359,8 @@
   border-radius: 5px 5px 0 0;
   background: color-mix(in srgb, var(--sys-blue) 45%, transparent);
   margin-bottom: 20px;
-  transition: height 0.3s ease;
+  /* No transition: animating height forces layout on every frame. The bar is set once from
+     data, not continuously resized, so there is nothing to smooth. */
 }
 .fin-bar.is-current .fin-bar__fill {
   background: var(--sys-blue);
@@ -1511,7 +1537,7 @@
   width: 64px;
   height: 48px;
   object-fit: contain;
-  background: #fff;
+  background: var(--near-white);
   padding: 5px;
   box-shadow: var(--shadow-box);
   box-sizing: border-box;
@@ -1569,7 +1595,7 @@
 .split__seg {
   display: block;
   height: 100%;
-  transition: width 0.3s ease;
+  /* No transition: see .fin-bar__fill above — set once from data, never resized live. */
 }
 .split__seg--cogs {
   background: var(--sys-orange);
@@ -1661,19 +1687,30 @@
   body,
   .app,
   .content {
-    max-width: 100vw;
-    overflow-x: hidden;
+    width: 100%;
+    overflow-x: clip;
   }
   .toolbar {
     height: auto;
     min-height: 56px;
     padding: calc(env(safe-area-inset-top) + 8px) 16px 8px;
-    gap: 8px;
+    gap: 4px 8px;
     align-items: flex-end;
+    flex-wrap: wrap;
   }
+  /* The large title always gets the full first row to itself — a short status chip next to it
+     was crowding "Kho & chi phí" down to "Kho & ch…" even though the title alone fits easily;
+     the chip wraps to its own row underneath instead of stealing the title's width. */
   .toolbar__title {
-    flex: 1;
+    flex: 1 1 100%;
     min-width: 0;
+    order: 1;
+  }
+  .toolbar__spacer {
+    order: 2;
+  }
+  .toolbar > :last-child:not(.toolbar__title):not(.toolbar__spacer) {
+    order: 3;
   }
   .toolbar__title strong {
     font-size: 22px;
@@ -1798,15 +1835,59 @@
   .carrier__actions .btn {
     flex: 1 1 auto;
   }
-  /* Wide tables scroll inside their own card instead of stretching the page. */
-  .fin-table,
-  .table,
+  /* Any other stray table (not yet given its own card treatment) still scrolls inside its own
+     card instead of stretching the page. */
   .inv table {
     display: block;
     max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+  /* .fin-table rows become labelled cards, the same pattern as .orders-table: the row's own
+     <th scope="row"> (its SKU, date or name) is the card's title line; every <td data-label>
+     becomes a label/value row below it. */
+  .fin-table,
+  .fin-table tbody,
+  .fin-table tfoot,
+  .fin-table tr,
+  .fin-table td,
+  .fin-table th {
+    display: block;
+  }
+  .fin-table thead {
+    display: none;
+  }
+  .fin-table tbody tr,
+  .fin-table tfoot tr {
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--mac-border);
+  }
+  .fin-table th[scope="row"] {
+    font-size: var(--fs-body);
+    font-weight: 600;
+    text-align: left;
+    padding-bottom: 4px;
+  }
+  .fin-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    height: auto;
+    padding: 2px 0;
+    border: 0;
+    text-align: right;
+  }
+  .fin-table td[data-label]::before {
+    content: attr(data-label);
+    color: var(--mac-label-2);
+    font-size: var(--fs-callout);
+    text-align: left;
+  }
+  .fin-table td.cell-actions {
+    justify-content: flex-end;
+    padding-top: 8px;
+  }
+  /* AdsPage's campaign table reuses .orders-table directly, same treatment as above. */
   .tabbar {
     left: 16px;
     right: 16px;
@@ -1945,6 +2026,7 @@
 .wha h2 {
   margin: 0;
   font-size: var(--fs-title1);
+  text-wrap: balance;
 }
 .wha__head {
   display: flex;
@@ -2306,11 +2388,15 @@
   --cw: min(86vw, 520px);
   --ch: 140px;
   --cy: 42%;
+  --cam-bg: var(--near-black);
+  --cam-fg: var(--near-white);
+  --cam-ring: rgba(255, 255, 255, 0.35);
+  --cam-track: rgba(255, 255, 255, 0.25);
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: #000;
-  color: #fff;
+  background: var(--cam-bg);
+  color: var(--cam-fg);
   overflow: hidden;
 }
 .cam__video {
@@ -2322,7 +2408,7 @@
 }
 .cam__shade {
   position: absolute;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--scrim);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
@@ -2358,8 +2444,7 @@
   height: var(--ch);
   transform: translate(-50%, -50%);
   border-radius: 12px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
-  transition: box-shadow 0.2s;
+  box-shadow: 0 0 0 1px var(--cam-ring);
 }
 .cam__window[data-hit="1"] {
   box-shadow: 0 0 0 3px var(--sys-green);
@@ -2402,6 +2487,7 @@
   position: absolute;
   left: 6px;
   right: 6px;
+  top: 8px;
   height: 2px;
   background: var(--sys-red);
   box-shadow: 0 0 10px var(--sys-red);
@@ -2409,16 +2495,19 @@
 }
 @keyframes cam-sweep {
   from {
-    top: 8px;
+    transform: translateY(0);
   }
   to {
-    top: calc(100% - 10px);
+    /* Same travel as the old top: 8px -> calc(100% - 10px), against the window's own
+       height (--ch, declared on .cam) instead of the bar's — translateY()'s % is the
+       element's own box, not the containing block's. */
+    transform: translateY(calc(var(--ch) - 18px));
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .cam__bar {
     animation: none;
-    top: 50%;
+    transform: translateY(calc((var(--ch) - 18px) / 2));
   }
 }
 .cam__panel {
@@ -2429,7 +2518,7 @@
   padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
   display: grid;
   gap: 10px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.75) 40%);
+  background: linear-gradient(transparent, var(--scrim-strong) 40%);
 }
 .cam__msg {
   margin: 0;
@@ -2447,14 +2536,16 @@
 .cam__progress {
   height: 6px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--cam-track);
   overflow: hidden;
 }
 .cam__progress i {
   display: block;
+  width: 100%;
   height: 100%;
+  transform-origin: left;
   background: var(--sys-green);
-  transition: width 0.12s linear;
+  transition: transform 0.12s linear;
 }
 
 .share-cert {
@@ -2597,9 +2688,11 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  transition: box-shadow var(--dur-fast) var(--ease-out);
 }
 @media (hover: hover) and (pointer: fine) {
+  .flow__card {
+    transition: box-shadow var(--dur-fast) var(--ease-out);
+  }
   .flow__card:hover {
     box-shadow: var(--shadow-pop);
   }
@@ -2685,7 +2778,7 @@
 }
 .flow__step.is-done .flow__dot {
   background: var(--sys-green);
-  color: #fff;
+  color: var(--on-green);
 }
 
 /* Quảng cáo (Ads) tab: reuses .carrier/.carrier__* cards from CarriersPage. */
@@ -2713,6 +2806,49 @@
 }
 .ads__copy-result p:last-child {
   margin-bottom: 0;
+}
+
+/* Browser tab: manual, view-only. .browser__viewport is a transparent placeholder — the real
+   page is a native child webview the OS draws on top of it at the same bounds (see
+   BrowserPage.tsx); the empty state renders inside the placeholder only until something is
+   open. */
+.browser {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 8px;
+}
+.browser__bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.browser__address {
+  flex: 1;
+  min-width: 160px;
+}
+.browser__mobile {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-callout);
+  color: var(--mac-label-2);
+  white-space: nowrap;
+}
+.browser__hint {
+  margin: 0;
+  font-size: var(--fs-callout);
+}
+.browser__viewport {
+  flex: 1;
+  min-height: 0;
+  border-radius: var(--box-radius);
+  border: 0.5px solid var(--mac-border);
+  background: var(--mac-under);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ---- Product photo: Stock table / Receive / POS cart thumbnails ---- */
@@ -2749,6 +2885,8 @@
   --p-accent: #cdfb3f;
   --p-ok: #32d74b;
   --p-bad: #ff453a;
+  --p-ink: #10210a; /* dark label for text on --p-accent — too light for white to clear contrast */
+  --p-overlay: rgba(255, 255, 255, 0.08);
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(0, 1fr);
@@ -2792,7 +2930,7 @@
   height: 28px;
   padding: 0 12px;
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--p-overlay);
   color: var(--p-dim);
   font-size: var(--fs-callout);
   font-weight: 600;
@@ -2884,7 +3022,7 @@
   height: 28px;
   border-radius: 50%;
   border: 0;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--p-overlay);
   color: var(--p-text);
 }
 .posui__totals {
@@ -2921,7 +3059,7 @@
 .posui__segmented button[aria-pressed="true"] {
   background: var(--p-accent);
   border-color: transparent;
-  color: #10210a;
+  color: var(--p-ink);
 }
 .posui__segmented--wide button {
   min-height: var(--ctl-h);
@@ -2953,12 +3091,13 @@
 }
 .posui__btn--primary {
   background: var(--p-accent);
-  color: #10210a;
+  color: var(--p-ink);
   box-shadow: 0 6px 18px color-mix(in srgb, var(--p-accent) 45%, transparent);
 }
 .posui__btn--primary:disabled {
   opacity: 0.55;
   box-shadow: none;
+  cursor: not-allowed;
 }
 .posui__btn--ghost {
   background: var(--p-card);
@@ -2967,6 +3106,7 @@
 }
 .posui__btn--ghost:disabled {
   opacity: 0.45;
+  cursor: not-allowed;
 }
 .posui__btn--text {
   background: transparent;

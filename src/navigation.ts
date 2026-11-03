@@ -16,6 +16,7 @@ export type PageId =
   | "overlay"
   | "report"
   | "ads"
+  | "browser"
   | "settings";
 
 export interface NavItem {
@@ -42,6 +43,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "overlay", section: "manage", tab: false },
   { id: "report", section: "manage", tab: false },
   { id: "ads", section: "manage", tab: false },
+  { id: "browser", section: "manage", tab: false },
   { id: "settings", section: "manage", tab: false },
 ];
 

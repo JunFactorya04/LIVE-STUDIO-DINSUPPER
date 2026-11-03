@@ -17,6 +17,8 @@ const paths: Record<PageId | "more", string> = {
   overlay: "M12 4l8 4-8 4-8-4zM4 12l8 4 8-4M4 16l8 4 8-4",
   report: "M5 20V10M12 20V4M19 20v-7",
   ads: "M3 10v4h3l5 4V6l-5 4zM17 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12",
+  browser:
+    "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16M4 12h16M12 4c2.5 2.2 2.5 13.8 0 16M12 4c-2.5 2.2-2.5 13.8 0 16",
   settings: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM4 12h2M18 12h2M12 4v2M12 18v2",
   more: "M6 12h.01M12 12h.01M18 12h.01",
 };

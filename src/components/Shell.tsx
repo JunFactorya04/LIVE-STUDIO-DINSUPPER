@@ -122,7 +122,9 @@ export function TabBar({ current, onSelect }: NavProps) {
           }}
         >
           <NavIcon id={item.id} size={item.id === "pos" ? 26 : 22} />
-          <span className="tabbar__label">{t.nav[item.id]}</span>
+          <span className="tabbar__label">
+            {item.id in t.navTab ? t.navTab[item.id as keyof typeof t.navTab] : t.nav[item.id]}
+          </span>
         </button>
       ))}
       <button

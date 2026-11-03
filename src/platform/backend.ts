@@ -4,7 +4,8 @@
 
 const TOKEN_KEY = "live-studio.share-token";
 
-const hasTauri = (): boolean => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+export const hasTauri = (): boolean =>
+  typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 let token: string | undefined | null = null; // null = not read yet
 

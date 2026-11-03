@@ -277,7 +277,7 @@ function PlatformCard({
           {campaigns.length === 0 ? (
             <p className="caption">{a.noCampaigns}</p>
           ) : (
-            <table className="table" aria-label={a.viewCampaigns}>
+            <table className="table orders-table" aria-label={a.viewCampaigns}>
               <thead>
                 <tr>
                   <th scope="col">{a.columns.name}</th>
@@ -289,16 +289,20 @@ function PlatformCard({
               <tbody>
                 {campaigns.map((c) => (
                   <tr key={c.id}>
-                    <td className="wrap">{c.name}</td>
-                    <td>
+                    <td className="wrap" data-label={a.columns.name}>
+                      {c.name}
+                    </td>
+                    <td data-label={a.columns.status}>
                       <span
                         className={`chip ${c.status === "ENABLED" ? "tone-green" : "tone-gray"}`}
                       >
                         {a.campaignStatus[c.status]}
                       </span>
                     </td>
-                    <td className="num">{c.dailyBudget?.toFixed(2) ?? t.common.none}</td>
-                    <td>
+                    <td className="num" data-label={a.columns.budget}>
+                      {c.dailyBudget?.toFixed(2) ?? t.common.none}
+                    </td>
+                    <td className="cell-actions">
                       <button
                         type="button"
                         className="btn"
