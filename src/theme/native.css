@@ -1058,3 +1058,17 @@
     animation: none !important;
   }
 }
+
+/* Phone: no comment-detail sheet on the Live screen. Tapping a comment only opens up its full
+   text in place (the row is "selected"); creating the order stays one tap on the right. */
+@media (max-width: 760px) {
+  .console .console__insight,
+  .console .console__insight--open,
+  .console__insight-backdrop {
+    display: none !important;
+  }
+  .feed-table tbody tr[aria-selected="true"] .cell-comment {
+    -webkit-line-clamp: unset;
+    max-height: none;
+  }
+}
