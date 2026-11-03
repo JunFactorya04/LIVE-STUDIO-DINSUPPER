@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { isRemote } from "../platform/backend";
 import { PHONE_TABS, visibleNav, type PageId } from "../navigation";
 import { NavIcon } from "./Icons";
@@ -88,17 +88,31 @@ export function TabBar({ current, onSelect }: NavProps) {
   const accent: PageId = remote ? "scan" : "pos";
   const moreActive = rest.some((i) => i.id === current);
 
+  // The menu closes whenever the page changes, on Esc, and on a tap anywhere outside it
+  // (a tap on the page, another tab) — it never stays hanging over the next screen.
+  useEffect(() => setMoreOpen(false), [current]);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const moreBtn = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!moreOpen) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMoreOpen(false);
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (menuRef.current?.contains(t) || moreBtn.current?.contains(t)) return;
+      setMoreOpen(false);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onDown, true);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onDown, true);
+    };
   }, [moreOpen]);
 
   return (
     <nav className="tabbar" aria-label={t.app.name}>
       {moreOpen && (
-        <div className="more-menu" role="menu">
+        <div className="more-menu" role="menu" ref={menuRef}>
           {rest.map((item) => (
             <button
               key={item.id}
@@ -137,6 +151,7 @@ export function TabBar({ current, onSelect }: NavProps) {
       <button
         type="button"
         className="tabbar__item"
+        ref={moreBtn}
         aria-haspopup="menu"
         aria-expanded={moreOpen}
         aria-current={moreActive ? "page" : undefined}
