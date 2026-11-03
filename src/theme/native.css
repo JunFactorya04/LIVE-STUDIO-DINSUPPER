@@ -893,3 +893,14 @@
   font: inherit;
   color: inherit;
 }
+/* Phone: every segmented control keeps whole labels ("Tất cả", "Câu hỏi") instead of "Tất…";
+   options still share the width when they fit, and the row scrolls sideways when they do not. */
+@media (max-width: 760px) {
+  .segmented button {
+    flex: 1 0 auto;
+    min-width: max-content;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+}
