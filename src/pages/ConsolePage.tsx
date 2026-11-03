@@ -251,7 +251,7 @@ export function ConsolePage() {
           )}
         </dl>
         {s.endedAt && <p className="caption">{t.console.ended}</p>}
-        <div className="stack">
+        <div className="stack console__session-actions">
           {running && (
             <button type="button" className="btn" onClick={() => void store.endSession()}>
               {t.console.endSession}
@@ -286,9 +286,11 @@ export function ConsolePage() {
             </button>
           )}
         </div>
-        <h3 className="subhead">{t.console.stock.title}</h3>
+        <h3 className={`subhead${stock.length === 0 ? " hide-phone" : ""}`}>
+          {t.console.stock.title}
+        </h3>
         {stock.length === 0 ? (
-          <p className="muted caption">{t.console.stock.empty}</p>
+          <p className="muted caption hide-phone">{t.console.stock.empty}</p>
         ) : (
           <ul className="stock-list">
             {sortedStock.map((item) => {

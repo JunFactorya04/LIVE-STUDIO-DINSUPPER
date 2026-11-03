@@ -31,7 +31,7 @@ export function OrdersPage() {
   return (
     <div className="page page--no-inspector orders">
       <section className="box orders__box">
-        <p className="banner banner--info" role="note">
+        <p className="banner banner--info hide-phone" role="note">
           {t.orders.notice}
         </p>
         <DraftsTab />
@@ -219,12 +219,15 @@ function DraftsTab() {
                         </span>
                       )}
                     </td>
-                    <td className="wrap" data-label={t.orders.columns.reason}>
+                    <td
+                      className={`wrap cell-reason${d.reasons.length === 0 ? " is-empty" : ""}`}
+                      data-label={t.orders.columns.reason}
+                    >
                       {d.reasons.length === 0
                         ? t.common.none
                         : d.reasons.map((r) => t.orders.reasons[r]).join("、")}
                     </td>
-                    <td className="wrap muted" data-label={t.orders.columns.comment}>
+                    <td className="wrap muted cell-quote" data-label={t.orders.columns.comment}>
                       {quotes || t.common.none}
                     </td>
                     <td className="cell-actions nowrap">
