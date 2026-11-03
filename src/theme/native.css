@@ -904,3 +904,89 @@
     white-space: nowrap;
   }
 }
+
+/* ---------- Phone: tables, the tab bar, the home indicator ---------- */
+@media (max-width: 760px) {
+  /* Card rows of a table: the title and the label/value pairs share one inset, and the pairs
+     sit two to a line, so a row is half as tall and nothing hugs the card's edge. */
+  .fin-table tbody tr,
+  .fin-table tfoot tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+    row-gap: 2px;
+    padding: 10px 12px;
+  }
+  .fin-table th[scope="row"] {
+    grid-column: 1 / -1;
+    padding: 0 0 2px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .fin-table td {
+    padding: 2px 0;
+    min-width: 0;
+    white-space: normal;
+  }
+  .fin-table td[data-label]::before {
+    white-space: nowrap;
+  }
+  .fin-table td.cell-actions {
+    grid-column: 1 / -1;
+  }
+
+  /* A table of numbers per day/week/month stays a real table on a phone: one line per period
+     (date, orders, revenue, COD); the shipping-fee column and empty days fold away. */
+  .fin-table--grid,
+  .fin-table--grid tbody,
+  .fin-table--grid tfoot {
+    display: table-row-group;
+  }
+  .fin-table.fin-table--grid {
+    display: table;
+    width: 100%;
+  }
+  .fin-table--grid thead {
+    display: table-header-group;
+  }
+  .fin-table--grid tr,
+  .fin-table--grid tbody tr,
+  .fin-table--grid tfoot tr {
+    display: table-row;
+    padding: 0;
+  }
+  .fin-table--grid th,
+  .fin-table--grid td,
+  .fin-table--grid th[scope="row"] {
+    display: table-cell;
+    padding: 8px 6px;
+    font-size: var(--fs-subhead);
+    white-space: nowrap;
+    text-align: right;
+  }
+  .fin-table--grid thead th {
+    white-space: normal;
+    vertical-align: bottom;
+  }
+  .fin-table--grid th:first-child,
+  .fin-table--grid th[scope="row"] {
+    text-align: left;
+    padding-left: 10px;
+  }
+  .fin-table--grid td[data-label]::before {
+    content: none;
+  }
+  .fin-table--grid th:nth-child(4),
+  .fin-table--grid td:nth-child(4) {
+    display: none;
+  }
+  .fin-table--grid tbody tr.is-zero {
+    display: none;
+  }
+
+  /* The floating tab bar sits above the home indicator instead of stretching under it. */
+  .tabbar {
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    padding-bottom: 6px;
+  }
+}

@@ -952,22 +952,73 @@
   gap: 6px;
 }
 @media (max-width: 760px) {
+  /* Phone: one compact row per comment so a busy live scrolls little — the comment is clamped
+     to 3 lines (all of it is in the detail sheet a tap away) and "Tạo đơn" sits small on the
+     right, still a 44pt target. */
+  .feed-table tbody {
+    gap: 6px;
+  }
   .feed-table tbody tr {
-    grid-template-columns: 40px auto minmax(0, 1fr);
+    grid-template-columns: 32px auto auto minmax(0, 1fr) auto;
     grid-template-areas:
-      "avatar user user"
-      "avatar comment comment"
-      "avatar time time"
-      "avatar source ai"
-      "actions actions actions";
+      "avatar user user user actions"
+      "avatar comment comment comment actions"
+      "avatar time source ai actions";
+    column-gap: 8px;
+    row-gap: 2px;
+    padding: 8px 10px;
+  }
+  .feed-table .avatar {
+    width: 32px;
+    height: 32px;
+    font-size: var(--fs-callout);
+  }
+  .feed-table .cell-user {
+    font-size: var(--fs-callout);
+  }
+  .feed-table .cell-comment {
+    font-size: var(--fs-callout);
+    /* A fixed line height and a matching cap: an emoji in the text cannot make a line taller
+       and let a 4th line show under the 3rd. */
+    line-height: 20px;
+    max-height: 60px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    /* Not stretched by the row: a taller row (the button) must not reveal a 4th line. */
+    align-self: start;
+  }
+  .feed-table .cell-ai {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* "Chưa phân loại" on every row is noise on a phone; a real AI label still shows. */
+  .feed-table .cell-ai > .muted {
+    display: none;
+  }
+  .feed-table .cell-time,
+  .feed-table .cell-ai {
+    font-size: var(--fs-subhead);
+  }
+  .feed-table .cell-source .chip,
+  .feed-table .cell-ai .chip {
+    font-size: var(--fs-caption);
   }
   .feed-table .cell-actions {
-    justify-content: stretch;
-    margin-top: 6px;
+    align-self: center;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 4px;
   }
   .feed-table .cell-actions .btn {
-    flex: 1 1 0;
     min-height: 44px;
+    padding: 0 12px;
+    font-size: var(--fs-callout);
+    border-radius: 12px;
   }
 }
 

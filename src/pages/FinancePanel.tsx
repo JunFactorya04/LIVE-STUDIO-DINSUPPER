@@ -218,7 +218,7 @@ export function FinancePanel({ orders, now }: { orders: readonly ShipOrder[]; no
 
           <div className="fin__charts">
             <div className="fin-table-wrap">
-              <table className="fin-table">
+              <table className="fin-table fin-table--grid">
                 <caption className="sr-only">{f.title}</caption>
                 <thead>
                   <tr>
@@ -231,7 +231,7 @@ export function FinancePanel({ orders, now }: { orders: readonly ShipOrder[]; no
                 </thead>
                 <tbody>
                   {[...data.buckets].reverse().map((b) => (
-                    <tr key={b.key}>
+                    <tr key={b.key} className={b.orders === 0 ? "is-zero" : undefined}>
                       <th scope="row">{label(b)}</th>
                       <td data-label={f.orders}>{b.orders}</td>
                       <td data-label={f.revenue}>{money(b.revenue)}</td>
