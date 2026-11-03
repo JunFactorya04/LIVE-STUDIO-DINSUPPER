@@ -387,6 +387,14 @@ export const zhTW = {
       attrsHelp: "依商品類型新增任意欄位（保存期限、容量、品牌……），或點下方快速範本帶入常用欄位。",
       attrsKeyPh: "欄位名稱",
       attrsValuePh: "內容",
+      choose: "從清單選擇",
+      chooseDone: "完成",
+      sizeGroups: {
+        letter: "英文尺寸",
+        free: "單一尺寸",
+        number: "數字尺寸",
+        own: "本店用過的尺寸",
+      },
       attrsAdd: "新增欄位",
       attrsRemove: "刪除",
       presetLabels: {

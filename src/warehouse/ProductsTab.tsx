@@ -4,6 +4,9 @@ import { useI18n } from "../i18n";
 import { useLiveSession, useLiveStore } from "../live/useLiveSession";
 import { parseCatalogCsv, splitList } from "../orders/catalogCsv";
 import { INDUSTRIES, presetFields, type Industry } from "../catalog/industryPresets";
+import { ChoiceField } from "../catalog/ChoiceField";
+import { SIZE_GROUPS, attrChoices, colorChoices, ownSizes } from "../catalog/suggestions";
+import { ColorName } from "./StockOverview";
 import type { CatalogItem } from "../orders/types";
 
 // "Nhập Kho -> Sản phẩm": the product list (name, price, colours, sizes, the other names
@@ -111,8 +114,30 @@ export function ProductsTab() {
         {field("sku", c.sku)}
         {field("name", c.name)}
         {field("price", c.price)}
-        {field("colors", c.colors)}
-        {field("sizes", c.sizes)}
+        <ChoiceField
+          id={ids.colors}
+          label={c.colors}
+          value={form.colors}
+          onChange={(v) => setForm((f) => ({ ...f, colors: v }))}
+          groups={[{ values: colorChoices(locale, catalog) }]}
+          multi
+          renderChoice={(v) => <ColorName color={v} fallback={v} />}
+          openLabel={c.choose}
+          doneLabel={c.chooseDone}
+        />
+        <ChoiceField
+          id={ids.sizes}
+          label={c.sizes}
+          value={form.sizes}
+          onChange={(v) => setForm((f) => ({ ...f, sizes: v }))}
+          groups={[
+            ...SIZE_GROUPS.map((g) => ({ title: c.sizeGroups[g.id], values: g.values })),
+            { title: c.sizeGroups.own, values: ownSizes(catalog) },
+          ]}
+          multi
+          openLabel={c.choose}
+          doneLabel={c.chooseDone}
+        />
         {field("aliases", c.aliases)}
       </div>
 
@@ -143,13 +168,13 @@ export function ProductsTab() {
                   value={row.key}
                   onChange={(e) => updateAttrRow(i, { key: e.target.value })}
                 />
-                <input
-                  className="input"
-                  type="text"
-                  autoComplete="off"
-                  placeholder={c.attrsValuePh}
+                <ChoiceField
                   value={row.value}
-                  onChange={(e) => updateAttrRow(i, { value: e.target.value })}
+                  placeholder={c.attrsValuePh}
+                  onChange={(v) => updateAttrRow(i, { value: v })}
+                  groups={[{ values: attrChoices(row.key, locale, catalog) }]}
+                  openLabel={`${c.choose} ${row.key}`.trim()}
+                  doneLabel={c.chooseDone}
                 />
                 <button
                   type="button"

@@ -341,6 +341,30 @@ describe("Nhập Kho product list", () => {
     ).toBeInTheDocument();
   });
 
+  it("picks colours and sizes from the drop-down lists and saves them", () => {
+    const store = setup("warehouse");
+    const c = zhTW.orders.catalog;
+    fireEvent.click(screen.getByRole("button", { name: zhTW.warehouse.tabs.products }));
+    fireEvent.change(screen.getByLabelText(c.sku), { target: { value: "B1" } });
+    fireEvent.change(screen.getByLabelText(c.name), { target: { value: "T恤" } });
+    fireEvent.click(screen.getByRole("button", { name: `${c.choose}: ${c.colors}` }));
+    fireEvent.click(screen.getByRole("button", { name: "黑色" }));
+    fireEvent.click(screen.getByRole("button", { name: "白色" }));
+    fireEvent.click(screen.getByRole("button", { name: c.chooseDone }));
+    expect((screen.getByLabelText(c.colors) as HTMLInputElement).value).toBe("黑色;白色");
+    fireEvent.click(screen.getByRole("button", { name: `${c.choose}: ${c.sizes}` }));
+    fireEvent.click(screen.getByRole("button", { name: "M" }));
+    fireEvent.click(screen.getByRole("button", { name: "L" }));
+    fireEvent.click(screen.getByRole("button", { name: "M" }));
+    fireEvent.click(screen.getByRole("button", { name: c.chooseDone }));
+    fireEvent.click(screen.getByRole("button", { name: c.save }));
+    expect(store.getSnapshot().catalog[0]).toMatchObject({
+      sku: "B1",
+      colors: ["黑色", "白色"],
+      sizes: ["L"],
+    });
+  });
+
   it("rejects a catalog item without code and name", () => {
     setup("warehouse");
     fireEvent.click(screen.getByRole("button", { name: zhTW.warehouse.tabs.products }));

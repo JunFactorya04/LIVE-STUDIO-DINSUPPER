@@ -412,6 +412,14 @@ export const vi: Messages = {
         "Không chỉ quần áo — tạp hóa, mỹ phẩm... đặt thêm tên thuộc tính riêng, ví dụ “Hạn dùng”, “Dung tích”. Hoặc bấm mẫu có sẵn bên dưới.",
       attrsKeyPh: "Tên thuộc tính",
       attrsValuePh: "Giá trị",
+      choose: "Chọn từ danh sách",
+      chooseDone: "Xong",
+      sizeGroups: {
+        letter: "Size chữ",
+        free: "Một cỡ",
+        number: "Size số",
+        own: "Size shop đã dùng",
+      },
       attrsAdd: "Thêm thuộc tính",
       attrsRemove: "Xóa",
       presetLabels: {
