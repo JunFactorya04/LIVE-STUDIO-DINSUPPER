@@ -882,3 +882,43 @@ File mới: `src-tauri/src/webview_tab.rs`, `src/pages/BrowserPage.tsx`. Sửa: 
 `FinancePanel.tsx`/`InventoryPage.tsx`/`WarehousePage.tsx`/`AdsPage.tsx` (data-label bảng),
 `components/Shell.tsx` (`t.navTab`), `theme/base.css`/`theme/live.css` (stamp, token mới, toolbar
 wrap, `.fin-table` phone, `.icon-btn` states, `.browser__*`), `vi.ts`/`zh-TW.ts`.
+
+## 44.
+
+Ẩn tên "Euler Stream" khỏi tab Live/Thiết lập (chỉ còn trong Cài đặt), sửa bước "xin thông tin" ở
+Quy trình để không bị chặn bởi lỗi clipboard, và thêm số thứ tự đơn (#1, #2, #3…) hiện ở Quy trình
++ trên tem in — theo đúng 2 yêu cầu người dùng gửi giữa lúc build.
+
+**1. Ẩn tên nhà cung cấp API khỏi tab ngoài (`vi.ts`, `zh-TW.ts`):** đối thủ xem màn hình live có
+thể thấy app đang dùng dịch vụ nào và học theo, nên mọi chuỗi hiển thị ở tab Thiết lập/Bảng điều
+khiển (`setup.ack`, `setup.sources.live/liveHelp`, `setup.providerValue.euler`, 3 dòng
+`statusReason.NO_KEY/SERVER_ERROR/NETWORK`, `console.unofficialBanner`, nhãn badge nguồn bình luận
+`console.sources.UNOFFICIAL_CONNECTOR`) đổi "Euler Stream" → "không chính thức"/"tự động" chung,
+không còn nêu tên. Các chuỗi chỉ xuất hiện trong trang Cài đặt (`connector`, hướng dẫn nhập khóa
+API, nhật ký thao tác `EULER_CONNECT/DISCONNECT`, dòng lịch sử phiên) giữ nguyên tên — đúng yêu cầu
+"chỉ để trong cài đặt". Không đổi logic, chỉ đổi chuỗi hiển thị.
+
+**2. Bước "xin thông tin" không bị chặn bởi lỗi clipboard (`WorkflowPage.tsx`):** nút gộp hai hành
+động (copy tin nhắn + mở trang TikTok của khách) trước đây bọc cả hai trong một `try` — nếu
+`navigator.clipboard.writeText()` lỗi (hay gặp khi mở qua link chia sẻ trên điện thoại, API
+Clipboard có thể bị chặn ngoài ngữ cảnh an toàn), hàm `return` ngay, **chưa bao giờ gọi
+`openBuyerPage()`** — tức bấm nút xong không có gì mở ra, trông như "không có chức năng mở TikTok"
+dù thực ra nó đang bị một lỗi copy-clipboard âm thầm chặn trước. Sửa: tách riêng, copy lỗi vẫn thử
+mở trang TikTok, chỉ đổi thông báo cuối (đã copy / copy lỗi) mà không còn chặn việc mở trang.
+
+**3. Số thứ tự đơn hiện ở Quy trình, khớp với tem in (`WorkflowPage.tsx`, `print/sticker.ts`,
+`theme/live.css`):** tem in tạm (`print/sticker.ts`) từ trước đã có số `#<thứ tự>` (hàm `draftSeq`,
+đánh theo thời điểm tạo đơn trong phiên) nhưng (a) `WorkflowPage.tsx` gọi `printTempSlip()` lại
+thiếu tham số `drafts`, khiến tem in từ tab Quy trình luôn ra "#1" sai, và (b) số này chưa hề hiện ở
+đâu trong giao diện Quy trình để người bán dò lại sau khi live xong — đúng 2 điểm người dùng nêu
+("số thứ tự #1,2,3... hiện cùng user ở tab Quy trình và giấy in ra ở máy in"). Sửa: (a) thêm
+`{ drafts: s.drafts }` vào lệnh in ở Quy trình, cùng công thức `draftSeq` các trang khác
+(`ConsolePage`/`OrdersPage`/`AutoPrint`) đã dùng đúng; (b) thêm khối `.flow__seq` — số `#<n>` to, màu
+xanh, đặt đầu tiên trong mỗi thẻ người mua ở Quy trình (component `.flow__head`), tính bằng chính
+`draftSeq(s.drafts, b.draftId)` nên luôn khớp 1:1 với số đã/sẽ in trên tem — người bán chỉ cần nhìn
+số là ghép được tem giấy với đúng thẻ trên màn hình. Thêm `flow.orderNo` (nhãn `aria-label`) vào
+`vi.ts`/`zh-TW.ts`.
+
+File sửa: `WorkflowPage.tsx` (import `draftSeq`, sửa bước "ask", thêm `{ drafts: s.drafts }` cho
+`printTempSlip`, thêm badge `#<seq>`), `theme/live.css` (`.flow__seq`), `vi.ts`/`zh-TW.ts` (ẩn tên
+Euler Stream ở tab ngoài, thêm `flow.orderNo`).

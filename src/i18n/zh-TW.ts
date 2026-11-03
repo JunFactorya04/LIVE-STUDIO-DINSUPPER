@@ -92,7 +92,7 @@ export const zhTW = {
     ERROR: "留言來源發生錯誤，請重試。",
   },
   statusReason: {
-    NO_KEY: "尚未設定 Euler Stream API 金鑰。請到「設定」輸入。",
+    NO_KEY: "尚未設定 API 金鑰。請到「設定」輸入。",
     BROWSER: "瀏覽器預覽模式無法自動連線，請使用桌面版應用程式。",
     NOT_LIVE: "這個帳號目前沒有在直播。",
     STREAM_END: "直播已結束。",
@@ -104,8 +104,8 @@ export const zhTW = {
     TOO_MANY_CONNECTIONS: "連線數超過方案上限，或連線過於頻繁。",
     TIMEOUT: "一段時間沒有收到訊息，連線已中斷。",
     TIKTOK_CLOSED: "TikTok 端中斷了連線。",
-    SERVER_ERROR: "Euler Stream 服務發生錯誤，請稍後再試。",
-    NETWORK: "無法連到 Euler Stream，請檢查網路。",
+    SERVER_ERROR: "連線服務發生錯誤，請稍後再試。",
+    NETWORK: "無法連到服務，請檢查網路。",
     OTHER: "連線中斷（未知原因）。",
   },
   setup: {
@@ -126,11 +126,11 @@ export const zhTW = {
       manualHelp: "從自己的直播畫面複製留言貼上。不需要帳號或授權，今天就能用。",
       demo: "示範模式",
       demoHelp: "假留言，僅供測試介面；會標示 DEMO，不會被當成真實資料。",
-      live: "自動連線（Euler Stream，非官方）",
+      live: "自動連線（非官方）",
       liveHelp:
-        "透過第三方服務 Euler Stream 接收留言，需要你自己的 API 金鑰（於「設定」輸入）。這不是 TikTok 官方 API，可能隨時失效，並可能違反 TikTok 條款，請自行評估風險。",
+        "透過第三方服務接收留言，需要你自己的 API 金鑰（於「設定」輸入）。這不是 TikTok 官方 API，可能隨時失效，並可能違反 TikTok 條款，請自行評估風險。",
     },
-    ack: "確認使用 Euler Stream（非官方）",
+    ack: "確認使用自動連線（非官方）",
     start: "開始場次",
     endSession: "關閉場次",
     statusTitle: "來源狀態",
@@ -138,7 +138,7 @@ export const zhTW = {
     providerValue: {
       manual: "手動貼上",
       demo: "示範",
-      euler: "Euler Stream（非官方）",
+      euler: "自動連線（非官方）",
       unset: "尚未選擇",
     },
     session: "場次編號",
@@ -205,13 +205,12 @@ export const zhTW = {
     emptyFeed: "尚未收到留言",
     emptyFeedHint: "收到留言後會顯示在這裡。",
     noMatch: "沒有符合的留言",
-    unofficialBanner:
-      "留言來自非官方第三方服務 Euler Stream，不是 TikTok 官方資料，可能延遲、遺漏或隨時中斷。",
+    unofficialBanner: "留言來自非官方第三方服務，不是 TikTok 官方資料，可能延遲、遺漏或隨時中斷。",
     demoBanner: "示範資料：以下留言不是真實的 TikTok LIVE 留言。",
     feedLabel: "留言列表",
     showingLatest: "僅顯示最新 {n} 則",
     sources: {
-      UNOFFICIAL_CONNECTOR: "Euler",
+      UNOFFICIAL_CONNECTOR: "自動",
       OFFICIAL_API: "API",
       APPROVED_CONNECTOR: "連接器",
       OCR: "OCR",
@@ -390,6 +389,7 @@ export const zhTW = {
   flow: {
     notice:
       "每位買家的流程：確認訂單 → 列印暫存單 → 索取資料 → 收到資料 → 建立出貨單。App 不會自動傳送訊息；「複製訊息」後請自行貼到 TikTok 傳送。",
+    orderNo: "訂單編號 {n}，與列印的暫存單同一個編號",
     emptyTitle: "還沒有買家",
     emptyHint: "在「直播訂單」確認訂單後，買家會出現在這裡。",
     noName: "尚未取得姓名",

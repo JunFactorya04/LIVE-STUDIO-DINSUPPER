@@ -5,6 +5,7 @@ import { useLiveSession } from "../live/useLiveSession";
 import type { PageId } from "../navigation";
 import { getPrintService } from "../print/service";
 import { isConfigured, loadPrinter } from "../print/settings";
+import { draftSeq } from "../print/sticker";
 import { printTempSlip } from "../print/tempPrint";
 import {
   createShipClient,
@@ -106,7 +107,7 @@ export function WorkflowPage({
     if (step === "slip") {
       const draft = s.drafts.find((d) => d.id === b.draftId);
       if (!draft) return setNote({ text: w.noDraft, error: true });
-      const ok = await printTempSlip(draft, s.comments, t.print.slip);
+      const ok = await printTempSlip(draft, s.comments, t.print.slip, { drafts: s.drafts });
       if (ok) await load();
       return;
     }
@@ -114,18 +115,27 @@ export function WorkflowPage({
       // One click does two things, both harmless on their own: copies the ask-for-address
       // message to the clipboard, and opens the buyer's real TikTok page in its own window.
       // Nothing is pasted or sent by the app — the seller still does Ctrl+V and Enter themselves
-      // inside that window, on their own TikTok session.
+      // inside that window, on their own TikTok session. The clipboard write can fail on its own
+      // (e.g. Clipboard API blocked on a phone opened over the sharing link) — that must never
+      // stop the TikTok window from opening, since that's the part the seller actually needs.
+      let copyOk = true;
       try {
         await navigator.clipboard.writeText(fmt(t.ship.askMessage, { id: `@${b.tiktokId}` }));
+      } catch {
+        copyOk = false;
+      }
+      try {
         await api.markFlow(b.tiktokId, "ASK_COPIED");
         await load();
       } catch {
-        setNote({ text: t.ship.customers.copyFailed, error: true });
-        return;
+        // Best effort: still try to open the buyer's page below even if this failed.
       }
       try {
         await api.openBuyerPage(b.tiktokId);
-        setNote({ text: t.ship.customers.copied, error: false });
+        setNote({
+          text: copyOk ? t.ship.customers.copied : t.ship.customers.copyFailed,
+          error: !copyOk,
+        });
       } catch (e) {
         setNote({ text: tiktokOpenFailedText(w, fmt, e), error: true });
       }
@@ -255,9 +265,18 @@ export function WorkflowPage({
                   const draft = s.drafts.find((dr) => dr.id === b.draftId);
                   const product = productLine(draft);
                   const evidence = draft?.evidence[0]?.text;
+                  // Same number as the one printed on this buyer's temp slip (print/sticker.ts),
+                  // shown big and first so the seller can match a printed slip back to this card
+                  // after the live session ends, just by the number.
+                  const seq = b.draftId ? draftSeq(s.drafts, b.draftId) : undefined;
                   return (
                     <li key={b.tiktokId} className="flow__card">
                       <div className="flow__head">
+                        {seq !== undefined && (
+                          <span className="flow__seq" aria-label={fmt(w.orderNo, { n: seq })}>
+                            #{seq}
+                          </span>
+                        )}
                         <span
                           className={`avatar tone-${avatarTone(b.tiktokId)}`}
                           aria-hidden="true"

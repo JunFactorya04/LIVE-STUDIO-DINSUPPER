@@ -93,7 +93,7 @@ export const vi: Messages = {
     ERROR: "Nguồn bình luận gặp lỗi, hãy thử lại.",
   },
   statusReason: {
-    NO_KEY: "Chưa cài khóa API Euler Stream. Hãy nhập ở “Cài đặt”.",
+    NO_KEY: "Chưa cài khóa API. Hãy nhập ở “Cài đặt”.",
     BROWSER: "Chế độ xem trên trình duyệt không kết nối tự động được, hãy dùng app desktop.",
     NOT_LIVE: "Tài khoản này hiện không phát live.",
     STREAM_END: "Buổi live đã kết thúc.",
@@ -105,8 +105,8 @@ export const vi: Messages = {
     TOO_MANY_CONNECTIONS: "Vượt số kết nối của gói, hoặc kết nối quá dồn dập.",
     TIMEOUT: "Lâu không nhận được tin nhắn nên kết nối bị ngắt.",
     TIKTOK_CLOSED: "Phía TikTok đã ngắt kết nối.",
-    SERVER_ERROR: "Dịch vụ Euler Stream gặp lỗi, hãy thử lại sau.",
-    NETWORK: "Không kết nối được tới Euler Stream, hãy kiểm tra mạng.",
+    SERVER_ERROR: "Dịch vụ kết nối gặp lỗi, hãy thử lại sau.",
+    NETWORK: "Không kết nối được tới dịch vụ, hãy kiểm tra mạng.",
     OTHER: "Kết nối bị ngắt (không rõ lý do).",
   },
   setup: {
@@ -131,11 +131,11 @@ export const vi: Messages = {
       demo: "Chế độ Demo",
       demoHelp:
         "Bình luận giả, chỉ để thử giao diện; luôn gắn nhãn DEMO và không bao giờ được coi là dữ liệu thật.",
-      live: "Kết nối tự động (Euler Stream, không chính thức)",
+      live: "Kết nối tự động (không chính thức)",
       liveHelp:
-        "Nhận bình luận qua dịch vụ bên thứ ba Euler Stream, cần khóa API của chính bạn (nhập ở “Cài đặt”). Đây không phải API chính thức của TikTok, có thể ngừng hoạt động bất cứ lúc nào và có thể vi phạm điều khoản TikTok; bạn tự cân nhắc rủi ro.",
+        "Nhận bình luận qua dịch vụ bên thứ ba, cần khóa API của chính bạn (nhập ở “Cài đặt”). Đây không phải API chính thức của TikTok, có thể ngừng hoạt động bất cứ lúc nào và có thể vi phạm điều khoản TikTok; bạn tự cân nhắc rủi ro.",
     },
-    ack: "Xác nhận dùng Euler Stream (không chính thức)",
+    ack: "Xác nhận dùng kết nối tự động (không chính thức)",
     start: "Bắt đầu phiên",
     endSession: "Tắt phiên",
     statusTitle: "Trạng thái nguồn",
@@ -143,7 +143,7 @@ export const vi: Messages = {
     providerValue: {
       manual: "Dán thủ công",
       demo: "Demo",
-      euler: "Euler Stream (không chính thức)",
+      euler: "Kết nối tự động (không chính thức)",
       unset: "Chưa chọn",
     },
     session: "Mã phiên",
@@ -214,12 +214,12 @@ export const vi: Messages = {
     emptyFeedHint: "Bình luận sẽ hiện ở đây khi có.",
     noMatch: "Không có bình luận phù hợp",
     unofficialBanner:
-      "Bình luận đến từ dịch vụ bên thứ ba Euler Stream, không phải dữ liệu chính thức của TikTok; có thể trễ, thiếu hoặc ngắt bất cứ lúc nào.",
+      "Bình luận đến từ dịch vụ bên thứ ba, không phải dữ liệu chính thức của TikTok; có thể trễ, thiếu hoặc ngắt bất cứ lúc nào.",
     demoBanner: "Dữ liệu demo: các bình luận bên dưới không phải bình luận TikTok LIVE thật.",
     feedLabel: "Danh sách bình luận",
     showingLatest: "Chỉ hiện {n} bình luận mới nhất",
     sources: {
-      UNOFFICIAL_CONNECTOR: "Euler",
+      UNOFFICIAL_CONNECTOR: "Tự động",
       OFFICIAL_API: "API",
       APPROVED_CONNECTOR: "Connector",
       OCR: "OCR",
@@ -411,6 +411,7 @@ export const vi: Messages = {
   flow: {
     notice:
       "Quy trình từng người mua: chốt đơn → in tem tạm → xin thông tin → nhận thông tin → tạo đơn ship. App không tự gửi tin nhắn; sau khi bấm “Copy tin nhắn”, bạn tự dán vào TikTok để gửi.",
+    orderNo: "Đơn số {n}, cùng số với tem đã in",
     emptyTitle: "Chưa có người mua",
     emptyHint: "Sau khi bạn chốt đơn ở “Đơn từ Live”, người mua sẽ xuất hiện ở đây.",
     noName: "Chưa có tên",

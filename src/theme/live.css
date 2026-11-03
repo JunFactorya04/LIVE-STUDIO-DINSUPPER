@@ -2702,6 +2702,24 @@
   align-items: center;
   gap: 10px;
 }
+/* Same order number as the one printed on this buyer's temp slip (print/sticker.ts) — first in
+ * the card and set apart so it is the one thing the seller can match a printed slip against,
+ * at a glance, after the live session ends. */
+.flow__seq {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--ctl-radius);
+  background: color-mix(in srgb, var(--sys-blue) 15%, transparent);
+  color: color-mix(in srgb, var(--sys-blue) 85%, var(--mac-label));
+  font-size: var(--fs-headline);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .flow__who {
   display: flex;
   flex-direction: column;
