@@ -23,11 +23,16 @@ export const buyerUrl = (tiktokId: string) =>
 
 const KEY = (kind: WebKind) => `live-studio.web-open.${kind}`;
 
+/** TikTok's checks (403, puzzle) block it inside the app's webview, so TikTok opens in the
+ * seller's own Chrome/Edge unless they chose otherwise; carrier sites open inside the app. */
+const DEFAULT_MODE: Record<WebKind, OpenMode> = { carrier: "app", tiktok: "external" };
+
 export function loadOpenMode(kind: WebKind): OpenMode {
   try {
-    return localStorage.getItem(KEY(kind)) === "external" ? "external" : "app";
+    const v = localStorage.getItem(KEY(kind));
+    return v === "external" || v === "app" ? v : DEFAULT_MODE[kind];
   } catch {
-    return "app";
+    return DEFAULT_MODE[kind];
   }
 }
 

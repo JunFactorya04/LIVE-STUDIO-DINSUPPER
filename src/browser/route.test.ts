@@ -29,7 +29,15 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("where carrier and TikTok pages open", () => {
-  it("opens inside the app by default, TikTok in phone layout, and remembers where from", async () => {
+  it("opens carriers inside the app and TikTok in the system browser by default", async () => {
+    const external = vi.fn(async () => {});
+    expect(loadOpenMode("tiktok")).toBe("external");
+    expect(await openWeb("tiktok", buyerUrl("x"), external)).toBe("external");
+    expect(external).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens inside the app when chosen, and remembers where from", async () => {
+    saveOpenMode("tiktok", "app");
     const seen: BrowserRequest[] = [];
     const off = onBrowserRequest((r) => seen.push(r));
     const external = vi.fn(async () => {});

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  loadOpenMode,
   TIKTOK_LOGIN_URL,
   onBrowserRequest,
   takeBrowserRequest,
@@ -254,7 +255,12 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
         <button
           type="button"
           className="btn btn--chip"
-          onClick={() => void openAt(TIKTOK_LOGIN_URL, false)}
+          onClick={() =>
+            // TikTok's checks block it in here; by default its login opens in the real browser.
+            loadOpenMode("tiktok") === "external"
+              ? tool("ship_open_tiktok_login")
+              : void openAt(TIKTOK_LOGIN_URL, false)
+          }
         >
           {b.tiktokLogin}
         </button>
