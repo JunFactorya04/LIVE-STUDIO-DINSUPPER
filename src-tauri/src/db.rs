@@ -272,6 +272,15 @@ CREATE TABLE sku_images (
 );
 ";
 
+// Colour and size ride on each barcode unit (one sku per product, the variant per unit), and a
+// ship order remembers which variant it sold, so it takes exactly those units off the shelf.
+const MIGRATION_13: &str = "
+ALTER TABLE wh_units ADD COLUMN color TEXT NOT NULL DEFAULT '';
+ALTER TABLE wh_units ADD COLUMN size TEXT NOT NULL DEFAULT '';
+ALTER TABLE ship_orders ADD COLUMN color TEXT NOT NULL DEFAULT '';
+ALTER TABLE ship_orders ADD COLUMN size TEXT NOT NULL DEFAULT '';
+";
+
 fn configure(conn: &Connection) -> Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.pragma_update(None, "journal_mode", "WAL")?;
@@ -342,6 +351,11 @@ pub fn migrate(conn: &Connection) -> Result<()> {
             "BEGIN;{MIGRATION_12}PRAGMA user_version = 12;COMMIT;"
         ))?;
     }
+    if version < 13 {
+        conn.execute_batch(&format!(
+            "BEGIN;{MIGRATION_13}PRAGMA user_version = 13;COMMIT;"
+        ))?;
+    }
     Ok(())
 }
 
@@ -372,7 +386,7 @@ mod tests {
         let v: i32 = conn
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .unwrap();
-        assert_eq!(v, 12);
+        assert_eq!(v, 13);
     }
 
     #[test]

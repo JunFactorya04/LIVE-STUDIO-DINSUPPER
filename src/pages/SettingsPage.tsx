@@ -5,11 +5,12 @@ import { ApiKeysSection } from "./ApiKeysSection";
 import { THEMES, loadTheme, saveTheme, type Theme } from "../theme/theme";
 import { InvoiceSection } from "./InvoiceSection";
 import { PrinterSection } from "./PrinterSection";
+import { ScannerSection } from "./ScannerSection";
 import { ShareSection } from "./ShareSection";
 import { StickerSection } from "./StickerSection";
 
-type Tab = "general" | "printing" | "phone" | "ai";
-const TABS: Tab[] = ["general", "printing", "phone", "ai"];
+type Tab = "general" | "printing" | "phone" | "scanner" | "ai";
+const TABS: Tab[] = ["general", "printing", "phone", "scanner", "ai"];
 
 // Settings grouped by what the seller is doing: language, the printer and its sticker,
 // the phone link, and the AI service with its keys.
@@ -83,6 +84,7 @@ export function SettingsPage() {
         </>
       )}
       {tab === "phone" && <ShareSection />}
+      {tab === "scanner" && <ScannerSection />}
       {tab === "ai" && (
         <>
           <AiSection />

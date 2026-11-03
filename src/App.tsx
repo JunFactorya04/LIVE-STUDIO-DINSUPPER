@@ -16,7 +16,7 @@ import { ReportPage } from "./pages/ReportPage";
 import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
-import { InventoryPage } from "./pages/InventoryPage";
+import { ExpensesPage } from "./pages/ExpensesPage";
 import { CameraButton } from "./camera/CameraScanner";
 import { WarehousePage } from "./pages/WarehousePage";
 import { PosPage } from "./pages/PosPage";
@@ -78,11 +78,11 @@ function PageBody({
     case "flow":
       return <WorkflowPage onNavigate={onNavigate} />;
     case "ship":
-      return <ShipPage />;
+      return <ShipPage camera={(onScan) => <CameraButton onScan={onScan} accept={isUnitCode} />} />;
     case "pos":
       return <PosPage camera={(onScan) => <CameraButton onScan={onScan} accept={isUnitCode} />} />;
-    case "inventory":
-      return <InventoryPage />;
+    case "expenses":
+      return <ExpensesPage />;
     case "warehouse":
       return (
         <WarehousePage camera={(onScan) => <CameraButton onScan={onScan} accept={isUnitCode} />} />

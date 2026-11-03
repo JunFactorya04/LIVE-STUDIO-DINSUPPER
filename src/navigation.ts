@@ -9,8 +9,8 @@ export type PageId =
   | "flow"
   | "ship"
   | "pos"
-  | "inventory"
   | "warehouse"
+  | "expenses"
   | "carriers"
   | "replies"
   | "overlay"
@@ -37,8 +37,8 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "ship", section: "manage", tab: false },
   { id: "pos", section: "manage", tab: true },
   { id: "carriers", section: "manage", tab: false },
-  { id: "inventory", section: "manage", tab: false },
   { id: "warehouse", section: "manage", tab: false },
+  { id: "expenses", section: "manage", tab: false },
   { id: "replies", section: "manage", tab: true },
   { id: "overlay", section: "manage", tab: false },
   { id: "report", section: "manage", tab: false },

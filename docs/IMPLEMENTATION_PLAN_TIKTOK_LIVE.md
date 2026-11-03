@@ -922,3 +922,19 @@ số là ghép được tem giấy với đúng thẻ trên màn hình. Thêm `f
 File sửa: `WorkflowPage.tsx` (import `draftSeq`, sửa bước "ask", thêm `{ drafts: s.drafts }` cho
 `printTempSlip`, thêm badge `#<seq>`), `theme/live.css` (`.flow__seq`), `vi.ts`/`zh-TW.ts` (ẩn tên
 Euler Stream ở tab ngoài, thêm `flow.orderNo`).
+
+## 45. Gộp "Kho & chi phí" + "Kho mã vạch" thành "Nhập Kho"; màu/size theo từng món; chọn sản phẩm khi tạo đơn ship; cài đặt máy quét
+
+**Vì sao:** người bán thấy 3 chỗ (Kho & chi phí, Kho mã vạch, Danh mục sản phẩm ở tab Đơn) lẫn lộn nhau; tạo đơn ship chỉ có một ô chọn danh mục (không tìm, không quét, không ảnh, không nối với kho thật); và không trả lời nhanh được câu "còn đen size M không?".
+
+**Quy trình mới (một lối duy nhất):** Nhập Kho → Nhập hàng (tên, màu, size, ảnh, giá bán, giá vốn, in tem) → Tồn kho (xem theo sản phẩm × màu × size) → Đơn ship (chọn đúng màu/size từ kho, kho tự trừ) hoặc Thanh Toán (quét tem). Chi phí là tab riêng. Bỏ lối nhập hàng không mã vạch.
+
+- **Dữ liệu (Rust, MIGRATION_13):** `wh_units.color/size` và `ship_orders.color/size`. 1 SKU cho 1 sản phẩm; màu/size đi theo từng món (`UnitDto`, `ReceiveReq`, `ShipOrderDto`, `wh::clean_variant`, tối đa 20 ký tự, lỗi `BAD_VARIANT`). `wh::auto_allocate` nhận thêm `color`, `size`: rỗng = bất kỳ, có giá trị = chỉ lấy đúng biến thể đó, nhờ vậy số còn theo màu/size luôn đúng. Test: `variant_rides_on_each_unit_and_allocation_takes_only_that_variant`.
+- **Nhập hàng:** form có thêm Tên sản phẩm, Màu, Size (gợi ý từ danh mục; gõ bí danh như "black" sẽ đổi về tên chuẩn "Đen", `canonicalVariant`). Sau khi nhập, danh mục tự học tên/giá/màu/size (`saveCatalogItem`). Tem in thêm dòng "Đen / M" (`print/label.ts`).
+- **Tồn kho (`warehouse/overview.ts`, `StockOverview.tsx`):** mỗi sản phẩm là một thẻ: ảnh 64px, tên, mã, kệ, giá, tổng số còn (chữ lớn), chip Còn hàng / Sắp hết (≤2) / Hết hàng, và lưới màu × size (chấm màu thật cho tên màu quen thuộc như Đen/Trắng/Xám/Đỏ/Xanh lá/Navy/Be/黑/白...; màu lạ là chấm nửa xám chứ không giả là trắng; luôn có chữ). Ô cam = còn 1, "–" = hết. Ô tìm hiểu câu khách hỏi ("hoodie đen M"): size phải khớp đúng ("M" không ăn vào "XL"), màu khớp một phần ("xanh" ra "Xanh lá"), ô khớp có viền xanh kèm "Có N món khớp". Ô Sắp hết/Hết hàng bấm để lọc. Bảng từng tem gập lại mặc định.
+- **Sản phẩm:** tab "Danh mục sản phẩm" chuyển từ Đơn từ Live sang Nhập Kho → Sản phẩm (`warehouse/ProductsTab.tsx`, giữ nguyên chức năng/CSV/thuộc tính). Mức báo tồn cũ (biz `minStock`) không còn chỗ chỉnh; thay bằng ngưỡng cố định `LOW_AT = 2`.
+- **Chi phí:** `pages/ExpensesPage.tsx` (form + danh sách chi phí cũ). Đã xóa `InventoryPage.tsx` (tab tồn theo bộ đếm biz và nhập hàng không mã vạch).
+- **Tạo đơn ship (`ship/ProductPicker.tsx`):** tìm theo tên/màu/size, ảnh nhỏ, số còn; mỗi màu+size còn hàng là một nút "Đen M 5". Quét tem (máy quét, camera trên điện thoại, hoặc điện thoại mở link chia sẻ gửi về) chọn đúng biến thể; quét thêm một tem cùng biến thể thì +1 số lượng. Tên sản phẩm và số tiền tự điền (giá × SL) và tự cập nhật khi đổi SL. Đơn lưu `sku/color/size/qty`.
+- **Thanh Toán – sửa lỗi:** listener của điện thoại đọc giỏ hàng cũ (closure lúc mount), nên cùng một tem gửi 2 lần bị vào giỏ 2 lần. Giờ giữ mã trong `useRef`, giành chỗ trước khi tra. Có test hồi quy.
+- **Cài đặt → Máy quét (`ScannerSection.tsx`):** hướng dẫn 3 cách (USB/Bluetooth BLE ở chế độ HID = bàn phím, chỉ cần ghép trong hệ thống; điện thoại thay máy quét qua link chia sẻ; camera trên điện thoại), ô thử phân biệt máy quét với gõ tay (<35 ms/phím), báo mã điện thoại gửi tới, có lời khuyên khi mua (HID/Keyboard mode, Code 128; loại chỉ có SPP/app riêng thì không dùng được).
+- **Điều hướng:** "Kho mã vạch" → "Nhập Kho" (icon hộp, mở mặc định tab Tồn kho); thêm "Chi phí"; bỏ "Kho & chi phí". Các chữ hướng dẫn trỏ về chỗ cũ đã được sửa (vi + zh-TW).

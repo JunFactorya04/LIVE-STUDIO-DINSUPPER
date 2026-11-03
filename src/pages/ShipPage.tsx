@@ -2,7 +2,15 @@ import { readStage } from "../carriers/env";
 import { CARRIERS } from "../carriers/registry";
 import { useLiveSession } from "../live/useLiveSession";
 import { StoreSearch } from "./StoreSearch";
-import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useState,
+  type FormEvent,
+} from "react";
 import { EmptyState, ErrorState, LoadingState } from "../components/States";
 import { useI18n } from "../i18n";
 import { getPrintService } from "../print/service";
@@ -17,6 +25,10 @@ import {
   type StoreHit,
 } from "../ship/client";
 import { takeShipPrefill } from "../ship/prefill";
+import { ProductPicker, type Picked } from "../ship/ProductPicker";
+import { createWarehouseClient, type WarehouseClient } from "../warehouse/client";
+import { createSkuImageClient, type SkuImageClient } from "../warehouse/images";
+import { createScanRelay, type ScanRelay } from "../warehouse/relay";
 import { shipSlip } from "../ship/slip";
 import {
   EMPTY_SHIP_FORM,
@@ -34,6 +46,15 @@ import {
 const MYSHIP_URL = CARRIERS.find((c) => c.id === "seven")!.consoleUrl;
 
 type Tab = "orders" | "customers" | "stores";
+
+/** What the form's product picker reads the shelf through. */
+interface Stock {
+  warehouse: WarehouseClient;
+  images: SkuImageClient;
+  relay: ScanRelay;
+  camera?: (onScan: (code: string) => void) => React.ReactNode;
+}
+const StockContext = createContext<Stock | null>(null);
 type Filter = "pending" | "exported" | "all";
 type Note = { text: string; error: boolean } | undefined;
 
@@ -53,6 +74,8 @@ const fromOrder = (o: ShipOrder): ShipForm => ({
   fee: String(o.shippingFee),
   sku: o.sku,
   qty: o.qty ? String(o.qty) : "1",
+  color: o.color ?? "",
+  size: o.size ?? "",
 });
 
 const fromCustomer = (c: ShipCustomer): ShipForm => ({
@@ -67,7 +90,26 @@ const fromCustomer = (c: ShipCustomer): ShipForm => ({
 // Shipping orders for 7-ELEVEN pickup, modelled on how sellers already work with
 // taodonnhanh.com: a customer list, one form, and a pending / exported status. Everything the
 // recipient needs is typed by the seller; nothing is generated or sent anywhere.
-export function ShipPage({ client }: { client?: ShipClient }) {
+export function ShipPage({
+  client,
+  warehouse,
+  images,
+  relay,
+  camera,
+}: {
+  client?: ShipClient;
+  warehouse?: WarehouseClient;
+  images?: SkuImageClient;
+  relay?: ScanRelay;
+  /** Camera scanner (phone); given the scan handler, returns the button that opens it. */
+  camera?: (onScan: (code: string) => void) => React.ReactNode;
+}) {
+  const [stock] = useState<Stock>(() => ({
+    warehouse: warehouse ?? createWarehouseClient(),
+    images: images ?? createSkuImageClient(),
+    relay: relay ?? createScanRelay(),
+    camera,
+  }));
   const { t } = useI18n();
   const [api] = useState(() => client ?? createShipClient());
   const [tab, setTab] = useState<Tab>("orders");
@@ -113,64 +155,66 @@ export function ShipPage({ client }: { client?: ShipClient }) {
   };
 
   return (
-    <div className="page page--no-inspector ship">
-      <section className="box">
-        <p className="banner banner--info" role="note">
-          {t.ship.notice}
-        </p>
-        {!api.available ? (
-          <EmptyState title={t.ship.errors.desktopOnly} hint="" />
-        ) : failed ? (
-          <ErrorState onRetry={() => void load()} />
-        ) : !orders ? (
-          <LoadingState />
-        ) : (
-          <>
-            <div className="segmented" role="group" aria-label={t.pages.ship.title}>
-              {(["orders", "customers", "stores"] as const).map((k) => (
-                <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)}>
-                  {t.ship.tabs[k]}
-                </button>
-              ))}
-            </div>
-            {note && (
-              <p
-                className={`banner ${note.error ? "banner--error" : "banner--info"}`}
-                role="status"
-              >
-                {note.text}
-              </p>
-            )}
-            {tab === "orders" && (
-              <OrdersTab
-                api={api}
-                orders={orders}
-                customers={customers}
-                draft={draft}
-                editingId={editingId}
-                onOpen={openForm}
-                onClose={() => {
-                  setDraft(undefined);
-                  setEditingId(undefined);
-                }}
-                onChanged={load}
-                onNote={setNote}
-              />
-            )}
-            {tab === "customers" && (
-              <CustomersTab
-                api={api}
-                customers={customers}
-                onCreate={(c) => openForm(fromCustomer(c))}
-                onChanged={load}
-                onNote={setNote}
-              />
-            )}
-            {tab === "stores" && <StoresTab api={api} onNote={setNote} />}
-          </>
-        )}
-      </section>
-    </div>
+    <StockContext.Provider value={stock}>
+      <div className="page page--no-inspector ship">
+        <section className="box">
+          <p className="banner banner--info" role="note">
+            {t.ship.notice}
+          </p>
+          {!api.available ? (
+            <EmptyState title={t.ship.errors.desktopOnly} hint="" />
+          ) : failed ? (
+            <ErrorState onRetry={() => void load()} />
+          ) : !orders ? (
+            <LoadingState />
+          ) : (
+            <>
+              <div className="segmented" role="group" aria-label={t.pages.ship.title}>
+                {(["orders", "customers", "stores"] as const).map((k) => (
+                  <button key={k} type="button" aria-pressed={tab === k} onClick={() => setTab(k)}>
+                    {t.ship.tabs[k]}
+                  </button>
+                ))}
+              </div>
+              {note && (
+                <p
+                  className={`banner ${note.error ? "banner--error" : "banner--info"}`}
+                  role="status"
+                >
+                  {note.text}
+                </p>
+              )}
+              {tab === "orders" && (
+                <OrdersTab
+                  api={api}
+                  orders={orders}
+                  customers={customers}
+                  draft={draft}
+                  editingId={editingId}
+                  onOpen={openForm}
+                  onClose={() => {
+                    setDraft(undefined);
+                    setEditingId(undefined);
+                  }}
+                  onChanged={load}
+                  onNote={setNote}
+                />
+              )}
+              {tab === "customers" && (
+                <CustomersTab
+                  api={api}
+                  customers={customers}
+                  onCreate={(c) => openForm(fromCustomer(c))}
+                  onChanged={load}
+                  onNote={setNote}
+                />
+              )}
+              {tab === "stores" && <StoresTab api={api} onNote={setNote} />}
+            </>
+          )}
+        </section>
+      </div>
+    </StockContext.Provider>
   );
 }
 
@@ -544,19 +588,42 @@ function ShipFormView({
     setForm((prev) => ({ ...prev, [k]: v }));
   const sum = total(form);
   const { catalog } = useLiveSession();
+  const stock = useContext(StockContext);
+  // Price of one of the picked colour+size, so changing the quantity keeps the amount right.
+  const [unitPrice, setUnitPrice] = useState(
+    () => catalog.find((c) => c.sku === initial.sku)?.price ?? 0,
+  );
+  const [autoLabel, setAutoLabel] = useState("");
 
-  // Choosing a catalog product tracks its stock; its name and price fill the form as a start.
-  const pickSku = (sku: string, qty: string) => {
-    const item = catalog.find((c) => c.sku === sku);
-    const n = Number(qty) || 0;
-    setForm((prev) => ({
-      ...prev,
-      sku,
-      qty: qty || "1",
-      product: item && !prev.product.trim() ? item.name : prev.product,
-      amount: item?.price && n > 0 ? String(item.price * n) : prev.amount,
-    }));
+  // Picking from the shelf tracks the stock; its name, colour, size and price fill the form
+  // as a start (the product text is only replaced while it still holds an earlier pick).
+  const pick = (p: Picked) => {
+    setUnitPrice(p.price);
+    setAutoLabel(p.label);
+    setForm((prev) => {
+      const n = Number(prev.qty) || 1;
+      const replace = !prev.product.trim() || prev.product === autoLabel;
+      return {
+        ...prev,
+        sku: p.sku,
+        color: p.color,
+        size: p.size,
+        qty: String(n),
+        product: replace ? p.label : prev.product,
+        amount: p.price > 0 ? String(p.price * n) : prev.amount,
+      };
+    });
   };
+  const setQty = (qty: string) =>
+    setForm((prev) => {
+      const n = Number(qty) || 0;
+      return {
+        ...prev,
+        qty,
+        amount: unitPrice > 0 && n > 0 ? String(unitPrice * n) : prev.amount,
+      };
+    });
+  const clearPick = () => setForm((prev) => ({ ...prev, sku: "", color: "", size: "", qty: "1" }));
 
   // Look the store number up in the imported list; fill the name only when it is still empty.
   useEffect(() => {
@@ -620,6 +687,8 @@ function ShipFormView({
           createdAt: "",
           sku: form.sku.trim(),
           qty: form.sku.trim() ? Number(form.qty) : 0,
+          color: form.sku.trim() ? form.color : "",
+          size: form.sku.trim() ? form.size : "",
           unitCost: 0,
         },
         remember,
@@ -713,33 +782,44 @@ function ShipFormView({
           onChange={(e) => set("storeName", e.target.value)}
         />
       </div>
-      {catalog.length > 0 && (
+      {stock && (
         <div className="field ship__pick">
-          <label htmlFor={ids.sku}>{f.pickProduct}</label>
-          <div className="ship__search">
-            <select
-              id={ids.sku}
-              className="input"
-              value={form.sku}
-              onChange={(e) => pickSku(e.target.value, form.qty)}
-            >
-              <option value="">{f.pickNone}</option>
-              {catalog.map((c) => (
-                <option key={c.sku} value={c.sku}>
-                  {c.sku} · {c.name}
-                  {c.price ? ` · NT$ ${c.price}` : ""}
-                </option>
-              ))}
-            </select>
-            <input
-              className="input ship__qty"
-              inputMode="numeric"
-              aria-label={f.qty}
-              disabled={!form.sku}
-              value={form.qty}
-              onChange={(e) => pickSku(form.sku, e.target.value.replace(/\D/g, ""))}
+          <span className="ship__pick-label" id={ids.sku}>
+            {f.pickProduct}
+          </span>
+          <div role="group" aria-labelledby={ids.sku}>
+            <ProductPicker
+              value={{ sku: form.sku, color: form.color, size: form.size }}
+              catalog={catalog}
+              warehouse={stock.warehouse}
+              images={stock.images}
+              relay={stock.relay}
+              camera={stock.camera}
+              onPick={pick}
+              onScanMore={() =>
+                setForm((prev) => {
+                  const n = (Number(prev.qty) || 0) + 1;
+                  return {
+                    ...prev,
+                    qty: String(n),
+                    amount: unitPrice > 0 ? String(unitPrice * n) : prev.amount,
+                  };
+                })
+              }
+              onClear={clearPick}
             />
           </div>
+          {form.sku && (
+            <label className="ship__qty-row">
+              {f.qty}
+              <input
+                className="input ship__qty"
+                inputMode="numeric"
+                value={form.qty}
+                onChange={(e) => setQty(e.target.value.replace(/\D/g, ""))}
+              />
+            </label>
+          )}
         </div>
       )}
       <div className="field">

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { isRemote } from "../platform/backend";
 import { useI18n } from "../i18n";
-import { useLiveSession } from "../live/useLiveSession";
+import { useLiveSession, useLiveStore } from "../live/useLiveSession";
 import { labelRun, unitLabel } from "../print/label";
 import { testSlip } from "../print/slip";
 import { loadLabelOptions, saveLabelOptions, type LabelOptions } from "../print/labelOptions";
@@ -21,16 +21,20 @@ import {
 import { shipReceipt } from "../warehouse/receipt";
 import { createScanRelay, type ScanRelay } from "../warehouse/relay";
 import { ScanBox } from "../warehouse/ScanBox";
-import { addScan, bySku, expectedMissing, nextSku } from "../warehouse/stats";
+import { addScan, expectedMissing, nextSku } from "../warehouse/stats";
+import { canonicalVariant } from "../warehouse/overview";
+import { ColorName, StockOverview } from "../warehouse/StockOverview";
+import { ProductsTab } from "../warehouse/ProductsTab";
 import { createSkuImageClient, type SkuImageClient } from "../warehouse/images";
-import { SkuPhotoPicker, SkuThumb } from "../warehouse/SkuPhoto";
+import { SkuPhotoPicker } from "../warehouse/SkuPhoto";
 import { createBizClient } from "../biz/client";
 
 // Warehouse with a barcode on every unit: see what is on the shelf, receive stock and print the
 // labels, scan units out to ship (the total comes from their prices), and count the shelves.
 // In-person checkout ("Tính tiền") moved out to its own top-level page: see ./PosPage.tsx.
 
-type Tab = "stock" | "receive" | "ship" | "count" | "history" | "analysis" | "guide" | "send";
+type Tab =
+  "stock" | "receive" | "products" | "ship" | "count" | "history" | "analysis" | "guide" | "send";
 const money = (n: number) => `NT$ ${Math.round(n).toLocaleString("en-US")}`;
 const pad = (n: number) => String(n).padStart(2, "0");
 /** Local date and time for a datetime-local field: 2026-10-30T18:40. */
@@ -65,7 +69,7 @@ export function WarehousePage({
   const [labelSvc] = useState(() => labels ?? getLabelService());
   const [receiptSvc] = useState(() => receipts ?? getPrintService());
   const [relayApi] = useState(() => relay ?? createScanRelay());
-  const [tab, setTab] = useState<Tab>(remote ? "send" : "ship");
+  const [tab, setTab] = useState<Tab>(remote ? "send" : "stock");
   const target = useRef<((code: string) => void) | undefined>(undefined);
   const register = useCallback((h: ((code: string) => void) | undefined) => {
     target.current = h;
@@ -74,7 +78,7 @@ export function WarehousePage({
 
   const tabs: Tab[] = remote
     ? ["send", "ship", "count", "stock", "analysis", "history", "guide"]
-    : ["stock", "receive", "ship", "count", "analysis", "history", "guide"];
+    : ["stock", "receive", "products", "ship", "count", "analysis", "history", "guide"];
 
   const explain = useCallback(
     (e: unknown): string => {
@@ -149,6 +153,7 @@ export function WarehousePage({
           explain={explain}
         />
       )}
+      {tab === "products" && !remote && <ProductsTab />}
       {tab === "ship" && (
         <ShipTab
           api={api}
@@ -207,6 +212,7 @@ function StockTab({
 }) {
   const { t } = useI18n();
   const w = t.warehouse;
+  const { catalog } = useLiveSession();
   const [status, setStatus] = useState<UnitStatus>("IN_STOCK");
   const [units, setUnits] = useState<Unit[]>([]);
   const [shelf, setShelf] = useState<Unit[]>([]);
@@ -227,9 +233,6 @@ function StockTab({
     void load();
   }, [load]);
 
-  const rows = useMemo(() => bySku(shelf), [shelf]);
-  const costValue = shelf.reduce((n, u) => n + u.cost, 0);
-  const priceValue = shelf.reduce((n, u) => n + u.price, 0);
   const needle = q.trim().toLowerCase();
   const shown = units
     .filter(
@@ -237,7 +240,8 @@ function StockTab({
         !needle ||
         u.code.toLowerCase().includes(needle) ||
         u.sku.toLowerCase().includes(needle) ||
-        u.location.toLowerCase().includes(needle),
+        u.location.toLowerCase().includes(needle) ||
+        `${u.color} ${u.size}`.toLowerCase().includes(needle),
     )
     .slice(0, 200);
 
@@ -264,58 +268,12 @@ function StockTab({
 
   return (
     <>
-      <section className="box">
-        <div className="fin__tiles">
-          <div className="fin-tile">
-            <span className="fin-tile__label">{w.stats.units}</span>
-            <strong className="fin-tile__value">{shelf.length}</strong>
-          </div>
-          <div className="fin-tile">
-            <span className="fin-tile__label">{w.stats.costValue}</span>
-            <strong className="fin-tile__value">{money(costValue)}</strong>
-          </div>
-          <div className="fin-tile">
-            <span className="fin-tile__label">{w.stats.priceValue}</span>
-            <strong className="fin-tile__value">{money(priceValue)}</strong>
-          </div>
-        </div>
-        {rows.length > 0 && (
-          <div className="fin-table-wrap">
-            <table className="fin-table">
-              <thead>
-                <tr>
-                  {imagesApi.available && <th scope="col" aria-hidden="true" />}
-                  <th scope="col">SKU</th>
-                  <th scope="col">{w.cols.units}</th>
-                  <th scope="col">{w.cols.price}</th>
-                  <th scope="col">{w.cols.location}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.sku}>
-                    {imagesApi.available && (
-                      <td>
-                        <SkuThumb sku={r.sku} images={imagesApi} size={28} />
-                      </td>
-                    )}
-                    <th scope="row">{r.sku}</th>
-                    <td data-label={w.cols.units}>{r.units}</td>
-                    <td data-label={w.cols.price}>
-                      {r.minPrice === r.maxPrice
-                        ? money(r.minPrice)
-                        : `${money(r.minPrice)} – ${money(r.maxPrice)}`}
-                    </td>
-                    <td data-label={w.cols.location}>{r.locations.join(", ") || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <StockOverview shelf={shelf} catalog={catalog} images={imagesApi} />
 
-      <section className="box">
+      {/* Every label one by one: for moving, reprinting or writing off a single unit. Folded
+          away by default so the overview above stays the first thing in view. */}
+      <details className="box units-fold">
+        <summary className="section-title">{w.overview.units}</summary>
         <div className="segmented" role="group" aria-label={w.cols.status}>
           {(["IN_STOCK", "SHIPPED", "VOID"] as const).map((s) => (
             <button key={s} type="button" aria-pressed={status === s} onClick={() => setStatus(s)}>
@@ -335,6 +293,8 @@ function StockTab({
               <thead>
                 <tr>
                   <th scope="col">{w.cols.code}</th>
+                  <th scope="col">{w.color}</th>
+                  <th scope="col">{w.size}</th>
                   <th scope="col">{w.cols.price}</th>
                   <th scope="col">{w.cols.location}</th>
                   <th scope="col">{status === "SHIPPED" ? w.cols.shipped : w.cols.received}</th>
@@ -345,6 +305,10 @@ function StockTab({
                 {shown.map((u) => (
                   <tr key={u.code}>
                     <th scope="row">{u.code}</th>
+                    <td data-label={w.color}>
+                      {u.color ? <ColorName color={u.color} fallback="" /> : "—"}
+                    </td>
+                    <td data-label={w.size}>{u.size || "—"}</td>
                     <td data-label={w.cols.price}>{money(u.price)}</td>
                     <td data-label={w.cols.location}>{u.location || "—"}</td>
                     <td data-label={status === "SHIPPED" ? w.cols.shipped : w.cols.received}>
@@ -404,7 +368,7 @@ function StockTab({
           </div>
         )}
         {units.length > 200 && <p className="caption">{w.truncated}</p>}
-      </section>
+      </details>
     </>
   );
 }
@@ -421,7 +385,11 @@ function ReceiveTab({
   const { t } = useI18n();
   const w = t.warehouse;
   const { catalog } = useLiveSession();
+  const store = useLiveStore();
   const [sku, setSku] = useState("");
+  const [name, setName] = useState("");
+  const [color, setColor] = useState("");
+  const [size, setSize] = useState("");
   const [qty, setQty] = useState("1");
   const [price, setPrice] = useState("");
   const [cost, setCost] = useState("");
@@ -446,10 +414,29 @@ function ReceiveTab({
   }, [loadUsed]);
   const suggest = useMemo(() => nextSku([...used, ...catalog.map((c) => c.sku)]), [used, catalog]);
 
+  const known = catalog.find((x) => x.sku === (sku || suggest).trim());
   const pickSku = (value: string) => {
     setSku(value);
     const c = catalog.find((x) => x.sku === value);
     if (c?.price && !price) setPrice(String(c.price));
+    if (c?.name && !name) setName(c.name);
+  };
+
+  // The product list learns what came in: its name, price, and this batch's colour and size,
+  // so the live comment reader and the stock overview know them without typing them twice.
+  const remember = (code: string, p: number, c: string, z: string) => {
+    const before = catalog.find((x) => x.sku === code);
+    const add = (list: readonly string[], v: string) =>
+      !v || list.some((e) => e.split("|")[0].trim() === v) ? [...list] : [...list, v];
+    store.saveCatalogItem({
+      sku: code,
+      name: name.trim() || before?.name || code,
+      price: p > 0 ? p : before?.price,
+      colors: add(before?.colors ?? [], c),
+      sizes: add(before?.sizes ?? [], z),
+      aliases: before?.aliases ?? [],
+      attrs: before?.attrs ?? {},
+    });
   };
 
   const printAll = async (units: readonly Unit[]) => {
@@ -478,6 +465,9 @@ function ReceiveTab({
     const at = new Date(when);
     if (Number.isNaN(at.getTime()) || at.getTime() > Date.now() + 5 * 60_000)
       return say(w.errors.BAD_DATE, true);
+    const vc = canonicalVariant(color, known?.colors ?? []);
+    const vz = canonicalVariant(size, known?.sizes ?? []);
+    if (vc.length > 20 || vz.length > 20) return say(w.errors.BAD_VARIANT, true);
     setBusy(true);
     try {
       const units = await api.receive({
@@ -490,9 +480,13 @@ function ReceiveTab({
         supplier: supplier.trim(),
         at: when.slice(0, 10),
         receivedAt: at.toISOString(),
+        color: vc,
+        size: vz,
       });
+      remember(code, p, vc, vz);
       setMade(units);
       setSku("");
+      setName("");
       setWhen(localStamp());
       void loadUsed();
       say(`${w.received.replace("{n}", String(units.length))} · ${code}`);
@@ -526,6 +520,44 @@ function ReceiveTab({
                 <option key={c.sku} value={c.sku}>
                   {c.name}
                 </option>
+              ))}
+            </datalist>
+          </label>
+          <label className="field">
+            {w.productName}
+            <input
+              className="input"
+              value={name}
+              placeholder={known?.name || w.productNamePh}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+          <label className="field">
+            {w.color}
+            <input
+              className="input"
+              list="wh-colors"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+            />
+            <datalist id="wh-colors">
+              {(known?.colors ?? []).map((x) => (
+                <option key={x} value={x.split("|")[0]} />
+              ))}
+            </datalist>
+          </label>
+          <label className="field">
+            {w.size}
+            <input
+              className="input"
+              list="wh-sizes"
+              value={size}
+              autoCapitalize="characters"
+              onChange={(e) => setSize(e.target.value)}
+            />
+            <datalist id="wh-sizes">
+              {(known?.sizes ?? []).map((x) => (
+                <option key={x} value={x.split("|")[0]} />
               ))}
             </datalist>
           </label>
@@ -593,6 +625,7 @@ function ReceiveTab({
             />
           </label>
         </div>
+        <p className="caption">{w.variantHelp}</p>
         <LabelOptionsPanel value={labelOpts} onChange={setLabelOpts} />
         {!labelReady && <p className="caption">{w.noLabelPrinter}</p>}
         <button type="submit" className="btn btn--primary" disabled={busy || !api.available}>

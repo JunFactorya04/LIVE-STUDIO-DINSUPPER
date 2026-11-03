@@ -3229,3 +3229,320 @@
   background: var(--p-card);
   font-size: var(--fs-callout);
 }
+
+/* ---------- Nhập Kho: stock overview by product, colour and size ---------- */
+.stockov {
+  display: grid;
+  gap: 14px;
+}
+.stockov__tile {
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  border: 0;
+  cursor: pointer;
+}
+.stockov__tile:hover {
+  background: var(--mac-selected);
+}
+.stockov__tile[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 1.5px var(--sys-blue);
+}
+.stockov__tile:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.stockov__low {
+  color: var(--sys-orange);
+}
+.stockov__out {
+  color: var(--sys-red);
+}
+.stockov__bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.stockov__search {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.stockov__search .input {
+  height: var(--ctl-h-lg);
+  font-size: var(--fs-title3);
+}
+.stockov__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+}
+.stockcard {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--box-radius);
+  background: var(--mac-box);
+  box-shadow: var(--shadow-box);
+  min-width: 0;
+}
+.stockcard--out {
+  background: var(--mac-under);
+}
+.stockcard--out .sku-thumb {
+  opacity: 0.55;
+}
+.stockcard__head {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+.stockcard__nophoto {
+  width: 64px;
+  height: 64px;
+}
+.stockcard__id {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.stockcard__name {
+  margin: 0;
+  font-size: var(--fs-title3);
+  font-weight: 600;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+.stockcard__price {
+  font-size: var(--fs-body);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.stockcard__count {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+.stockcard__count strong {
+  font-family: var(--font-display);
+  font-size: var(--fs-large-title);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.stockcard__found {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--ctl-radius);
+  font-weight: 600;
+  color: color-mix(in srgb, var(--sys-blue) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-blue) 12%, transparent);
+}
+.stockcard__found.is-none {
+  color: color-mix(in srgb, var(--sys-red) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-red) 12%, transparent);
+}
+.vgrid-wrap {
+  overflow-x: auto;
+}
+.vgrid {
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-size: var(--fs-body);
+  font-variant-numeric: tabular-nums;
+}
+.vgrid thead th {
+  font-size: var(--fs-callout);
+  font-weight: 600;
+  color: var(--mac-label-2);
+  text-align: center;
+  padding: 0 4px 2px;
+  min-width: 34px;
+}
+.vgrid tbody th {
+  text-align: left;
+  font-weight: 500;
+  padding-right: 8px;
+  white-space: nowrap;
+}
+.vgrid__cell {
+  text-align: center;
+  height: 28px;
+  min-width: 34px;
+  border-radius: 6px;
+  font-weight: 600;
+  background: var(--mac-under);
+}
+.vgrid__cell--out {
+  color: var(--mac-label-3);
+  font-weight: 400;
+}
+.vgrid__cell--low {
+  color: color-mix(in srgb, var(--sys-orange) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-orange) 16%, transparent);
+}
+.vgrid__cell.is-hit {
+  box-shadow: inset 0 0 0 2px var(--sys-blue);
+}
+.colorname {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--swatch, transparent);
+  box-shadow: inset 0 0 0 1px var(--mac-control-border);
+}
+/* A colour name it cannot paint: a split circle, so it never reads as "white". */
+.swatch--unknown {
+  background: conic-gradient(var(--mac-label-3) 0 50%, transparent 0);
+}
+.swatch--none {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--mac-border);
+}
+@media (max-width: 760px) {
+  .stockcard__head {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+  }
+  .stockcard__head .sku-thumb {
+    width: 56px !important;
+    height: 56px !important;
+  }
+  .vgrid__cell {
+    height: 34px;
+    min-width: 40px;
+  }
+}
+
+/* ---------- Ship order: product picker from the shelf ---------- */
+.ship__pick {
+  display: grid;
+  gap: 6px;
+}
+.ship__pick-label {
+  font-weight: 500;
+}
+.ship__qty-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ship__qty-row .ship__qty {
+  width: 80px;
+}
+.picker {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.picker--chosen {
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--ctl-radius);
+  background: var(--mac-box);
+  box-shadow: inset 0 0 0 1.5px var(--sys-blue);
+}
+.picker__note {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.picker__id {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.picker__variant {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.picker__size {
+  display: inline-block;
+  min-width: 22px;
+  padding: 0 6px;
+  border-radius: 5px;
+  text-align: center;
+  font-size: var(--fs-callout);
+  font-weight: 600;
+  background: var(--mac-under);
+  box-shadow: inset 0 0 0 0.5px var(--mac-control-border);
+}
+.picker__warn {
+  color: var(--sys-red);
+}
+.picker__hits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--ctl-radius);
+  background: var(--mac-box);
+  box-shadow: var(--shadow-box);
+}
+.picker__hit {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+  padding: 8px 10px;
+  align-items: start;
+}
+.picker__hit + .picker__hit {
+  border-top: 0.5px solid var(--mac-separator);
+}
+.picker__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.picker__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.picker__n {
+  font-variant-numeric: tabular-nums;
+  color: var(--mac-label-2);
+}
+@media (max-width: 760px) {
+  .picker__chip {
+    min-height: 44px;
+  }
+}
+
+/* ---------- Settings: scanner ---------- */
+.scanner-set__ways {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 10px;
+}
+.scanner-set__ways li {
+  display: grid;
+  gap: 2px;
+}
+.units-fold {
+  display: block;
+}
+.units-fold > summary {
+  cursor: pointer;
+  list-style-position: inside;
+}
+.units-fold > summary:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--ctl-radius);
+}
+.units-fold[open] > summary {
+  margin-bottom: 12px;
+}

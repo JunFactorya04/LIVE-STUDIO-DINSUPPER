@@ -45,6 +45,8 @@ const unit = (sku: string, ago: number, location = "A1"): Unit => ({
   receivedAt: daysAgo(ago),
   shippedAt: "",
   orderId: "",
+  color: "",
+  size: "",
 });
 
 describe("ABC / XYZ", () => {

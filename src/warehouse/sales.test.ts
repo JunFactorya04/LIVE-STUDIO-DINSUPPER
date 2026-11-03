@@ -14,6 +14,8 @@ const unit = (code: string, orderId = "", status: Unit["status"] = "SHIPPED"): U
   receivedAt: "2026-10-01T00:00:00.000Z",
   shippedAt: status === "SHIPPED" ? "2026-10-30T02:00:00.000Z" : "",
   orderId,
+  color: "",
+  size: "",
 });
 
 describe("unitSales", () => {

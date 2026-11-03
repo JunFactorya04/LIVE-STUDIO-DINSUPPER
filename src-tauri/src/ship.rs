@@ -315,6 +315,11 @@ pub struct ShipOrderDto {
     pub sku: String,
     #[serde(default)]
     pub qty: i64,
+    /// Variant sold (empty = any): the warehouse takes units of exactly this colour and size.
+    #[serde(default)]
+    pub color: String,
+    #[serde(default)]
+    pub size: String,
     /// Cost per unit when the order was saved; computed. Ignored on input.
     #[serde(default)]
     pub unit_cost: i64,
@@ -380,6 +385,17 @@ pub fn order_save(
     if !(0..=10_000).contains(&qty) || (!sku.is_empty() && qty == 0) {
         return Err(bad("qty"));
     }
+    let (Some(color), Some(size)) = (
+        crate::wh::clean_variant(&o.color),
+        crate::wh::clean_variant(&o.size),
+    ) else {
+        return Err(bad("variant"));
+    };
+    let (color, size) = if sku.is_empty() {
+        (String::new(), String::new())
+    } else {
+        (color, size)
+    };
     let conn_outer = conn;
     let tx = conn.unchecked_transaction()?;
     let conn = &*tx;
@@ -400,7 +416,8 @@ pub fn order_save(
     // units on the shelf. A no-op for any sku the seller never receives through that tab.
     crate::wh::release_order(conn, &o.id, now).map_err(|e| bad(&e))?;
     if !sku.is_empty() {
-        crate::wh::auto_allocate(conn, &sku, qty, &o.id, now).map_err(|e| bad(&e))?;
+        crate::wh::auto_allocate(conn, &sku, &color, &size, qty, &o.id, now)
+            .map_err(|e| bad(&e))?;
     }
     let unit_cost = match &before {
         Some((old_sku, _, old_cost)) if *old_sku == sku && !sku.is_empty() => *old_cost,
@@ -410,12 +427,12 @@ pub fn order_save(
         "INSERT INTO ship_orders
             (id, tiktok_id, recipient_name, phone, temperature, store_code, store_name,
              product, note, amount, shipping_fee, cod, exported, created_at, updated_at,
-             sku, qty, unit_cost)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,0,?13,?13,?14,?15,?16)
+             sku, qty, unit_cost, color, size)
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,0,?13,?13,?14,?15,?16,?17,?18)
          ON CONFLICT(id) DO UPDATE SET
             tiktok_id=?2, recipient_name=?3, phone=?4, temperature=?5, store_code=?6,
             store_name=?7, product=?8, note=?9, amount=?10, shipping_fee=?11, cod=?12,
-            updated_at=?13, sku=?14, qty=?15, unit_cost=?16",
+            updated_at=?13, sku=?14, qty=?15, unit_cost=?16, color=?17, size=?18",
         params![
             o.id,
             tiktok,
@@ -432,7 +449,9 @@ pub fn order_save(
             now,
             sku,
             qty,
-            unit_cost
+            unit_cost,
+            color,
+            size
         ],
     )?;
     tx.commit()?;
@@ -496,12 +515,14 @@ fn map_order(r: &rusqlite::Row<'_>) -> Result<ShipOrderDto> {
         carrier: r.get(17)?,
         trade_no: r.get(18)?,
         tracking: r.get(19)?,
+        color: r.get(20)?,
+        size: r.get(21)?,
     })
 }
 
 const ORDER_COLS: &str = "id, tiktok_id, recipient_name, phone, temperature, store_code, \
     store_name, product, note, amount, shipping_fee, cod, exported, created_at, sku, qty, unit_cost, \
-    carrier, trade_no, tracking";
+    carrier, trade_no, tracking, color, size";
 
 pub fn order_get(conn: &Connection, id: &str) -> Result<Option<ShipOrderDto>> {
     conn.query_row(
@@ -700,6 +721,8 @@ mod tests {
             created_at: String::new(),
             sku: String::new(),
             qty: 0,
+            color: String::new(),
+            size: String::new(),
             unit_cost: 0,
             carrier: String::new(),
             trade_no: String::new(),
@@ -793,6 +816,8 @@ mod tests {
                 unit_cost: 120,
                 location: "A1".into(),
                 supplier: String::new(),
+                color: String::new(),
+                size: String::new(),
                 at: "2026-10-30".into(),
             },
             "t0",

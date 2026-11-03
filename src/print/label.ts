@@ -9,6 +9,8 @@ export interface LabelUnit {
   sku: string;
   price: number;
   location?: string;
+  color?: string;
+  size?: string;
 }
 
 export function unitLabel(
@@ -19,6 +21,9 @@ export function unitLabel(
   const align = opts.align;
   const lines: SlipLine[] = [];
   if (opts.showSku) lines.push({ text: u.sku, size: "md", bold: true, align, px: 24 });
+  // Colour and size, when the unit has them, so the right one can be picked off the shelf.
+  const variant = [u.color, u.size].filter(Boolean).join(" / ");
+  if (variant) lines.push({ text: variant, size: "md", bold: true, align, px: 24 });
   lines.push({
     text: `${currency} ${u.price.toLocaleString("en-US")}`,
     size: "lg",

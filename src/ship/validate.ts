@@ -43,6 +43,9 @@ export interface ShipForm {
   /** Optional catalog sku and units, so stock and cost follow the order. */
   sku: string;
   qty: string;
+  /** Colour and size picked from the shelf ("" = any); the order takes exactly those units. */
+  color: string;
+  size: string;
 }
 
 export const EMPTY_SHIP_FORM: ShipForm = {
@@ -58,6 +61,8 @@ export const EMPTY_SHIP_FORM: ShipForm = {
   fee: String(DEFAULT_FEE),
   sku: "",
   qty: "1",
+  color: "",
+  size: "",
 };
 
 export type FormError =

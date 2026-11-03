@@ -15,6 +15,8 @@ const u = (code: string, sku: string, price: number, location = "A1"): Unit => (
   receivedAt: "t",
   shippedAt: "",
   orderId: "",
+  color: "",
+  size: "",
 });
 
 describe("warehouse helpers", () => {
@@ -64,6 +66,19 @@ describe("warehouse helpers", () => {
     const bars = slip.lines.find((l) => l.barcode);
     expect(bars?.barcode).toBe("A12-000001");
     expect(canEncode(bars!.barcode!)).toBe(true);
+  });
+
+  it("prints the colour and size when the unit has them", () => {
+    const withVariant = unitLabel({
+      code: "A12-000001",
+      sku: "A12",
+      price: 1,
+      color: "Đen",
+      size: "M",
+    });
+    expect(withVariant.lines.some((l) => l.text === "Đen / M")).toBe(true);
+    const plain = unitLabel({ code: "A12-000001", sku: "A12", price: 1, color: "", size: "" });
+    expect(plain.lines.some((l) => l.text.includes("/"))).toBe(false);
   });
 });
 

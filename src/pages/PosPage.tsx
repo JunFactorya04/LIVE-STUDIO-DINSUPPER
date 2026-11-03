@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isRemote } from "../platform/backend";
 import { useI18n } from "../i18n";
 import {
@@ -142,39 +142,55 @@ function PosDesktop({
   }, [posApi]);
   useEffect(loadHistory, [loadHistory]);
 
+  // Codes in the cart, kept in a ref as well: the phone relay listener below is subscribed once,
+  // so reading `units` there would see the empty cart from the first render and let the same
+  // label in twice. Codes are claimed here before the lookup so two quick scans cannot race.
+  const inCart = useRef<string[]>([]);
   const scan = useCallback(
     async (raw: string) => {
-      const a = addScan(
-        units.map((u) => u.code),
-        raw,
-      );
+      const a = addScan(inCart.current, raw);
       if (!a.added) return say(w.alreadyScanned.replace("{code}", a.code), true);
+      inCart.current = [...inCart.current, a.code];
+      const drop = () => (inCart.current = inCart.current.filter((c) => c !== a.code));
       try {
         const u = await api.unit(a.code);
-        if (!u) return say(`${w.errors.UNKNOWN} (${a.code})`, true);
-        if (u.status !== "IN_STOCK") return say(`${w.errors.NOT_IN_STOCK} (${a.code})`, true);
+        if (!u || u.status !== "IN_STOCK") {
+          drop();
+          const why = u ? w.errors.NOT_IN_STOCK : w.errors.UNKNOWN;
+          return say(`${why} (${a.code})`, true);
+        }
         setUnits((prev) => [...prev, u]);
       } catch (e) {
+        drop();
         say(explain(e), true);
       }
     },
-    [api, units, w, explain],
+    [api, w, explain],
   );
+  const scanRef = useRef(scan);
+  scanRef.current = scan;
 
   // A phone on "Thanh Toán → Quét mã" pushes codes here over the local network.
   useEffect(() => {
     let off = () => {};
     let alive = true;
-    void relayApi.listen((code) => void scan(code)).then((u) => (alive ? (off = u) : u()));
+    void relayApi
+      .listen((code) => void scanRef.current(code))
+      .then((u) => (alive ? (off = u) : u()));
     return () => {
       alive = false;
       off();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [relayApi]);
 
-  const removeGroup = (sku: string) => setUnits((prev) => prev.filter((u) => u.sku !== sku));
+  const removeGroup = (sku: string) =>
+    setUnits((prev) => {
+      const left = prev.filter((u) => u.sku !== sku);
+      inCart.current = left.map((u) => u.code);
+      return left;
+    });
   const clear = () => {
+    inCart.current = [];
     setUnits([]);
     setSaleId(newId());
   };

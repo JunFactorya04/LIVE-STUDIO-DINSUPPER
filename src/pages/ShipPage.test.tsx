@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "../i18n";
 import { zhTW } from "../i18n/zh-TW";
@@ -14,9 +14,14 @@ import {
 } from "../ship/validate";
 import { LiveSessionStore } from "../live/sessionStore";
 import { LiveSessionProvider } from "../live/useLiveSession";
+import type { Unit, WarehouseClient } from "../warehouse/client";
+import type { SkuImageClient } from "../warehouse/images";
+import type { ScanRelay } from "../warehouse/relay";
 import { ShipPage } from "./ShipPage";
 
 afterEach(cleanup);
+
+const fmtLeft = (n: number) => zhTW.ship.form.picker.left.replace("{n}", String(n));
 
 const order = (over: Partial<ShipOrder> = {}): ShipOrder => ({
   id: "o1",
@@ -165,6 +170,85 @@ describe("ShipPage", () => {
     expect(saved.phone).toBe("0912345678");
     expect(saved.amount).toBe(300);
     expect(remember).toBe(true);
+  });
+
+  it("picks the product from the shelf by colour and size, and a scanned label adds one more", async () => {
+    const c = fake({}, []);
+    const unit = (n: number, color: string, size: string): Unit => ({
+      code: `A12-00000${n}`,
+      sku: "A12",
+      price: 350,
+      cost: 100,
+      location: "",
+      status: "IN_STOCK",
+      receivedAt: "",
+      shippedAt: "",
+      orderId: "",
+      color,
+      size,
+    });
+    const shelf = [unit(1, "黑色", "M"), unit(2, "黑色", "M"), unit(3, "白色", "L")];
+    const warehouse = {
+      available: true,
+      units: async () => shelf,
+      unit: async (code: string) => shelf.find((u) => u.code === code),
+    } as unknown as WarehouseClient;
+    const images = { available: false } as unknown as SkuImageClient;
+    let push: ((code: string) => void) | undefined;
+    const relay: ScanRelay = {
+      push: async () => {},
+      listen: async (h) => {
+        push = h;
+        return () => {};
+      },
+    };
+    const store = new LiveSessionStore();
+    store.saveCatalogItem({ sku: "A12", name: "連帽衫", colors: [], sizes: [], aliases: [] });
+    render(
+      <I18nProvider initial="zh-TW">
+        <LiveSessionProvider store={store}>
+          <ShipPage client={c} warehouse={warehouse} images={images} relay={relay} />
+        </LiveSessionProvider>
+      </I18nProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: `+ ${zhTW.ship.create}` }));
+    fireEvent.change(screen.getByLabelText(zhTW.ship.form.picker.search), {
+      target: { value: "連帽衫 黑" },
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "選擇 黑色 M，剩 2" }));
+    expect(screen.queryByRole("button", { name: /白色 L/ })).toBeNull();
+    expect(await screen.findByText(fmtLeft(2))).toBeInTheDocument();
+    expect((screen.getByLabelText(`${zhTW.ship.form.amount} *`) as HTMLInputElement).value).toBe(
+      "350",
+    );
+    // a phone (sharing link) scans another black M label: one more, the amount follows
+    await waitFor(() => expect(push).toBeDefined());
+    await act(async () => {
+      push!("A12-000002");
+    });
+    expect((screen.getByLabelText(`${zhTW.ship.form.amount} *`) as HTMLInputElement).value).toBe(
+      "700",
+    );
+
+    const set = (label: string, value: string) =>
+      fireEvent.change(
+        screen.getByLabelText(new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))),
+        { target: { value } },
+      );
+    set(zhTW.ship.form.phone, "0912345678");
+    set(zhTW.ship.form.name, "Mai");
+    set(zhTW.ship.form.storeCode, "131386");
+    fireEvent.click(screen.getByRole("button", { name: zhTW.ship.form.save }));
+    await waitFor(() => expect(c.saveOrder).toHaveBeenCalledTimes(1));
+    const [saved] = (c.saveOrder as ReturnType<typeof vi.fn>).mock.calls[0] as [ShipOrder];
+    expect(saved).toMatchObject({
+      sku: "A12",
+      color: "黑色",
+      size: "M",
+      qty: 2,
+      product: "連帽衫 黑色 M",
+      amount: 700,
+    });
   });
 
   it("looks the store number up online when it is not in the local list", async () => {

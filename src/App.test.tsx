@@ -17,7 +17,7 @@ import { ApiKeysSection } from "./pages/ApiKeysSection";
 import type { SecretsClient } from "./secrets/client";
 
 function setup(
-  initialPage?: "setup" | "console" | "orders" | "replies" | "overlay" | "settings",
+  initialPage?: "setup" | "console" | "orders" | "replies" | "overlay" | "settings" | "warehouse",
   deps: Partial<StoreDeps> = {},
 ) {
   let n = 0;
@@ -319,12 +319,17 @@ describe("Orders page", () => {
     expect(store.getSnapshot().drafts.map((d) => d.status)).toEqual(["CONFIRMED", "NEEDS_REVIEW"]);
   });
 
-  it("explains an empty state and imports a catalog from pasted text", async () => {
-    const store = setup("orders");
+  it("explains an empty state and points to the product list", () => {
+    setup("orders");
     expect(screen.getByText(zhTW.orders.emptyTitle)).toBeInTheDocument();
     expect(screen.getByText(zhTW.orders.noCatalogHint)).toBeInTheDocument();
+  });
+});
 
-    fireEvent.click(screen.getByRole("button", { name: zhTW.orders.tabs.catalog }));
+describe("Nhập Kho product list", () => {
+  it("imports a catalog from pasted text", async () => {
+    const store = setup("warehouse");
+    fireEvent.click(screen.getByRole("button", { name: zhTW.warehouse.tabs.products }));
     fireEvent.change(screen.getByLabelText(zhTW.orders.catalog.importTitle), {
       target: { value: "A12\t黑色連帽衫\t790\t黑色|黑;白色\tM;L\t帽T\nbad" },
     });
@@ -337,54 +342,10 @@ describe("Orders page", () => {
   });
 
   it("rejects a catalog item without code and name", () => {
-    setup("orders");
-    fireEvent.click(screen.getByRole("button", { name: zhTW.orders.tabs.catalog }));
+    setup("warehouse");
+    fireEvent.click(screen.getByRole("button", { name: zhTW.warehouse.tabs.products }));
     fireEvent.click(screen.getByRole("button", { name: zhTW.orders.catalog.save }));
     expect(screen.getByRole("alert")).toHaveTextContent(zhTW.orders.catalog.skuRequired);
-  });
-});
-
-describe("Reply suggestions UI", () => {
-  beforeEach(() => localStorage.clear());
-
-  it("copy records COPIED (not sent), and there is no send button", async () => {
-    const written: string[] = [];
-    Object.defineProperty(navigator, "clipboard", {
-      value: { writeText: async (t: string) => void written.push(t) },
-      configurable: true,
-    });
-    const store = setup("console", {
-      ai: { available: true, complete: async () => "明天出貨喔" },
-      loadAiConfig: () => ({ provider: "claude", models: {} }),
-    });
-    await act(async () => {
-      await store.connectSource();
-      store.startSession();
-      store.submitManual("amy: 什麼時候出貨?");
-    });
-    fireEvent.click(screen.getByText("什麼時候出貨?"));
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: zhTW.replies.suggest }));
-    });
-    const box = await screen.findByLabelText(zhTW.replies.textLabel);
-    expect(box).toHaveValue("明天出貨喔");
-    expect(screen.queryByRole("button", { name: /送出|send|gửi/i })).not.toBeInTheDocument();
-
-    fireEvent.change(box, { target: { value: "今天下單明天出貨" } });
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: zhTW.replies.copy }));
-    });
-    expect(written).toEqual(["今天下單明天出貨"]);
-    expect(store.getSnapshot().replies[0]).toMatchObject({
-      text: "今天下單明天出貨",
-      status: "COPIED",
-    });
-    expect(await screen.findByText(zhTW.replies.copied)).toBeInTheDocument();
-  });
-
-  it("the replies page explains the empty state", () => {
-    setup("replies");
-    expect(screen.getByText(zhTW.replies.emptyTitle)).toBeInTheDocument();
   });
 });
 

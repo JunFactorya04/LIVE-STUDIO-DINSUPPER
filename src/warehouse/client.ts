@@ -15,6 +15,9 @@ export interface Unit {
   receivedAt: string;
   shippedAt: string;
   orderId: string;
+  /** Colour and size of this unit ("" = not given). One sku per product; the variant per unit. */
+  color: string;
+  size: string;
 }
 
 export interface ReceiveReq {
@@ -29,6 +32,8 @@ export interface ReceiveReq {
   at: string;
   /** When the goods came in (ISO). Defaults to now; the shelf-age analysis counts from it. */
   receivedAt?: string;
+  color?: string;
+  size?: string;
 }
 
 export interface ShipResult {

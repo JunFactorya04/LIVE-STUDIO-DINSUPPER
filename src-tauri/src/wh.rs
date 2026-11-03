@@ -31,6 +31,12 @@ pub struct UnitDto {
     pub received_at: String,
     pub shipped_at: String,
     pub order_id: String,
+    /// Colour and size of this unit (empty = not given). One sku per product; the variant rides
+    /// on each unit so the shelf can say how many black M are left.
+    #[serde(default)]
+    pub color: String,
+    #[serde(default)]
+    pub size: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,6 +55,10 @@ pub struct ReceiveReq {
     pub supplier: String,
     /// Day of the purchase, yyyy-mm-dd.
     pub at: String,
+    #[serde(default)]
+    pub color: String,
+    #[serde(default)]
+    pub size: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -84,11 +94,18 @@ pub fn valid_scan_code(s: &str) -> bool {
     (1..=64).contains(&s.len()) && s.chars().all(|c| c.is_ascii_graphic())
 }
 
+/// A colour or size: short free text (\"Đen\", \"M\", \"38\"), no control characters.
+pub fn clean_variant(s: &str) -> Option<String> {
+    let t = s.trim();
+    (t.chars().count() <= 20 && !t.chars().any(|c| c.is_control())).then(|| t.to_string())
+}
+
 pub fn valid_location(s: &str) -> bool {
     s.len() <= 16 && s.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
 }
 
-const COLS: &str = "code, sku, price, cost, location, status, received_at, shipped_at, order_id";
+const COLS: &str =
+    "code, sku, price, cost, location, status, received_at, shipped_at, order_id, color, size";
 
 fn map(r: &rusqlite::Row<'_>) -> rusqlite::Result<UnitDto> {
     Ok(UnitDto {
@@ -101,6 +118,8 @@ fn map(r: &rusqlite::Row<'_>) -> rusqlite::Result<UnitDto> {
         received_at: r.get(6)?,
         shipped_at: r.get(7)?,
         order_id: r.get(8)?,
+        color: r.get(9)?,
+        size: r.get(10)?,
     })
 }
 
@@ -153,6 +172,9 @@ pub fn receive(conn: &Connection, q: &ReceiveReq, now: &str) -> Res<Vec<UnitDto>
     if !valid_location(&q.location) {
         return Err("BAD_LOCATION".into());
     }
+    let (Some(color), Some(size)) = (clean_variant(&q.color), clean_variant(&q.size)) else {
+        return Err("BAD_VARIANT".into());
+    };
     let tx = conn.unchecked_transaction().map_err(db)?;
     biz::purchase_apply(
         &tx,
@@ -188,11 +210,14 @@ pub fn receive(conn: &Connection, q: &ReceiveReq, now: &str) -> Res<Vec<UnitDto>
             received_at: now.into(),
             shipped_at: String::new(),
             order_id: String::new(),
+            color: color.clone(),
+            size: size.clone(),
         };
         tx.execute(
-            "INSERT INTO wh_units (code, sku, serial, price, cost, location, status, received_at)
-             VALUES (?1,?2,?3,?4,?5,?6,'IN_STOCK',?7)",
-            params![u.code, u.sku, serial, u.price, u.cost, u.location, now],
+            "INSERT INTO wh_units
+                (code, sku, serial, price, cost, location, status, received_at, color, size)
+             VALUES (?1,?2,?3,?4,?5,?6,'IN_STOCK',?7,?8,?9)",
+            params![u.code, u.sku, serial, u.price, u.cost, u.location, now, u.color, u.size],
         )
         .map_err(db)?;
         log(&tx, now, "IN", &u, "")?;
@@ -345,9 +370,12 @@ pub fn has_any_units(conn: &Connection, sku: &str) -> Res<bool> {
 /// when the warehouse holds fewer units of this sku than the order needs: most skus are never
 /// scanned into the barcode warehouse at all, and that is not an error here, just a sku this
 /// order cannot be reconciled against a physical unit for.
+/// A non-empty `color` / `size` takes only units of that variant, so the variant counts stay true.
 pub fn auto_allocate(
     conn: &Connection,
     sku: &str,
+    color: &str,
+    size: &str,
     qty: i64,
     order_id: &str,
     now: &str,
@@ -357,11 +385,13 @@ pub fn auto_allocate(
     }
     let mut stmt = conn
         .prepare(&format!(
-            "SELECT {COLS} FROM wh_units WHERE sku = ?1 AND status = 'IN_STOCK' ORDER BY code LIMIT ?2"
+            "SELECT {COLS} FROM wh_units WHERE sku = ?1 AND status = 'IN_STOCK'
+               AND (?3 = '' OR color = ?3) AND (?4 = '' OR size = ?4)
+             ORDER BY code LIMIT ?2"
         ))
         .map_err(db)?;
     let units: Vec<UnitDto> = stmt
-        .query_map(params![sku, qty], map)
+        .query_map(params![sku, qty, color, size], map)
         .map_err(db)?
         .collect::<Result<_, _>>()
         .map_err(db)?;
@@ -489,7 +519,40 @@ mod tests {
             location: "A1".into(),
             supplier: String::new(),
             at: "2026-10-30".into(),
+            color: String::new(),
+            size: String::new(),
         }
+    }
+
+    #[test]
+    fn variant_rides_on_each_unit_and_allocation_takes_only_that_variant() {
+        let c = open_in_memory().unwrap();
+        let mut black = req(2);
+        black.color = " Đen ".into();
+        black.size = "M".into();
+        receive(&c, &black, "t1").unwrap();
+        let mut white = req(3);
+        white.color = "Trắng".into();
+        white.size = "L".into();
+        receive(&c, &white, "t1").unwrap();
+        let u = unit_get(&c, "A12-000001").unwrap().unwrap();
+        assert_eq!((u.color.as_str(), u.size.as_str()), ("Đen", "M"));
+        // asks for 3 white L: gets 3, all white L, black untouched
+        assert_eq!(
+            auto_allocate(&c, "A12", "Trắng", "L", 3, "o1", "t2").unwrap(),
+            3
+        );
+        let left = units_list(&c, "IN_STOCK", 100).unwrap();
+        assert_eq!(left.len(), 2);
+        assert!(left.iter().all(|u| u.color == "Đen"));
+        // a variant with no stock takes nothing
+        assert_eq!(
+            auto_allocate(&c, "A12", "Đỏ", "", 1, "o2", "t2").unwrap(),
+            0
+        );
+        let mut bad = req(1);
+        bad.color = "x".repeat(21);
+        assert_eq!(receive(&c, &bad, "t").unwrap_err(), "BAD_VARIANT");
     }
 
     fn stock(c: &Connection) -> i64 {
@@ -533,12 +596,12 @@ mod tests {
         assert!(!has_any_units(&c, "NOPE").unwrap());
         assert_eq!(stock_count(&c, "A12").unwrap(), 3);
         // Asking for more than exist allocates only what is there; it is not an error.
-        let n = auto_allocate(&c, "A12", 5, "o1", "t2").unwrap();
+        let n = auto_allocate(&c, "A12", "", "", 5, "o1", "t2").unwrap();
         assert_eq!(n, 3);
         assert_eq!(stock_count(&c, "A12").unwrap(), 0);
         assert_eq!(unit_get(&c, "A12-000001").unwrap().unwrap().order_id, "o1");
         // A sku never received through the barcode warehouse allocates nothing, silently.
-        assert_eq!(auto_allocate(&c, "NOPE", 2, "o2", "t2").unwrap(), 0);
+        assert_eq!(auto_allocate(&c, "NOPE", "", "", 2, "o2", "t2").unwrap(), 0);
         // Releasing the order puts every one of its units back on the shelf.
         assert_eq!(release_order(&c, "o1", "t3").unwrap(), 3);
         assert_eq!(stock_count(&c, "A12").unwrap(), 3);

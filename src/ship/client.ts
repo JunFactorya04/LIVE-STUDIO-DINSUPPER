@@ -25,6 +25,9 @@ export interface ShipOrder {
   /** Catalog sku sold and units; "" and 0 when the order is not tracked in stock. */
   sku: string;
   qty: number;
+  /** Variant sold ("" = any); the warehouse takes units of exactly this colour and size. */
+  color?: string;
+  size?: string;
   /** Cost per unit when the order was saved (computed by the backend). */
   unitCost: number;
   /** Waybill made through a carrier's API; empty until then (set by the backend only). */
