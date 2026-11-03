@@ -27,6 +27,24 @@ const MAIN_WINDOW: &str = "main";
 /// Safari: with an iPhone UA TikTok keeps sending the page to its iOS app / the App Store,
 /// which on a Mac with Apple silicon opens the TikTok app or the App Store instead of the page.
 /// The seller can turn phone mode off from the address bar for a desktop layout.
+/// Desktop layout only: a site built for a wide screen (MyShip needs ~1200px) is scaled down to
+/// the tab's width instead of hiding its right side (the login link) off screen. A fixed,
+/// literal script; it only reads the page's width and sets the page zoom.
+const FIT_WIDTH_JS: &str = r#"(function () {
+  if (window.top !== window) return;
+  function fit() {
+    var d = document.documentElement;
+    if (!d) return;
+    d.style.zoom = "";
+    var w = d.scrollWidth, v = window.innerWidth;
+    if (w > v + 8) d.style.zoom = String(Math.max(0.5, v / w));
+  }
+  var t;
+  function later() { clearTimeout(t); t = setTimeout(fit, 150); }
+  window.addEventListener("load", function () { fit(); setTimeout(fit, 800); });
+  window.addEventListener("resize", later);
+})();"#;
+
 const MOBILE_UA: &str =
     "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36";
 
@@ -264,6 +282,8 @@ pub fn browser_open(
             });
     if mobile {
         builder = builder.user_agent(MOBILE_UA);
+    } else {
+        builder = builder.initialization_script(FIT_WIDTH_JS);
     }
 
     let webview = window
@@ -311,6 +331,19 @@ pub fn browser_reload(state: tauri::State<'_, BrowserTabState>) -> Result<(), St
     let guard = state.0.lock().map_err(|_| "LOCK".to_string())?;
     let wv = guard.as_ref().ok_or_else(|| "NOT_OPEN".to_string())?;
     wv.reload().map_err(|e| e.to_string())
+}
+
+/// The page zoom the seller picked with − / + (1.0 = 100%), kept between 50% and 200%.
+#[tauri::command]
+pub fn browser_zoom(state: tauri::State<'_, BrowserTabState>, scale: f64) -> Result<(), String> {
+    let guard = state.0.lock().map_err(|_| "LOCK".to_string())?;
+    let wv = guard.as_ref().ok_or_else(|| "NOT_OPEN".to_string())?;
+    let scale = if scale.is_finite() {
+        scale.clamp(0.5, 2.0)
+    } else {
+        1.0
+    };
+    wv.set_zoom(scale).map_err(|e| e.to_string())
 }
 
 /// Same as clicking a real browser's back button — a fixed, literal script, never a string the

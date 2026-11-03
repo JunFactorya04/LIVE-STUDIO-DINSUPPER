@@ -73,6 +73,9 @@ export async function openWeb(
     await external();
     return "external";
   }
-  requestBrowser({ url, mobile: kind === "tiktok", from });
+  // Desktop layout for every site, TikTok included: TikTok's mobile web has no "Message" button
+  // (it sends chats to the app), and a phone identity on a Mac browser draws its 403/puzzle
+  // checks. The phone layout stays one checkbox away in the Browser tab.
+  requestBrowser({ url, mobile: false, from });
   return "app";
 }

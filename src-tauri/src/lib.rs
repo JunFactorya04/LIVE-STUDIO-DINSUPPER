@@ -76,6 +76,7 @@ pub fn run() {
             webview_tab::browser_navigate,
             webview_tab::browser_set_bounds,
             webview_tab::browser_reload,
+            webview_tab::browser_zoom,
             webview_tab::browser_back,
             webview_tab::browser_forward,
             webview_tab::browser_hide,

@@ -1692,7 +1692,11 @@ export const vi: Messages = {
     forward: "Tiến",
     reload: "Tải lại",
     mobileMode: "Chế độ điện thoại",
-    mobileModeHint: "Trang sẽ hiển thị như trên điện thoại (phù hợp khi đăng nhập TikTok).",
+    mobileModeHint:
+      "Tắt: trang hiện như trên máy tính (TikTok có nút Nhắn tin; trang rộng như MyShip tự thu nhỏ cho vừa). Bật: hiện như trên điện thoại.",
+    zoomOut: "Thu nhỏ",
+    zoomIn: "Phóng to",
+    zoomReset: "Về cỡ gốc",
     emptyTitle: "Chưa mở trang nào",
     emptyHint:
       "Nhập địa chỉ ở trên rồi bấm “Đi”. Đây là trình duyệt bình thường — bạn tự bấm, tự nhập, app không tự động làm gì trong trang.",

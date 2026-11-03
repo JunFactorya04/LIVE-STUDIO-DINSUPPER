@@ -1630,7 +1630,11 @@ export const zhTW = {
     forward: "下一頁",
     reload: "重新載入",
     mobileMode: "手機模式",
-    mobileModeHint: "網頁會顯示成手機版（登入 TikTok 時比較合適）。",
+    mobileModeHint:
+      "關閉：顯示電腦版網頁（TikTok 有「傳訊息」按鈕；MyShip 等較寬的網頁會自動縮小以完整顯示）。開啟：顯示手機版。",
+    zoomOut: "縮小",
+    zoomIn: "放大",
+    zoomReset: "恢復原始大小",
     emptyTitle: "尚未開啟任何網頁",
     emptyHint:
       "在上方輸入網址後按「前往」。這是一般瀏覽器 — 由您自己點擊、輸入，app 不會在網頁裡自動做任何事。",

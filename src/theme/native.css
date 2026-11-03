@@ -1450,3 +1450,20 @@
   gap: 6px;
   margin-top: 6px;
 }
+
+/* Browser tab: page zoom − 100% + */
+.browser__zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+.browser__zoom .icon-btn {
+  font-size: 17px;
+  line-height: 1;
+}
+.browser__zoom-level {
+  min-width: 52px;
+  padding: 0 6px;
+  font-variant-numeric: tabular-nums;
+}

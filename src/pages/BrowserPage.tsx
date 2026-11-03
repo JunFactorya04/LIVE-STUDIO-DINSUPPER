@@ -45,9 +45,15 @@ function isKnownError(x: unknown): x is BrowserErrorCode {
 
 // The native webview outlives this page (it is only hidden when the seller switches tabs), so
 // what it shows is remembered here, not in component state that a remount would reset.
-const session: { opened: boolean; url?: string; mobile: boolean; from?: PageId } = {
+const session: {
+  opened: boolean;
+  url?: string;
+  mobile: boolean;
+  from?: PageId;
+  zoom?: number;
+} = {
   opened: false,
-  mobile: true,
+  mobile: false,
 };
 
 /** Width of the phone column in phone mode (a large phone, in CSS pixels). */
@@ -62,6 +68,13 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
   const [addressInput, setAddressInput] = useState(session.url ?? "");
   const [openedUrl, setOpenedUrl] = useState<string | undefined>(session.url);
   const [mobileMode, setMobileMode] = useState(session.mobile);
+  const [zoom, setZoom] = useState(session.zoom ?? 1);
+  const zoomTo = (z: number) => {
+    const next = Math.round(Math.min(2, Math.max(0.5, z)) * 10) / 10;
+    session.zoom = next;
+    setZoom(next);
+    void invoke("browser_zoom", { scale: next }).catch(() => undefined);
+  };
   const [from, setFrom] = useState<PageId | undefined>(session.from);
   const [error, setError] = useState<string>();
   const [download, setDownload] = useState<Download>();
@@ -101,6 +114,9 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
       }
       const finalUrl = await invoke<string>("browser_open", { url, mobile, ...rect });
       openedRef.current = true;
+      if (session.zoom && session.zoom !== 1) {
+        void invoke("browser_zoom", { scale: session.zoom }).catch(() => undefined);
+      }
       Object.assign(session, { opened: true, url: finalUrl, mobile });
       setMobileMode(mobile);
       setOpenedUrl(finalUrl);
@@ -238,7 +254,7 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
         <button
           type="button"
           className="btn btn--chip"
-          onClick={() => void openAt(TIKTOK_LOGIN_URL, true)}
+          onClick={() => void openAt(TIKTOK_LOGIN_URL, false)}
         >
           {b.tiktokLogin}
         </button>
@@ -288,6 +304,37 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
         <button type="button" className="btn btn--primary" onClick={go}>
           {b.go}
         </button>
+        <div className="browser__zoom" role="group" aria-label={b.zoomReset}>
+          <button
+            type="button"
+            className="icon-btn"
+            disabled={!openedUrl || zoom <= 0.5}
+            onClick={() => zoomTo(zoom - 0.1)}
+            aria-label={b.zoomOut}
+            title={b.zoomOut}
+          >
+            −
+          </button>
+          <button
+            type="button"
+            className="btn browser__zoom-level"
+            disabled={!openedUrl}
+            onClick={() => zoomTo(1)}
+            title={b.zoomReset}
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            disabled={!openedUrl || zoom >= 2}
+            onClick={() => zoomTo(zoom + 0.1)}
+            aria-label={b.zoomIn}
+            title={b.zoomIn}
+          >
+            +
+          </button>
+        </div>
         <label className="browser__mobile">
           <input type="checkbox" checked={mobileMode} onChange={() => void toggleMobile()} />
           {b.mobileMode}

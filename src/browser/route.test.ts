@@ -39,7 +39,7 @@ describe("where carrier and TikTok pages open", () => {
     expect(external).not.toHaveBeenCalled();
     expect(seen).toEqual([
       { url: "https://myship.7-11.com.tw/", mobile: false, from: "ship" },
-      { url: "https://www.tiktok.com/@mai_tran", mobile: true, from: "flow" },
+      { url: "https://www.tiktok.com/@mai_tran", mobile: false, from: "flow" },
     ]);
     // the Browser tab, mounting after the request, still finds the last one
     expect(takeBrowserRequest()?.url).toBe("https://www.tiktok.com/@mai_tran");
