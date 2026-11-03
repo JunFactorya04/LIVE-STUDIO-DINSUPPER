@@ -57,6 +57,22 @@ const mount = (c: ShipClient, onNavigate = vi.fn()) =>
   );
 
 describe("WorkflowPage", () => {
+  it("clears the list without deleting anything, and can undo it", async () => {
+    localStorage.clear();
+    const c = fake();
+    mount(c);
+    expect(await screen.findByText("@mai")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: zhTW.flow.clear }));
+    fireEvent.click(screen.getByRole("button", { name: zhTW.flow.clearConfirm }));
+    await waitFor(() => expect(screen.queryByText("@mai")).toBeNull());
+    expect(c.deleteCustomer).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: zhTW.flow.showAll }));
+    expect(screen.getByText("@mai")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: zhTW.flow.undoClear }));
+    expect(screen.getByText("@mai")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: zhTW.flow.showAll })).toBeNull();
+  });
+
   it("shows the buyer and copies the ask message, recording the step, then opens their TikTok page", async () => {
     const writeText = vi.fn(async () => undefined);
     Object.assign(navigator, { clipboard: { writeText } });

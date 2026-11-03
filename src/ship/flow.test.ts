@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { OrderDraft } from "../orders/types";
 import type { FlowRecord, ShipCustomer, ShipOrder } from "./client";
-import { buildFlow, workReport } from "./flow";
+import { buildFlow, visibleBuyers, workReport } from "./flow";
 
 const draft = (id: string, user: string, over: Partial<OrderDraft> = {}): OrderDraft => ({
   id,
@@ -86,6 +86,30 @@ describe("buildFlow", () => {
       flow: [rec("done", { slipPrintedAt: "t", askCopiedAt: "t" })],
     });
     expect(list.map((b) => b.tiktokId)).toEqual(["a", "done"]);
+  });
+});
+
+describe("visibleBuyers", () => {
+  const b = (id: string, lastAt: number, done: boolean) => ({
+    tiktokId: id,
+    name: "",
+    steps: { order: true, slip: done, ask: done, info: done, ship: done },
+    next: done ? undefined : ("slip" as const),
+    ship: "none" as const,
+    lastAt,
+  });
+  const list = [b("old-done", 100, true), b("old-open", 100, false), b("new", 300, false)];
+
+  it("hides everyone up to the clear time; newer activity shows again", () => {
+    expect(visibleBuyers(list, { clearedAt: 200 }).map((x) => x.tiktokId)).toEqual(["new"]);
+  });
+
+  it("a new live session hides only buyers already finished before it", () => {
+    expect(visibleBuyers(list, { sessionStart: 200 }).map((x) => x.tiktokId)).toEqual([
+      "old-open",
+      "new",
+    ]);
+    expect(visibleBuyers(list, {})).toHaveLength(3);
   });
 });
 

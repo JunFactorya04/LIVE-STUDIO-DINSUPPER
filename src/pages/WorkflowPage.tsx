@@ -16,7 +16,14 @@ import {
   type ShipCustomer,
   type ShipOrder,
 } from "../ship/client";
-import { buildFlow, workReport, STEPS, type BuyerFlow, type StepId } from "../ship/flow";
+import {
+  buildFlow,
+  visibleBuyers,
+  workReport,
+  STEPS,
+  type BuyerFlow,
+  type StepId,
+} from "../ship/flow";
 import { setShipPrefill } from "../ship/prefill";
 import { avatarTone } from "./ConsolePage";
 
@@ -29,6 +36,25 @@ function productLine(draft?: { sku?: string; color?: string; size?: string; quan
 }
 
 type Note = { text: string; error: boolean } | undefined;
+
+// "Dọn danh sách" only hides: the time of the last clear, kept on this computer.
+const CLEARED_KEY = "flow.clearedAt";
+function readCleared(): number | undefined {
+  try {
+    const v = Number(localStorage.getItem(CLEARED_KEY));
+    return v > 0 ? v : undefined;
+  } catch {
+    return undefined;
+  }
+}
+function writeCleared(v: number | undefined) {
+  try {
+    if (v === undefined) localStorage.removeItem(CLEARED_KEY);
+    else localStorage.setItem(CLEARED_KEY, String(v));
+  } catch {
+    // Not saved: the list is still cleared until the app restarts.
+  }
+}
 
 /** "BAD_ID" is the one code-looking value this command can throw; everything else it throws is
  * already a plain, user-facing Vietnamese/Chinese sentence from the Rust side (no OS/internal
@@ -86,10 +112,31 @@ export function WorkflowPage({
     void load();
   }, [load]);
 
-  const buyers = useMemo(
+  const allBuyers = useMemo(
     () => (data ? buildFlow({ drafts: s.drafts, printerReady, ...data }) : []),
     [data, s.drafts, printerReady],
   );
+  const [clearedAt, setClearedAt] = useState(readCleared);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const sessionStart = s.startedAt ? Date.parse(s.startedAt) || undefined : undefined;
+  const shown = useMemo(
+    () => visibleBuyers(allBuyers, { clearedAt, sessionStart }),
+    [allBuyers, clearedAt, sessionStart],
+  );
+  const hiddenCount = allBuyers.length - shown.length;
+  const buyers = showAll ? allBuyers : shown;
+  const clearList = () => {
+    const now = Date.now();
+    writeCleared(now);
+    setClearedAt(now);
+    setShowAll(false);
+    setConfirmClear(false);
+  };
+  const undoClear = () => {
+    writeCleared(undefined);
+    setClearedAt(undefined);
+  };
   const report = useMemo(
     () => (data ? workReport({ comments: s.comments, drafts: s.drafts, ...data }) : undefined),
     [data, s.comments, s.drafts],
@@ -200,7 +247,7 @@ export function WorkflowPage({
           <ErrorState onRetry={() => void load()} />
         ) : !data ? (
           <LoadingState />
-        ) : buyers.length === 0 ? (
+        ) : allBuyers.length === 0 ? (
           <EmptyState title={w.emptyTitle} hint={w.emptyHint} />
         ) : (
           <>
@@ -250,6 +297,43 @@ export function WorkflowPage({
                   {w.filterSteps[step]} {buyers.filter((b) => b.next === step).length}
                 </button>
               ))}
+            </div>
+            <div className="actions flow__clear">
+              {confirmClear ? (
+                <>
+                  <p className="caption">{w.clearHint}</p>
+                  <button type="button" className="btn btn--destructive" onClick={clearList}>
+                    {w.clearConfirm}
+                  </button>
+                  <button type="button" className="btn" onClick={() => setConfirmClear(false)}>
+                    {t.common.cancel}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={shown.length === 0}
+                    onClick={() => setConfirmClear(true)}
+                  >
+                    {w.clear}
+                  </button>
+                  {hiddenCount > 0 && (
+                    <>
+                      <span className="caption">{fmt(w.hidden, { n: hiddenCount })}</span>
+                      <button type="button" className="btn" onClick={() => setShowAll((v) => !v)}>
+                        {showAll ? w.showLess : w.showAll}
+                      </button>
+                    </>
+                  )}
+                  {clearedAt !== undefined && (
+                    <button type="button" className="btn" onClick={undoClear}>
+                      {w.undoClear}
+                    </button>
+                  )}
+                </>
+              )}
             </div>
             <input
               type="search"

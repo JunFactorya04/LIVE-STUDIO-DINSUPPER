@@ -484,6 +484,14 @@ export const vi: Messages = {
     exported: "Đã xuất",
     filterAll: "Tất cả",
     filterByStep: "Lọc theo bước cần làm",
+    clear: "Dọn danh sách",
+    clearHint:
+      "Ẩn tất cả người mua đang có trong danh sách. Không xóa dữ liệu: khách hàng và đơn ship vẫn ở “Đơn ship”. Ai có đơn mới hoặc được nhập thông tin sẽ tự hiện lại.",
+    clearConfirm: "Dọn",
+    hidden: "Đang ẩn {n} người (đã dọn, hoặc đã xong trước phiên live này).",
+    showAll: "Hiện tất cả",
+    showLess: "Ẩn lại",
+    undoClear: "Bỏ dọn",
     steps: {
       order: "Đã chốt đơn",
       slip: "Đã in tem tạm",

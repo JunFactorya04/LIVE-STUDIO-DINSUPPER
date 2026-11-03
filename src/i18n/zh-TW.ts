@@ -457,6 +457,14 @@ export const zhTW = {
     exported: "已匯出",
     filterAll: "全部",
     filterByStep: "依待辦步驟篩選",
+    clear: "清空列表",
+    clearHint:
+      "隱藏目前列表中的所有買家。不會刪除資料：客戶與出貨單仍在「出貨單」。有新訂單或填入資料的買家會自動再出現。",
+    clearConfirm: "清空",
+    hidden: "已隱藏 {n} 位（已清空，或在本場直播前已完成）。",
+    showAll: "全部顯示",
+    showLess: "收起",
+    undoClear: "取消清空",
     steps: {
       order: "已確認訂單",
       slip: "已印暫存單",

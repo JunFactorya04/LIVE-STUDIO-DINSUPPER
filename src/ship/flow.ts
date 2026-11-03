@@ -18,6 +18,26 @@ export interface BuyerFlow {
   next?: StepId;
   /** Shipping order state: none yet, waiting for export, or marked exported. */
   ship: "none" | "pending" | "exported";
+  /** Time (ms) of this buyer's latest activity: confirmed draft, details saved, ship order. */
+  lastAt: number;
+}
+
+/**
+ * Which buyers the list shows. Nothing is deleted: customers and ship orders stay in "Đơn ship".
+ * - `clearedAt`: the seller tapped "Dọn danh sách"; everyone whose latest activity is not newer
+ *   is hidden, and comes back by itself on new activity (a new order, details entered).
+ * - `sessionStart`: a new live session started; buyers who were already finished before it are
+ *   hidden, while unfinished ones stay so their follow-up is not lost.
+ */
+export function visibleBuyers(
+  buyers: readonly BuyerFlow[],
+  o: { clearedAt?: number; sessionStart?: number },
+): BuyerFlow[] {
+  return buyers.filter(
+    (b) =>
+      !(o.clearedAt !== undefined && b.lastAt <= o.clearedAt) &&
+      !(o.sessionStart !== undefined && b.next === undefined && b.lastAt < o.sessionStart),
+  );
 }
 
 export interface FlowInput {
@@ -62,6 +82,7 @@ export function buildFlow(i: FlowInput & { printerReady?: boolean }): BuyerFlow[
       steps,
       next: STEPS.find((s) => !steps[s] && s !== skip),
       ship: orders.length === 0 ? "none" : orders.every((o) => o.exported) ? "exported" : "pending",
+      lastAt: ids.get(id) ?? 0,
     });
   }
   // Work still to do first (newest activity on top), finished buyers after.
