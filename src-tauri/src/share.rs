@@ -242,7 +242,21 @@ async fn dispatch(
             if !crate::wh::valid_scan_code(&code) {
                 return Err("BAD_CODE".into());
             }
-            app.emit("remote-scan", code).map_err(|e| e.to_string())?;
+            // The phone's scan screen says what the code is for ("pay", "ship", "out", "count"):
+            // the computer then opens that screen first. Without one (an older phone page, or
+            // "Quét gửi PC"), the code goes to whatever screen is open, as before.
+            let target: Option<String> =
+                a.get("target").and_then(|v| v.as_str()).map(str::to_string);
+            match target.as_deref() {
+                None | Some("") => app.emit("remote-scan", code).map_err(|e| e.to_string())?,
+                Some(t @ ("pay" | "ship" | "out" | "count")) => app
+                    .emit(
+                        "remote-scan-target",
+                        serde_json::json!({ "code": code, "target": t }),
+                    )
+                    .map_err(|e| e.to_string())?,
+                Some(_) => return Err("BAD_TARGET".into()),
+            }
             Ok(Value::Null)
         }
         "catalog_list" => out(commands::catalog_list(app.state())),

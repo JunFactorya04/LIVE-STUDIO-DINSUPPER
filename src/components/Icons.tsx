@@ -3,6 +3,8 @@ import type { PageId } from "../navigation";
 // Outline icons, 1.5px stroke, 17px in the sidebar: close to the SF Symbols style.
 // Replace with real SF Symbols when a native shell is added.
 const paths: Record<PageId | "more", string> = {
+  home: "M4 11l8-7 8 7M6 9.5V20h4.5v-5h3v5H18V9.5",
+  scan: "M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3M7 12h10",
   setup: "M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M6 14v6",
   console: "M4 5h16v11H10l-4 3v-3H4z",
   dashboard: "M4 4h7v7H4zM13 4h7v4h-7zM13 11h7v9h-7zM4 14h7v6H4z",

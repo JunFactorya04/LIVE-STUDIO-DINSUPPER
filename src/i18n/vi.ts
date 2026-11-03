@@ -6,6 +6,8 @@ export const vi: Messages = {
     sectionMain: "Live",
     sectionManage: "Quản lý",
     more: "Thêm",
+    home: "Trang chủ",
+    scan: "Quét mã",
     setup: "Thiết lập Live",
     console: "Bảng điều khiển",
     orders: "Đơn từ Live",
@@ -27,6 +29,8 @@ export const vi: Messages = {
   // have room for the full name; five ~70px-wide tab slots do not — the full names were clipping
   // to "Thiết lậ…", "Bảng điề…", "Đơn từ L…", "Gợi ý tr…").
   navTab: {
+    home: "Trang chủ",
+    scan: "Quét",
     setup: "Thiết lập",
     console: "Live",
     orders: "Đơn hàng",
@@ -34,6 +38,8 @@ export const vi: Messages = {
     replies: "Trả lời",
   },
   pages: {
+    home: { title: "Trang chủ", subtitle: "Việc hôm nay trong một màn hình" },
+    scan: { title: "Quét mã", subtitle: "Quét bằng camera, gửi tới máy tính hoặc tra ngay" },
     setup: { title: "Thiết lập Live", subtitle: "Chọn nguồn bình luận và bắt đầu phiên" },
     console: {
       title: "Bảng điều khiển Live",
@@ -56,6 +62,46 @@ export const vi: Messages = {
     ads: { title: "Quảng cáo", subtitle: "TikTok, Meta, Google — tài khoản quảng cáo của bạn" },
     browser: { title: "Trình duyệt", subtitle: "Mở một trang bất kỳ, tự tay dùng như trình duyệt" },
     settings: { title: "Cài đặt", subtitle: "Ngôn ngữ và giao diện" },
+  },
+  home: {
+    today: "Đơn từ Live hôm nay",
+    review: "Chờ xử lý",
+    confirmed: "Đã xác nhận",
+    toShip: "Đơn ship chưa gửi",
+    tools: "Tiện ích",
+    scanPay: "Quét thanh toán",
+    liveOn: "Đang live",
+  },
+  scan: {
+    modes: {
+      pay: "Thanh toán",
+      lookup: "Tra cứu",
+      ship: "Đơn ship",
+      out: "Xuất kho",
+      count: "Kiểm kê",
+    },
+    help: {
+      pay: "Mỗi tem quét vào giỏ Thanh Toán trên máy tính; máy tính tự mở trang Thanh Toán.",
+      lookup:
+        "Quét tem để xem ngay trên điện thoại: sản phẩm, màu, size, giá, còn trong kho hay đã bán.",
+      ship: "Tem quét vào ô chọn sản phẩm của đơn ship trên máy tính (tự mở form tạo đơn nếu chưa mở).",
+      out: "Tem quét vào màn hình Xuất kho trên máy tính.",
+      count: "Tem quét vào màn hình Kiểm kê trên máy tính.",
+    },
+    start: "Bắt đầu quét",
+    typeCode: "Hoặc nhập mã tem",
+    history: "Đã quét",
+    none: "Chưa quét mã nào.",
+    sending: "Đang gửi…",
+    sent: "Đã gửi tới máy tính",
+    failed: "Không gửi được: máy tính có đang mở và bật chia sẻ không?",
+    unknown: "Không có tem này trong kho",
+    status: { IN_STOCK: "Còn trong kho", SHIPPED: "Đã bán / đã gửi", VOID: "Hỏng / mất" },
+    shelf: "Kệ {loc}",
+    shippedAt: "Xuất lúc {when}",
+    order: "Đơn {id}",
+    needHttps:
+      "Camera chỉ mở được khi link chia sẻ là https. Vẫn quét được bằng máy quét Bluetooth hoặc nhập mã.",
   },
   notify: {
     newOrderTitle: "Đơn mới từ Live",

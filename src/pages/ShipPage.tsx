@@ -1,4 +1,5 @@
 import { readStage } from "../carriers/env";
+import { isRemote } from "../platform/backend";
 import { toast } from "../components/Toast";
 import { openWeb } from "../browser/route";
 import { CARRIERS } from "../carriers/registry";
@@ -31,7 +32,7 @@ import { takeShipPrefill } from "../ship/prefill";
 import { ProductPicker, type Picked } from "../ship/ProductPicker";
 import { createWarehouseClient, type WarehouseClient } from "../warehouse/client";
 import { createSkuImageClient, type SkuImageClient } from "../warehouse/images";
-import { createScanRelay, type ScanRelay } from "../warehouse/relay";
+import { createScanRelay, hasQueued, onQueued, type ScanRelay } from "../warehouse/relay";
 import { shipSlip } from "../ship/slip";
 import {
   EMPTY_SHIP_FORM,
@@ -144,6 +145,18 @@ export function ShipPage({
   useEffect(() => {
     void load();
   }, [load]);
+
+  // A label the phone's scan screen sent "for a ship order": open a new order form (unless one is
+  // open already) so its product picker can take the code (src/warehouse/relay.ts).
+  useEffect(() => {
+    if (isRemote()) return;
+    const open = () => {
+      setTab("orders");
+      setDraft((d) => d ?? { ...EMPTY_SHIP_FORM });
+    };
+    if (hasQueued("ship")) open();
+    return onQueued((scope) => scope === "ship" && open());
+  }, []);
 
   // Coming from the A-Z routine: open the form for that buyer once their data is loaded.
   const [prefill] = useState(takeShipPrefill);

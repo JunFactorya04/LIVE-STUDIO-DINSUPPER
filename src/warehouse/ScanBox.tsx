@@ -9,25 +9,28 @@ export function ScanBox({
   placeholder,
   label,
   extra,
+  autoFocus = true,
 }: {
   onScan: (code: string) => void;
   placeholder: string;
   label: string;
   /** For example the camera button. */
   extra?: ReactNode;
+  /** False on a phone screen where the keyboard should not pop up by itself. */
+  autoFocus?: boolean;
 }) {
   const [value, setValue] = useState("");
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    ref.current?.focus();
-  }, []);
+    if (autoFocus) ref.current?.focus();
+  }, [autoFocus]);
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const code = value.trim();
     if (!code) return;
     setValue("");
     onScan(code);
-    ref.current?.focus();
+    if (autoFocus) ref.current?.focus();
   };
   return (
     <form className="scanbox" onSubmit={submit}>

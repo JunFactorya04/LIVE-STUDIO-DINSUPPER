@@ -136,7 +136,9 @@ export function ProductPicker({
     if (!relay || isRemote()) return;
     let off = () => {};
     let alive = true;
-    void relay.listen((code) => void scanRef.current(code)).then((u) => (alive ? (off = u) : u()));
+    void relay
+      .listen((code) => void scanRef.current(code), "ship")
+      .then((u) => (alive ? (off = u) : u()));
     return () => {
       alive = false;
       off();

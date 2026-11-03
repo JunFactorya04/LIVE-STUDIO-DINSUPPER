@@ -20,7 +20,14 @@ import {
   type WarehouseClient,
 } from "../warehouse/client";
 import { shipReceipt } from "../warehouse/receipt";
-import { createScanRelay, type ScanRelay } from "../warehouse/relay";
+import {
+  createScanRelay,
+  onQueued,
+  onWarehouseTab,
+  takeQueued,
+  takeWarehouseTab,
+  type ScanRelay,
+} from "../warehouse/relay";
 import { ScanBox } from "../warehouse/ScanBox";
 import { addScan, expectedMissing, nextSku } from "../warehouse/stats";
 import { canonicalVariant } from "../warehouse/overview";
@@ -70,11 +77,34 @@ export function WarehousePage({
   const [labelSvc] = useState(() => labels ?? getLabelService());
   const [receiptSvc] = useState(() => receipts ?? getPrintService());
   const [relayApi] = useState(() => relay ?? createScanRelay());
-  const [tab, setTab] = useState<Tab>(remote ? "send" : "stock");
+  const [tab, setTab] = useState<Tab>(() => (remote ? "send" : (takeWarehouseTab() ?? "stock")));
   const target = useRef<((code: string) => void) | undefined>(undefined);
   const register = useCallback((h: ((code: string) => void) | undefined) => {
     target.current = h;
+    // Codes the phone's scan screen sent for "Xuất kho"/"Kiểm kê" wait until that tab is open.
+    if (h) takeQueued("warehouse").forEach(h);
   }, []);
+
+  // The phone asked for a tab (App.tsx routes its scans here): switch, then hand the codes over
+  // once the new tab has registered.
+  useEffect(() => {
+    if (remote) return;
+    const offTab = onWarehouseTab((t) => {
+      setTab(t);
+      setNote(undefined);
+    });
+    const offQueue = onQueued((scope) => {
+      if (scope !== "warehouse") return;
+      setTimeout(() => {
+        const h = target.current;
+        if (h) takeQueued("warehouse").forEach(h);
+      }, 50);
+    });
+    return () => {
+      offTab();
+      offQueue();
+    };
+  }, [remote]);
   const [note, setNote] = useState<{ text: string; error: boolean }>();
 
   const tabs: Tab[] = remote

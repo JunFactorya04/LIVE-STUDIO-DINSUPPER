@@ -181,7 +181,7 @@ function PosDesktop({
     let off = () => {};
     let alive = true;
     void relayApi
-      .listen((code) => void scanRef.current(code))
+      .listen((code) => void scanRef.current(code), "pay")
       .then((u) => (alive ? (off = u) : u()));
     return () => {
       alive = false;

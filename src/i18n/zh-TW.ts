@@ -7,6 +7,8 @@ export const zhTW = {
     sectionMain: "直播",
     sectionManage: "管理",
     more: "更多",
+    home: "首頁",
+    scan: "掃描",
     setup: "直播設定",
     console: "主控台",
     orders: "直播訂單",
@@ -28,6 +30,8 @@ export const zhTW = {
   // name); the Chinese labels above are already short, but keep a matching set so every locale
   // has the same shape and a future, longer Chinese label does not surprise the tab bar.
   navTab: {
+    home: "首頁",
+    scan: "掃描",
     setup: "設定",
     console: "直播",
     orders: "訂單",
@@ -35,6 +39,8 @@ export const zhTW = {
     replies: "回覆",
   },
   pages: {
+    home: { title: "首頁", subtitle: "今天的工作一頁看完" },
+    scan: { title: "掃描", subtitle: "用相機掃描，傳到電腦或立即查詢" },
     setup: { title: "直播設定", subtitle: "選擇留言來源並開始場次" },
     console: {
       title: "直播主控台",
@@ -54,6 +60,44 @@ export const zhTW = {
     ads: { title: "廣告", subtitle: "TikTok、Meta、Google — 您自己的廣告帳號" },
     browser: { title: "瀏覽器", subtitle: "開啟任何網址，像一般瀏覽器一樣自己操作" },
     settings: { title: "設定", subtitle: "語言與外觀" },
+  },
+  home: {
+    today: "今日直播訂單",
+    review: "待處理",
+    confirmed: "已確認",
+    toShip: "未寄出出貨單",
+    tools: "工具",
+    scanPay: "掃描結帳",
+    liveOn: "直播中",
+  },
+  scan: {
+    modes: {
+      pay: "結帳",
+      lookup: "查詢",
+      ship: "出貨單",
+      out: "出庫",
+      count: "盤點",
+    },
+    help: {
+      pay: "每張標籤會進入電腦上的結帳購物車；電腦會自動打開結帳頁。",
+      lookup: "掃描標籤，立即在手機上看到：商品、顏色、尺寸、價格、是否還在庫或已售出。",
+      ship: "標籤會進入電腦上出貨單的商品選擇欄（若未開啟會自動開啟新增表單）。",
+      out: "標籤會進入電腦上的出庫畫面。",
+      count: "標籤會進入電腦上的盤點畫面。",
+    },
+    start: "開始掃描",
+    typeCode: "或輸入標籤號碼",
+    history: "已掃描",
+    none: "尚未掃描。",
+    sending: "傳送中…",
+    sent: "已傳到電腦",
+    failed: "無法傳送：電腦是否開著並已開啟分享？",
+    unknown: "庫存中沒有此標籤",
+    status: { IN_STOCK: "在庫", SHIPPED: "已售出／已寄出", VOID: "損壞／遺失" },
+    shelf: "儲位 {loc}",
+    shippedAt: "出庫時間 {when}",
+    order: "訂單 {id}",
+    needHttps: "分享連結為 https 時才能開相機。仍可用藍牙掃描器或輸入號碼。",
   },
   notify: {
     newOrderTitle: "直播新訂單",

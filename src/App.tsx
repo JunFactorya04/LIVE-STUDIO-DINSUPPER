@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { onBrowserRequest } from "./browser/route";
-import { isRemote } from "./platform/backend";
+import { hasTauri, isRemote } from "./platform/backend";
+import { requestWarehouseTab, routeScan, scopeOf, type ScanTarget } from "./warehouse/relay";
 import { ShareSync } from "./share/ShareSync";
 import { ToastHost } from "./components/Toast";
 import { Sidebar, TabBar, Toolbar } from "./components/Shell";
@@ -19,6 +20,8 @@ import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
 import { ExpensesPage } from "./pages/ExpensesPage";
+import { HomePage } from "./pages/HomePage";
+import { ScanPage } from "./pages/ScanPage";
 import { CameraButton } from "./camera/CameraScanner";
 import { WarehousePage } from "./pages/WarehousePage";
 import { PosPage } from "./pages/PosPage";
@@ -29,13 +32,47 @@ import { SetupPage } from "./pages/SetupPage";
 import { AdsPage } from "./pages/AdsPage";
 import { BrowserPage } from "./pages/BrowserPage";
 
-export function App({ initialPage = isRemote() ? "console" : "setup" }: { initialPage?: PageId }) {
+const TARGET_PAGE: Record<ScanTarget, PageId> = {
+  pay: "pos",
+  ship: "ship",
+  out: "warehouse",
+  count: "warehouse",
+};
+
+export function App({ initialPage = isRemote() ? "home" : "setup" }: { initialPage?: PageId }) {
   const [page, setPage] = useState<PageId>(initialPage);
   const { t } = useI18n();
   const { status } = useLiveSession();
   const meta = t.pages[page];
   // A carrier or TikTok page asked to open inside the app: go to the Browser tab, which loads it.
   useEffect(() => onBrowserRequest(() => setPage("browser")), []);
+
+  // A phone's scan screen sent a code for one screen ("Thanh toán", "Đơn ship", "Xuất kho",
+  // "Kiểm kê"): open that screen here, then hand it the code (src/warehouse/relay.ts).
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  useEffect(() => {
+    if (isRemote() || !hasTauri()) return;
+    let off: (() => void) | undefined;
+    let alive = true;
+    void import("@tauri-apps/api/event").then(async ({ listen }) => {
+      const u = await listen<{ code: string; target: ScanTarget }>("remote-scan-target", (e) => {
+        const { code, target } = e.payload;
+        const to: PageId = TARGET_PAGE[target];
+        const warehouse = target === "out" || target === "count";
+        if (warehouse) requestWarehouseTab(target === "out" ? "ship" : "count");
+        const moving = pageRef.current !== to;
+        if (moving) setPage(to);
+        routeScan(code, scopeOf(target), moving || warehouse);
+      });
+      if (alive) off = u;
+      else u();
+    });
+    return () => {
+      alive = false;
+      off?.();
+    };
+  }, []);
 
   return (
     <div className="app">
@@ -73,6 +110,10 @@ function PageBody({
   onNavigate: (page: PageId) => void;
 }) {
   switch (id) {
+    case "home":
+      return <HomePage onNavigate={onNavigate} />;
+    case "scan":
+      return <ScanPage />;
     case "setup":
       return <SetupPage onStarted={onStarted} />;
     case "console":

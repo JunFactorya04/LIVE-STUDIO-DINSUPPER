@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { isRemote } from "../platform/backend";
-import { visibleNav, type PageId } from "../navigation";
+import { PHONE_TABS, visibleNav, type PageId } from "../navigation";
 import { NavIcon } from "./Icons";
 import { useI18n } from "../i18n";
 import { useLiveSession } from "../live/useLiveSession";
@@ -76,9 +76,16 @@ export function Toolbar({ title, subtitle, actions }: ToolbarProps) {
 export function TabBar({ current, onSelect }: NavProps) {
   const { t } = useI18n();
   const [moreOpen, setMoreOpen] = useState(false);
-  const nav = visibleNav(isRemote());
-  const tabs = nav.filter((i) => i.tab);
-  const rest = nav.filter((i) => !i.tab);
+  const remote = isRemote();
+  const nav = visibleNav(remote);
+  // A phone (sharing link) gets its own bar with the scan button in the middle.
+  const isTab = (id: PageId) =>
+    remote ? PHONE_TABS.includes(id) : nav.some((i) => i.id === id && i.tab);
+  const tabs = remote
+    ? PHONE_TABS.flatMap((id) => nav.filter((i) => i.id === id))
+    : nav.filter((i) => i.tab);
+  const rest = nav.filter((i) => !isTab(i.id) && !(remote && i.id === "home"));
+  const accent: PageId = remote ? "scan" : "pos";
   const moreActive = rest.some((i) => i.id === current);
 
   useEffect(() => {
@@ -114,14 +121,14 @@ export function TabBar({ current, onSelect }: NavProps) {
         <button
           key={item.id}
           type="button"
-          className={item.id === "pos" ? "tabbar__item tabbar__item--accent" : "tabbar__item"}
+          className={item.id === accent ? "tabbar__item tabbar__item--accent" : "tabbar__item"}
           aria-current={current === item.id ? "page" : undefined}
           onClick={() => {
             setMoreOpen(false);
             onSelect(item.id);
           }}
         >
-          <NavIcon id={item.id} size={item.id === "pos" ? 26 : 22} />
+          <NavIcon id={item.id} size={item.id === accent ? 26 : 22} />
           <span className="tabbar__label">
             {item.id in t.navTab ? t.navTab[item.id as keyof typeof t.navTab] : t.nav[item.id]}
           </span>

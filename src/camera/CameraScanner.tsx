@@ -64,14 +64,17 @@ export function CameraButton({
   );
 }
 
-function Scanner({
+export function Scanner({
   onScan,
   accept,
   onClose,
+  label,
 }: {
   onScan: (code: string) => void;
   accept?: (code: string) => boolean;
   onClose: () => void;
+  /** What the scans are for, shown over the picture (the phone scan screen's mode). */
+  label?: string;
 }) {
   const { t } = useI18n();
   const c = t.camera;
@@ -170,6 +173,7 @@ function Scanner({
         <i className="cam__corner cam__corner--br" />
         <i className="cam__bar" />
       </div>
+      {label && <p className="cam__label">{label}</p>}
       <div className="cam__panel">
         {error ? (
           <p className="cam__msg" role="alert">
