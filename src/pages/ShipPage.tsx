@@ -343,10 +343,9 @@ function OrdersTab({
   // The MyShip alternative to the ECPay button above: write this one order into the same
   // 7-ELEVEN import workbook exportXlsx() already produces for the batch button, copy that
   // file's path to the clipboard and reveal it in Explorer/Finder, then open MyShip's own upload
-  // page — so the file is right there to paste into the picker's filename box or drag in. This
-  // is as far as the app goes: it cannot attach the file into MyShip's own file picker itself,
-  // because doing that would mean scripting a page on a site the app doesn't own, the same kind
-  // of automation this project avoids on TikTok — the seller still clicks "upload" themselves.
+  // page (/seller/order) — so the file is right there to paste into the picker's filename box or
+  // drag in. Attaching it for the seller is the opt-in dev script in the Browser tab
+  // (browser/UploadScriptBox.tsx), run only when they press it and only on MyShip pages.
   const [myshipping, setMyshipping] = useState<string>();
   const myship = async (o: ShipOrder) => {
     setMyshipping(o.id);

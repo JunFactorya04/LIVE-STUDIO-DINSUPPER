@@ -1567,3 +1567,28 @@
     max-width: none;
   }
 }
+
+/* Browser tab: the dev box with the MyShip upload script (collapsed by default). */
+.browser__dev {
+  flex: none;
+  border-radius: var(--box-radius);
+  background: var(--mac-under);
+  padding: 6px 10px;
+}
+.browser__dev[open] {
+  padding-bottom: 10px;
+}
+.browser__dev summary {
+  cursor: pointer;
+  font-size: var(--fs-callout);
+  font-weight: 600;
+  color: var(--mac-label-2);
+}
+.browser__dev .input--area {
+  width: 100%;
+  margin: 6px 0;
+  font-size: var(--fs-callout);
+}
+.browser__dev .actions {
+  align-items: center;
+}

@@ -85,6 +85,8 @@ describe("CarriersPage", () => {
     const open = vi.fn(async () => {});
     view(vault(), undefined, open);
     fireEvent.click(screen.getAllByRole("button", { name: zhTW.carriers.openLogin })[0]);
-    await waitFor(() => expect(open).toHaveBeenCalledWith("https://myship.7-11.com.tw/"));
+    await waitFor(() =>
+      expect(open).toHaveBeenCalledWith("https://myship.7-11.com.tw/seller/order"),
+    );
   });
 });

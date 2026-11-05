@@ -73,7 +73,7 @@ export const CARRIERS: Carrier[] = [
     fields: ["account", "password"],
     excel: true,
     live: false,
-    consoleUrl: "https://myship.7-11.com.tw/",
+    consoleUrl: "https://myship.7-11.com.tw/seller/order",
     trackUrl: "https://myship.7-11.com.tw/Home/Main",
   },
   {

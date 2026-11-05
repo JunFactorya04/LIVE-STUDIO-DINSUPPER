@@ -75,6 +75,141 @@ fn leaves_the_web(u: &url::Url) -> bool {
 #[derive(Default)]
 pub struct BrowserTabState(pub Mutex<Option<Webview>>);
 
+/// The 7-ELEVEN order workbook exported last (Đơn ship → Xuất Excel), for the dev upload script.
+#[derive(Default)]
+pub struct LastExport(pub Mutex<Option<PathBuf>>);
+
+const MAX_SCRIPT: usize = 20_000;
+const MAX_ATTACH: u64 = 5 * 1024 * 1024;
+
+fn base64(bytes: &[u8]) -> String {
+    const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for c in bytes.chunks(3) {
+        let n = (u32::from(c[0]) << 16)
+            | (u32::from(*c.get(1).unwrap_or(&0)) << 8)
+            | u32::from(*c.get(2).unwrap_or(&0));
+        for (i, shift) in [18, 12, 6, 0].into_iter().enumerate() {
+            if i <= c.len() {
+                out.push(T[((n >> shift) & 63) as usize] as char);
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
+}
+
+/// Only MyShip pages (myship / myship2 .7-11.com.tw) may run the seller's upload script.
+fn is_myship(u: &url::Url) -> bool {
+    u.scheme() == "https"
+        && u.host_str()
+            .is_some_and(|h| h == "7-11.com.tw" || h.ends_with(".7-11.com.tw"))
+}
+
+/// The page-side helpers the script gets as `__LS`, then the script itself. NAME/B64 are JSON
+/// strings. Fixed text apart from the seller's own script, which the dev box in the app holds.
+fn wrap_script(user: &str, name: &str, b64: &str) -> String {
+    let name = serde_json::to_string(name).unwrap_or_else(|_| "\"\"".into());
+    let b64 = serde_json::to_string(b64).unwrap_or_else(|_| "\"\"".into());
+    format!(
+        r#"(function () {{
+  var F = {{ name: {name}, b64: {b64},
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }};
+  var LS = window.__LS = {{
+    file: F,
+    toFile: function () {{
+      var s = atob(F.b64), a = new Uint8Array(s.length);
+      for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i);
+      return new File([a], F.name, {{ type: F.type }});
+    }},
+    attach: function (sel) {{
+      var el = typeof sel === "string" ? document.querySelector(sel) : sel;
+      if (!el || !F.b64) return false;
+      var dt = new DataTransfer();
+      dt.items.add(LS.toFile());
+      el.files = dt.files;
+      el.dispatchEvent(new Event("input", {{ bubbles: true }}));
+      el.dispatchEvent(new Event("change", {{ bubbles: true }}));
+      return true;
+    }},
+    click: function (re) {{
+      var all = document.querySelectorAll("button, input[type=button], input[type=submit], a");
+      for (var i = 0; i < all.length; i++) {{
+        var t = (all[i].innerText || all[i].value || "").trim();
+        if (re.test(t)) {{ all[i].click(); return true; }}
+      }}
+      return false;
+    }},
+    wait: function (ms) {{ return new Promise(function (r) {{ setTimeout(r, ms); }}); }},
+    log: function (m) {{
+      var d = document.getElementById("__ls_log");
+      if (!d) {{
+        d = document.createElement("div");
+        d.id = "__ls_log";
+        d.style.cssText = "position:fixed;z-index:2147483647;right:12px;bottom:12px;max-width:360px;" +
+          "padding:10px 12px;border-radius:10px;background:#1c1c1e;color:#fff;" +
+          "font:13px -apple-system,system-ui,sans-serif;white-space:pre-wrap";
+        d.onclick = function () {{ d.remove(); }};
+        document.body.appendChild(d);
+      }}
+      d.textContent = (d.textContent ? d.textContent + "\n" : "") + m;
+    }}
+  }};
+  Promise.resolve().then(async function () {{
+{user}
+  }}).catch(function (e) {{ LS.log("Script error: " + (e && e.message ? e.message : e)); }});
+}})();"#
+    )
+}
+
+#[tauri::command]
+pub fn browser_last_export(state: tauri::State<'_, LastExport>) -> Option<String> {
+    let guard = state.0.lock().ok()?;
+    let p = guard.as_ref()?;
+    p.exists().then(|| file_label(p))
+}
+
+/// Dev box: runs the seller's upload script on the MyShip page open in the tab, with the last
+/// exported workbook ready as `__LS.file` (`__LS.attach("input[type=file]")` puts it in the
+/// page's file picker). Refused on any other site.
+#[tauri::command]
+pub fn browser_run_script(
+    state: tauri::State<'_, BrowserTabState>,
+    last: tauri::State<'_, LastExport>,
+    script: String,
+    attach: bool,
+) -> Result<(), String> {
+    if script.len() > MAX_SCRIPT {
+        return Err("SCRIPT_TOO_LONG".into());
+    }
+    let guard = state.0.lock().map_err(|_| "LOCK".to_string())?;
+    let wv = guard.as_ref().ok_or_else(|| "NOT_OPEN".to_string())?;
+    let page = wv.url().map_err(|e| e.to_string())?;
+    if !is_myship(&page) {
+        return Err("NOT_MYSHIP".into());
+    }
+    let (name, b64) = if attach {
+        let path = last
+            .0
+            .lock()
+            .map_err(|_| "LOCK".to_string())?
+            .clone()
+            .filter(|p| p.exists())
+            .ok_or_else(|| "NO_EXPORT".to_string())?;
+        let size = std::fs::metadata(&path).map_err(|e| e.to_string())?.len();
+        if size > MAX_ATTACH {
+            return Err("NO_EXPORT".into());
+        }
+        let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
+        (file_label(&path), base64(&bytes))
+    } else {
+        (String::new(), String::new())
+    };
+    wv.eval(wrap_script(&script, &name, &b64))
+        .map_err(|e| e.to_string())
+}
+
 #[derive(Serialize, Clone)]
 pub struct BrowserNavigated {
     pub url: String,
@@ -451,6 +586,28 @@ pub fn browser_close(state: tauri::State<'_, BrowserTabState>) -> Result<(), Str
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn encodes_base64_like_the_standard() {
+        assert_eq!(base64(b""), "");
+        assert_eq!(base64(b"f"), "Zg==");
+        assert_eq!(base64(b"fo"), "Zm8=");
+        assert_eq!(base64(b"foo"), "Zm9v");
+        assert_eq!(base64(b"foobar"), "Zm9vYmFy");
+    }
+
+    #[test]
+    fn upload_script_runs_only_on_myship() {
+        let ok = |s: &str| is_myship(&url::Url::parse(s).unwrap());
+        assert!(ok("https://myship.7-11.com.tw/seller/order"));
+        assert!(ok("https://myship2.7-11.com.tw/"));
+        assert!(!ok("http://myship.7-11.com.tw/"));
+        assert!(!ok("https://evil.com/?x=7-11.com.tw"));
+        assert!(!ok("https://not7-11.com.tw/"));
+        let js = wrap_script("__LS.log(1);", "a\"b.xlsx", "Zm9v");
+        assert!(js.contains(r#"name: "a\"b.xlsx""#));
+        assert!(js.contains("__LS.log(1);"));
+    }
+
     use super::*;
 
     #[test]

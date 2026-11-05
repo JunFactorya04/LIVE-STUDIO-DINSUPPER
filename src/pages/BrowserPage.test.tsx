@@ -8,6 +8,7 @@ vi.mock("../platform/backend", () => ({
   isRemote: () => false,
   invoke: async (cmd: string, args?: Record<string, unknown>) => {
     calls.push([cmd, args]);
+    if (cmd === "browser_last_export") return "7-eleven-orders-1.xlsx";
     return cmd === "browser_open" ? String(args?.url) : null;
   },
 }));
@@ -61,6 +62,36 @@ describe("BrowserPage", () => {
       expect(calls.map(([c]) => c)).toEqual(
         expect.arrayContaining(["browser_print", "browser_open_external"]),
       ),
+    );
+  });
+
+  it("runs the dev upload script with the last exported file on the open page", async () => {
+    globalThis.ResizeObserver ??= class {
+      observe() {}
+      disconnect() {}
+      unobserve() {}
+    } as unknown as typeof ResizeObserver;
+    render(
+      <I18nProvider initial="zh-TW">
+        <BrowserPage />
+      </I18nProvider>,
+    );
+    act(() => {
+      requestBrowser({ url: "https://myship.7-11.com.tw/seller/order", mobile: false });
+    });
+    const d = zhTW.browser.dev;
+    fireEvent.click(screen.getByText(d.title));
+    expect(
+      await screen.findByText(d.attach.replace("{name}", "7-eleven-orders-1.xlsx")),
+    ).toBeTruthy();
+    const run = screen.getByRole("button", { name: d.run });
+    await waitFor(() => expect((run as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(run);
+    await waitFor(() =>
+      expect(calls.find(([c]) => c === "browser_run_script")?.[1]).toMatchObject({ attach: true }),
+    );
+    expect(String(calls.find(([c]) => c === "browser_run_script")?.[1]?.script)).toContain(
+      "__LS.attach",
     );
   });
 });

@@ -725,6 +725,9 @@ pub fn ship_export_xlsx(
         return Err("EXISTS".into());
     }
     std::fs::write(&path, bytes).map_err(err)?;
+    if let Ok(mut last) = app.state::<crate::webview_tab::LastExport>().0.lock() {
+        *last = Some(path.clone());
+    }
     if mark {
         ship::order_set_exported(&*db(&state)?, &used, true).map_err(err)?;
     }

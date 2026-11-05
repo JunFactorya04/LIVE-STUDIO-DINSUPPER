@@ -51,4 +51,8 @@ frontend in `src/`, Rust backend in `src-tauri/src/`. The owner speaks Vietnames
   - `commandid=SearchRoad` with city+town lists roads.
   - A partial number is matched only against stores already known locally (`ship_stores` table, `ship_store_prefix`).
   - Address text is split into city/district/road by `src/ship/storeAddress.ts`.
+- MyShip order import page: `https://myship.7-11.com.tw/seller/order` (the carrier's `consoleUrl`).
+  The Browser tab has a collapsed dev box (`src/browser/UploadScriptBox.tsx`) whose script runs only on
+  `*.7-11.com.tw` pages when pressed (`browser_run_script`), with the last exported workbook as `__LS.file`
+  (`__LS.attach`, `__LS.click`, `__LS.wait`, `__LS.log`). Webview sign-ins persist on disk by default.
 - New Tauri commands the phone must reach also go into `share.rs` (ALLOWED list + dispatch).

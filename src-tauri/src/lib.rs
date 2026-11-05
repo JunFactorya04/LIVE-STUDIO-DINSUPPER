@@ -60,6 +60,7 @@ pub fn run() {
             app.manage(overlay);
             app.manage(share::ShareState::default());
             app.manage(webview_tab::BrowserTabState::default());
+            app.manage(webview_tab::LastExport::default());
             app.manage(commands::UiLabels::default());
             app.manage(tray::TrayItems::default());
             app.manage(tray::HiddenNoticeShown::default());
@@ -77,6 +78,8 @@ pub fn run() {
             webview_tab::browser_set_bounds,
             webview_tab::browser_reload,
             webview_tab::browser_zoom,
+            webview_tab::browser_run_script,
+            webview_tab::browser_last_export,
             webview_tab::browser_back,
             webview_tab::browser_forward,
             webview_tab::browser_hide,

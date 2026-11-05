@@ -6,6 +6,7 @@ import {
   takeBrowserRequest,
   type BrowserRequest,
 } from "../browser/route";
+import { UploadScriptBox } from "../browser/UploadScriptBox";
 import { CARRIERS } from "../carriers/registry";
 import { Icon } from "../components/Icon";
 import { toast } from "../components/Toast";
@@ -28,7 +29,10 @@ type BrowserErrorCode =
   | "NOT_OPEN"
   | "NO_MAIN_WINDOW"
   | "NOT_FOUND"
-  | "OPEN_FAILED";
+  | "OPEN_FAILED"
+  | "NOT_MYSHIP"
+  | "NO_EXPORT"
+  | "SCRIPT_TOO_LONG";
 
 const BROWSER_ERROR_CODES: readonly BrowserErrorCode[] = [
   "EMPTY_URL",
@@ -38,6 +42,9 @@ const BROWSER_ERROR_CODES: readonly BrowserErrorCode[] = [
   "NO_MAIN_WINDOW",
   "NOT_FOUND",
   "OPEN_FAILED",
+  "NOT_MYSHIP",
+  "NO_EXPORT",
+  "SCRIPT_TOO_LONG",
 ];
 
 function isKnownError(x: unknown): x is BrowserErrorCode {
@@ -388,6 +395,7 @@ export function BrowserPage({ onNavigate }: { onNavigate?: (page: PageId) => voi
         </p>
       )}
       <p className="muted browser__hint">{b.mobileModeHint}</p>
+      <UploadScriptBox pageOpen={Boolean(openedUrl)} describeError={describeError} />
       <div
         className={`browser__viewport${mobileMode && openedUrl ? " browser__viewport--phone" : ""}`}
         ref={containerRef}
