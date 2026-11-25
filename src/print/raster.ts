@@ -1,3 +1,4 @@
+import { labelPage, type LabelCalib } from "./labelCalib";
 import { modules } from "../barcode/code128";
 import { PrintError, type Bitmap } from "./client";
 import type { Slip, SlipLine } from "./slip";
@@ -172,6 +173,42 @@ export function renderSlip(slip: Slip, width: number): Bitmap {
  *  "what did I actually hand the buyer" — instead of the 1-bit bytes the printer needs. Returns
  *  undefined instead of throwing: a seller without a reachable canvas (should not happen in the
  *  desktop app) simply gets no image on file, which is strictly better than failing the print. */
+/** A label: the slip drawn at the calibrated offset on a page of the label's height. */
+export function renderOnLabel(slip: Slip, width: number, calib: LabelCalib): Bitmap {
+  const page = labelCanvas(slip, width, calib);
+  const ctx = page.getContext("2d");
+  if (!ctx) throw new PrintError("RENDER");
+  const image = ctx.getImageData(0, 0, page.width, page.height);
+  return {
+    width: page.width,
+    height: page.height,
+    bits: packBits(image.data, page.width, page.height),
+  };
+}
+
+/** The same label page as a PNG, for the alignment preview; undefined without a canvas. */
+export function labelPng(slip: Slip, width: number, calib: LabelCalib): string | undefined {
+  try {
+    return labelCanvas(slip, width, calib).toDataURL("image/png");
+  } catch {
+    return undefined;
+  }
+}
+
+function labelCanvas(slip: Slip, width: number, calib: LabelCalib): HTMLCanvasElement {
+  const content = drawSlip(slip, width);
+  const { x, y, height } = labelPage(content.height, calib);
+  const page = document.createElement("canvas");
+  page.width = width;
+  page.height = height;
+  const ctx = page.getContext("2d");
+  if (!ctx) throw new PrintError("RENDER");
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(content, x, y);
+  return page;
+}
+
 export function renderSlipPng(slip: Slip, width: number): string | undefined {
   try {
     return drawSlip(slip, width).toDataURL("image/png");

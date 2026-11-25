@@ -178,7 +178,7 @@ function PageBody({
     case "browser":
       return <BrowserPage onNavigate={onNavigate} />;
     case "settings":
-      return <SettingsPage />;
+      return <SettingsPage onNavigate={onNavigate} />;
     default:
       return <PlaceholderPage phase={NAV_ITEMS.find((n) => n.id === id)?.phase ?? 0} />;
   }

@@ -4,6 +4,8 @@
 const PATHS = {
   back: "M15 5l-7 7 7 7",
   forward: "M9 5l7 7-7 7",
+  up: "M5 15l7-7 7 7",
+  down: "M5 9l7 7 7-7",
   reload: "M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6",
   close: "M6 6l12 12M18 6L6 18",
   check: "M5 12.5l4.5 4.5L19 7.5",

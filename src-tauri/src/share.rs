@@ -393,6 +393,8 @@ async fn dispatch(
                 arg(a, "width")?,
                 arg(a, "height")?,
                 arg(a, "bits")?,
+                arg(a, "feed")?,
+                arg(a, "cut")?,
             )
             .await)
         }

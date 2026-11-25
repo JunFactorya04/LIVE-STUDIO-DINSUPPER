@@ -1,11 +1,13 @@
 import {
   PrintError,
   createPrintClient,
+  type AfterPrint,
   type Bitmap,
   type PrintClient,
   type PrintErrorCode,
 } from "./client";
-import { renderSlip } from "./raster";
+import { loadLabelCalib } from "./labelCalib";
+import { renderOnLabel, renderSlip } from "./raster";
 import { isConfigured, loadLabelPrinter, loadPrinter, type PrinterSettings } from "./settings";
 import type { Slip } from "./slip";
 
@@ -24,6 +26,8 @@ export interface PrintDeps {
   client?: PrintClient;
   loadSettings?: () => PrinterSettings;
   render?: (slip: Slip, width: number) => Bitmap;
+  /** Feed and cut after each page; left out = the printer's usual 4 lines and cut. */
+  after?: () => AfterPrint;
 }
 
 export class PrintService {
@@ -68,7 +72,7 @@ export class PrintService {
       const settings = (this.deps.loadSettings ?? loadPrinter)();
       if (!isConfigured(settings)) throw new PrintError("NOT_CONFIGURED");
       const page = (this.deps.render ?? renderSlip)(slip, settings.widthDots);
-      await this.client.print(settings, page);
+      await this.client.print(settings, page, this.deps.after?.());
       this.set({ printed: this.status.printed + 1 });
       return true;
     } catch (e) {
@@ -100,4 +104,10 @@ export const getLabelService = (): PrintService =>
   (sharedLabel ??= new PrintService({
     loadSettings: loadLabelPrinter,
     client: createPrintClient("label"),
+    // Labels follow the paper alignment set in Settings → Printing.
+    render: (slip, width) => renderOnLabel(slip, width, loadLabelCalib()),
+    after: () => {
+      const c = loadLabelCalib();
+      return { feed: c.feed, cut: c.cut };
+    },
   }));

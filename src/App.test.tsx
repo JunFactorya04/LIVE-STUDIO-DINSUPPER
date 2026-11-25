@@ -243,6 +243,7 @@ describe("Live Assistant UI", () => {
   it("switching language updates the UI and is remembered", () => {
     setup("settings");
     expect(screen.getAllByText(zhTW.nav.setup).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(zhTW.settingsHub.generalDesc) }));
     fireEvent.click(screen.getByRole("button", { name: zhTW.settings.languages.vi }));
     expect(screen.getAllByText(viMessages.nav.setup).length).toBeGreaterThan(0);
     expect(localStorage.getItem("live-studio.locale")).toBe("vi");
@@ -254,7 +255,7 @@ describe("API keys", () => {
 
   it("in a plain browser it says keys need the desktop app and offers no input", () => {
     setup("settings");
-    fireEvent.click(screen.getByRole("tab", { name: zhTW.settingsTabs.ai }));
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(zhTW.settingsHub.desc.ai) }));
     expect(screen.getByText(zhTW.settings.apiBrowser)).toBeInTheDocument();
     expect(screen.queryByPlaceholderText(zhTW.settings.apiKeyPlaceholder)).toBeNull();
   });

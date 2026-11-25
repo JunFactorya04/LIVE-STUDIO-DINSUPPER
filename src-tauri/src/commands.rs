@@ -589,10 +589,13 @@ pub async fn printer_print(
     width: usize,
     height: usize,
     bits: Vec<u8>,
+    feed: Option<u8>,
+    cut: Option<bool>,
 ) -> Result<(), String> {
     let result = async {
         let addr = printer::parse_target(&host, port)?;
-        let job = printer::build_job(width, height, &bits)?;
+        let job =
+            printer::build_job_with(width, height, &bits, feed.unwrap_or(4), cut.unwrap_or(true))?;
         printer::send(addr, &job).await
     }
     .await;

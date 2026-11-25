@@ -58,6 +58,18 @@ pub fn parse_target(host: &str, port: u16) -> Result<SocketAddr, PrintError> {
 /// Build the ESC/POS job: init, raster bands, feed, partial cut.
 /// `bits` is `ceil(width/8)` bytes per row, 1 = black, most significant bit first.
 pub fn build_job(width: usize, height: usize, bits: &[u8]) -> Result<Vec<u8>, PrintError> {
+    build_job_with(width, height, bits, 4, true)
+}
+
+/// Same job with the feed after the image (lines, 0..=10) and the cut chosen: label stock with
+/// gaps wants no extra feed (the label height is already exact) and often has no cutter.
+pub fn build_job_with(
+    width: usize,
+    height: usize,
+    bits: &[u8],
+    feed: u8,
+    cut: bool,
+) -> Result<Vec<u8>, PrintError> {
     if width == 0 || height == 0 || width > MAX_WIDTH_DOTS || height > MAX_HEIGHT_DOTS {
         return Err(PrintError::BadSize);
     }
@@ -74,8 +86,12 @@ pub fn build_job(width: usize, height: usize, bits: &[u8]) -> Result<Vec<u8>, Pr
         out.extend_from_slice(&(rows as u16).to_le_bytes());
         out.extend_from_slice(band);
     }
-    out.extend_from_slice(&[0x1b, 0x64, 0x04]); // ESC d 4: feed 4 lines
-    out.extend_from_slice(&[0x1d, 0x56, 0x42, 0x00]); // GS V 66 0: feed and partial cut
+    if feed > 0 {
+        out.extend_from_slice(&[0x1b, 0x64, feed.min(10)]); // ESC d n: feed n lines
+    }
+    if cut {
+        out.extend_from_slice(&[0x1d, 0x56, 0x42, 0x00]); // GS V 66 0: feed and partial cut
+    }
     Ok(out)
 }
 
@@ -132,6 +148,14 @@ mod tests {
             assert_eq!(parse_target(bad, 9100), Err(PrintError::BadHost), "{bad}");
         }
         assert_eq!(parse_target("192.168.1.5", 0), Err(PrintError::BadHost));
+    }
+
+    #[test]
+    fn label_job_can_skip_feed_and_cut() {
+        let job = build_job_with(8, 2, &[0xaa, 0x55], 0, false).unwrap();
+        assert!(job.ends_with(&[0xaa, 0x55]));
+        let job = build_job_with(8, 2, &[0xaa, 0x55], 2, false).unwrap();
+        assert!(job.ends_with(&[0x1b, 0x64, 0x02]));
     }
 
     #[test]

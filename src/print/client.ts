@@ -29,9 +29,15 @@ export interface Bitmap {
   bits: Uint8Array;
 }
 
+/** What the printer does after the page: feed lines and cut (default 4 lines, cut). */
+export interface AfterPrint {
+  feed: number;
+  cut: boolean;
+}
+
 export interface PrintClient {
   readonly available: boolean;
-  print(settings: PrinterSettings, page: Bitmap): Promise<void>;
+  print(settings: PrinterSettings, page: Bitmap, after?: AfterPrint): Promise<void>;
   /** Connects without printing. */
   probe(settings: PrinterSettings): Promise<void>;
 }
@@ -49,7 +55,7 @@ class TauriPrintClient implements PrintClient {
   readonly available = true;
   /** On a phone the computer picks the printer: the receipt one or the label one. */
   constructor(private readonly kind: "receipt" | "label") {}
-  async print(s: PrinterSettings, page: Bitmap): Promise<void> {
+  async print(s: PrinterSettings, page: Bitmap, after?: AfterPrint): Promise<void> {
     const { invoke } = await import("../platform/backend");
     try {
       await invoke("printer_print", {
@@ -59,6 +65,8 @@ class TauriPrintClient implements PrintClient {
         height: page.height,
         bits: Array.from(page.bits),
         kind: this.kind,
+        feed: after?.feed,
+        cut: after?.cut,
       });
     } catch (e) {
       throw toError(e);

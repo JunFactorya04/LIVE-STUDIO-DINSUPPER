@@ -1933,3 +1933,411 @@
   width: 100%;
   margin-top: 6px;
 }
+
+/* Settings → Printing: label paper alignment. */
+.calib {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.calib__preview {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+.calib__paper {
+  padding: 0;
+  background: var(--mac-under);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--mac-separator);
+  line-height: 0;
+}
+.calib__paper.is-fixed {
+  box-shadow:
+    0 0 0 1px var(--mac-separator),
+    0 0 0 4px color-mix(in srgb, var(--sys-blue) 25%, transparent);
+}
+.calib__paper img {
+  display: block;
+  height: auto;
+  border: 1px dashed color-mix(in srgb, var(--sys-blue) 55%, transparent);
+}
+.calib__controls {
+  display: grid;
+  gap: 14px;
+}
+.calib__heights {
+  flex-wrap: wrap;
+}
+.calib__pad {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+.calib__pad-title {
+  font-size: var(--fs-callout);
+  font-weight: 600;
+}
+.calib__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  grid-auto-rows: 36px;
+  gap: 4px;
+}
+.calib__nudge {
+  width: 40px;
+  height: 36px;
+  border-radius: var(--ctl-radius);
+  background: var(--mac-control);
+  border: 0.5px solid var(--mac-control-border);
+}
+.calib__center {
+  padding: 0 2px;
+  font-size: var(--fs-subhead);
+  font-variant-numeric: tabular-nums;
+}
+.calib__after {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.calib__feed {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 760px) {
+  .calib {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Settings: connections map ---------- */
+.settings-hub {
+  gap: 14px;
+}
+.settings-hub__head {
+  display: grid;
+  gap: 4px;
+}
+.settings-hub__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-large-title);
+  font-weight: 700;
+}
+.settings-hub__head .muted {
+  margin: 0;
+  max-width: 640px;
+}
+.hub {
+  --hub-tiktok: var(--sys-pink);
+  --hub-phone: var(--sys-green);
+  --hub-scanner: var(--sys-teal);
+  --hub-ai: var(--sys-purple);
+  --hub-printer: var(--sys-orange);
+  --hub-label: var(--sys-yellow);
+  --hub-carriers: var(--sys-blue);
+  --hub-web: var(--sys-indigo);
+  position: relative;
+  width: min(100%, 620px);
+  aspect-ratio: 4 / 3;
+  margin: 0 auto;
+}
+.hub__lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.hub__track {
+  fill: none;
+  stroke: var(--mac-label-3);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 5;
+}
+.hub__link.is-on .hub__track,
+.hub__link.is-busy .hub__track {
+  stroke: var(--link);
+  stroke-width: 1.6;
+  stroke-dasharray: none;
+  opacity: 0.55;
+}
+.hub__flow {
+  fill: none;
+  stroke: var(--link);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 0.1 14;
+  animation: hub-flow 2.4s linear infinite;
+}
+.hub__link.is-busy .hub__flow {
+  stroke-dasharray: 0.1 9;
+  animation-duration: 1.1s;
+}
+@keyframes hub-flow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+.hub__link--tiktok,
+.hub__node--tiktok,
+.conn-card__icon--tiktok {
+  --link: var(--hub-tiktok);
+}
+.hub__link--phone,
+.hub__node--phone,
+.conn-card__icon--phone {
+  --link: var(--hub-phone);
+}
+.hub__link--scanner,
+.hub__node--scanner,
+.conn-card__icon--scanner {
+  --link: var(--hub-scanner);
+}
+.hub__link--ai,
+.hub__node--ai,
+.conn-card__icon--ai {
+  --link: var(--hub-ai);
+}
+.hub__link--printer,
+.hub__node--printer,
+.conn-card__icon--printer {
+  --link: var(--hub-printer);
+}
+.hub__link--label,
+.hub__node--label,
+.conn-card__icon--label {
+  --link: var(--hub-label);
+}
+.hub__link--carriers,
+.hub__node--carriers,
+.conn-card__icon--carriers {
+  --link: var(--hub-carriers);
+}
+.hub__link--web,
+.hub__node--web,
+.conn-card__icon--web {
+  --link: var(--hub-web);
+}
+.conn-card__icon--general {
+  --link: var(--sys-gray);
+}
+.hub__center {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  font-size: var(--fs-callout);
+}
+.hub__app {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 24px;
+  background: var(--sys-green);
+  color: var(--on-green);
+  box-shadow:
+    0 0 0 10px color-mix(in srgb, var(--sys-green) 12%, transparent),
+    var(--shadow-pop);
+}
+.hub__node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  padding: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--mac-label);
+  font: inherit;
+  font-size: var(--fs-callout);
+  cursor: pointer;
+  border-radius: var(--box-radius);
+}
+.hub__node:focus-visible {
+  outline: 2px solid var(--sys-blue);
+  outline-offset: 2px;
+}
+.hub__dot {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--mac-box);
+  color: var(--mac-label-2);
+  box-shadow: var(--shadow-box);
+  transition: transform 0.2s var(--ease-ios, ease);
+}
+.hub__node.is-on .hub__dot,
+.hub__node.is-busy .hub__dot {
+  color: var(--link);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--link) 60%, transparent),
+    var(--shadow-box);
+}
+.hub__node.is-busy .hub__dot {
+  animation: staff-pulse 1.6s var(--ease-ios, ease) infinite;
+}
+.hub__node:hover .hub__dot {
+  transform: scale(1.07);
+}
+.hub__name {
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hub__flow,
+  .hub__node.is-busy .hub__dot {
+    animation: none;
+  }
+}
+
+.settings-hub__cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.settings-hub__cat {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 0.5px solid var(--mac-control-border);
+  background: var(--mac-control);
+  color: var(--mac-label);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.settings-hub__cat.is-on {
+  background: var(--mac-label);
+  color: var(--mac-window);
+  border-color: transparent;
+}
+.settings-hub__cat:focus-visible {
+  outline: 2px solid var(--sys-blue);
+  outline-offset: 2px;
+}
+.settings-hub__cat-help {
+  margin: -4px 0 0;
+}
+.settings-hub__cards {
+  display: grid;
+  gap: 10px;
+}
+.conn-card {
+  border-radius: var(--box-radius);
+  background: var(--mac-box);
+  box-shadow: var(--shadow-box);
+  scroll-margin-top: 70px;
+}
+.conn-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--mac-label);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--box-radius);
+}
+.conn-card__head:hover {
+  background: var(--mac-hover);
+}
+.conn-card__head:focus-visible {
+  outline: 2px solid var(--sys-blue);
+  outline-offset: -2px;
+}
+.conn-card__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  color: var(--link);
+  background: color-mix(in srgb, var(--link) 15%, transparent);
+}
+.conn-card__text {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.conn-card__text strong {
+  font-size: var(--fs-title3);
+}
+.conn-card__state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.conn-card__state i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mac-label-3);
+}
+.conn-card__state.is-on i {
+  background: var(--sys-green);
+}
+.conn-card__state.is-busy i {
+  background: var(--sys-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sys-green) 30%, transparent);
+}
+.conn-card__body {
+  display: grid;
+  gap: 0;
+  padding: 0 14px 12px;
+  border-top: 0.5px solid var(--mac-separator);
+}
+/* Sections inside a card drop their own box: one surface per card. */
+.conn-card__body > .box {
+  padding: 12px 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+.conn-card__body > .box + .box {
+  border-top: 0.5px solid var(--mac-separator);
+}
+.conn-card__simple {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+}
+.conn-card__simple .caption {
+  margin: 0;
+  flex: 1;
+}
+@media (max-width: 760px) {
+  .hub__dot {
+    width: 42px;
+    height: 42px;
+  }
+  .hub__app {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+  }
+  .hub__name {
+    font-size: var(--fs-subhead);
+  }
+}
+.calib__blank {
+  border: 1px dashed color-mix(in srgb, var(--sys-blue) 55%, transparent);
+  background: var(--mac-box);
+}
