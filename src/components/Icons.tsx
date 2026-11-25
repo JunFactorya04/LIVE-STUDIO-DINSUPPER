@@ -16,6 +16,8 @@ const paths: Record<PageId | "more", string> = {
   expenses: "M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3",
   carriers: "M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16M4 12h16M12 4c3 3 3 13 0 16",
   replies: "M10 8L5 12l5 4M5 12h9a5 5 0 0 1 5 5",
+  staff:
+    "M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20a6 6 0 0 1 12 0M16 5.2a3 3 0 0 1 0 5.6M17.5 14a6 6 0 0 1 3.5 6",
   overlay: "M12 4l8 4-8 4-8-4zM4 12l8 4 8-4M4 16l8 4 8-4",
   report: "M5 20V10M12 20V4M19 20v-7",
   ads: "M3 10v4h3l5 4V6l-5 4zM17 9a4 4 0 0 1 0 6M20 6a8 8 0 0 1 0 12",

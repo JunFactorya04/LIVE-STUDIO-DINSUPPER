@@ -18,6 +18,7 @@ import { OrdersPage } from "./pages/OrdersPage";
 import { OverlayPage } from "./pages/OverlayPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { ReportPage } from "./pages/ReportPage";
+import { StaffPage } from "./pages/StaffPage";
 import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
@@ -150,6 +151,8 @@ function PageBody({
       return <DashboardPage onNavigate={onNavigate} />;
     case "replies":
       return <RepliesPage />;
+    case "staff":
+      return <StaffPage onNavigate={onNavigate} />;
     case "overlay":
       return <OverlayPage />;
     case "orders":

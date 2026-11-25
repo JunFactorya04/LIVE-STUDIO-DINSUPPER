@@ -1592,3 +1592,344 @@
 .browser__dev .actions {
   align-items: center;
 }
+
+/* ---------- Nhân viên AI: the team as one picture ---------- */
+.staff {
+  --staff-cskh: var(--sys-green);
+  --staff-marketing: var(--sys-pink);
+  --staff-kho: var(--sys-orange);
+  --staff-ketoan: var(--sys-blue);
+  gap: 14px;
+}
+.staff__top {
+  display: flex;
+  align-items: center;
+}
+.staff__pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--mac-control);
+  border: 0.5px solid var(--mac-control-border);
+  font-size: var(--fs-title3);
+  font-weight: 600;
+  color: var(--mac-label-2);
+}
+.staff__pending i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--mac-label-3);
+}
+.staff__pending.is-on {
+  color: var(--mac-label);
+  background: color-mix(in srgb, var(--sys-orange) 14%, var(--mac-control));
+  border-color: color-mix(in srgb, var(--sys-orange) 60%, transparent);
+}
+.staff__pending.is-on i {
+  background: var(--sys-yellow);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sys-orange) 70%, transparent);
+}
+
+/* The lead in the middle, the four staff on a dashed ring around it. */
+.staff__team {
+  position: relative;
+  width: min(100%, 460px);
+  aspect-ratio: 1 / 0.92;
+  margin: 0 auto;
+}
+.staff__ring {
+  position: absolute;
+  inset: 13% 15%;
+  border-radius: 50%;
+  border: 1.5px dashed var(--mac-separator);
+}
+.staff__lead {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  font-size: var(--fs-callout);
+}
+.staff__lead-badge {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+  background: var(--mac-label);
+  color: var(--mac-window);
+  box-shadow: var(--shadow-pop);
+}
+.staff__lead.is-busy .staff__lead-badge {
+  animation: staff-pulse 1.2s var(--ease-ios, ease) infinite;
+}
+.staff__member {
+  position: absolute;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  width: 112px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--mac-label);
+  font: inherit;
+  font-size: var(--fs-callout);
+  cursor: pointer;
+  border-radius: var(--box-radius);
+  transform: translate(-50%, -50%);
+}
+.staff__member:hover .staff__avatar {
+  transform: scale(1.05);
+}
+.staff__member:focus-visible {
+  outline: 2px solid var(--sys-blue);
+  outline-offset: 2px;
+}
+.staff__pos-0 {
+  left: 50%;
+  top: 13%;
+}
+.staff__pos-1 {
+  left: 85%;
+  top: 50%;
+}
+.staff__pos-2 {
+  left: 50%;
+  top: 87%;
+}
+.staff__pos-3 {
+  left: 15%;
+  top: 50%;
+}
+.staff__avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  color: var(--role);
+  background: color-mix(in srgb, var(--role) 16%, var(--mac-window));
+  box-shadow:
+    0 0 0 4px var(--mac-window),
+    0 0 0 7px color-mix(in srgb, var(--role) 55%, transparent);
+  transition: transform 0.2s var(--ease-ios, ease);
+}
+.staff__member--cskh,
+.staff__role-dot--cskh {
+  --role: var(--staff-cskh);
+}
+.staff__member--marketing,
+.staff__role-dot--marketing {
+  --role: var(--staff-marketing);
+}
+.staff__member--kho,
+.staff__role-dot--kho {
+  --role: var(--staff-kho);
+}
+.staff__member--ketoan,
+.staff__role-dot--ketoan {
+  --role: var(--staff-ketoan);
+}
+.staff__avatar.is-working {
+  animation: staff-pulse 1.2s var(--ease-ios, ease) infinite;
+}
+.staff__count {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--sys-orange);
+  color: var(--on-accent);
+  font-size: var(--fs-subhead);
+  font-weight: 700;
+  line-height: 22px;
+}
+.staff__member strong {
+  margin-top: 8px;
+}
+@keyframes staff-pulse {
+  50% {
+    transform: scale(1.06);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .staff__avatar.is-working,
+  .staff__lead.is-busy .staff__lead-badge {
+    animation: none;
+  }
+}
+
+/* Ask the lead: one pill at the bottom. */
+.staff__ask {
+  position: sticky;
+  bottom: 8px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 999px;
+  background: var(--mac-box);
+  box-shadow: var(--shadow-pop);
+}
+.staff__ask .input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: var(--fs-title3);
+}
+.staff__ask .btn {
+  border-radius: 999px;
+}
+.staff__ask-icon {
+  display: grid;
+  place-items: center;
+  color: var(--mac-label-2);
+}
+.staff__ask-note {
+  margin: -6px 0 0;
+  text-align: center;
+}
+
+/* Drafts and tasks. */
+.staff__tasks {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.staff__task {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--box-radius);
+  background: var(--mac-under);
+}
+.staff__task-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.staff__task-head .chip {
+  margin-left: auto;
+}
+.staff__role-dot {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: var(--role);
+  background: color-mix(in srgb, var(--role) 18%, transparent);
+}
+.staff__chip--review {
+  color: color-mix(in srgb, var(--sys-orange) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-orange) 15%, transparent);
+}
+.staff__chip--working {
+  color: color-mix(in srgb, var(--sys-blue) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-blue) 15%, transparent);
+}
+.staff__chip--approved {
+  color: color-mix(in srgb, var(--sys-green) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-green) 15%, transparent);
+}
+.staff__chip--failed {
+  color: color-mix(in srgb, var(--sys-red) 85%, var(--mac-label));
+  background: color-mix(in srgb, var(--sys-red) 15%, transparent);
+}
+.staff__task--discarded {
+  opacity: 0.6;
+}
+.staff__working {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--sys-blue) 70%, transparent),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: staff-load 1.2s linear infinite;
+}
+@keyframes staff-load {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .staff__working {
+    animation: none;
+  }
+}
+.staff__draft {
+  width: 100%;
+  font-size: var(--fs-body);
+  line-height: 1.5;
+}
+.staff__panel {
+  display: grid;
+  gap: 12px;
+}
+.staff__panel .muted {
+  margin: 0;
+}
+.staff__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.staff__quick .btn {
+  height: auto;
+  min-height: var(--ctl-h);
+  padding: 4px 10px;
+  white-space: normal;
+  text-align: left;
+}
+.staff__channels {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.staff__recent {
+  display: grid;
+  gap: 4px;
+}
+.staff__comment {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--ctl-radius);
+  background: var(--mac-under);
+  color: var(--mac-label);
+  font: inherit;
+  font-size: var(--fs-callout);
+  text-align: left;
+  cursor: pointer;
+}
+.staff__comment:hover {
+  background: var(--mac-hover);
+}
+.staff__notes summary {
+  cursor: pointer;
+  font-size: var(--fs-callout);
+  color: var(--mac-label-2);
+}
+.staff__notes .input--area {
+  width: 100%;
+  margin-top: 6px;
+}
