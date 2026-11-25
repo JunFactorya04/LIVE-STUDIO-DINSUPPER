@@ -2032,15 +2032,19 @@
   margin: 0;
   max-width: 640px;
 }
-.hub {
+.settings-hub {
   --hub-tiktok: var(--sys-pink);
-  --hub-phone: var(--sys-green);
-  --hub-scanner: var(--sys-teal);
+  --hub-phone: var(--sys-teal);
+  --hub-scanner: var(--sys-gray);
   --hub-ai: var(--sys-purple);
   --hub-printer: var(--sys-orange);
   --hub-label: var(--sys-yellow);
   --hub-carriers: var(--sys-blue);
   --hub-web: var(--sys-indigo);
+  --hub-telegram: color-mix(in srgb, var(--sys-blue) 55%, var(--sys-teal));
+  --hub-whatsapp: var(--sys-green);
+}
+.hub {
   position: relative;
   width: min(100%, 620px);
   aspect-ratio: 4 / 3;
@@ -2122,6 +2126,16 @@
 .hub__node--web,
 .conn-card__icon--web {
   --link: var(--hub-web);
+}
+.hub__link--telegram,
+.hub__node--telegram,
+.conn-card__icon--telegram {
+  --link: var(--hub-telegram);
+}
+.hub__link--whatsapp,
+.hub__node--whatsapp,
+.conn-card__icon--whatsapp {
+  --link: var(--hub-whatsapp);
 }
 .conn-card__icon--general {
   --link: var(--sys-gray);
@@ -2340,4 +2354,34 @@
 .calib__blank {
   border: 1px dashed color-mix(in srgb, var(--sys-blue) 55%, transparent);
   background: var(--mac-box);
+}
+
+/* Settings → Telegram / WhatsApp */
+.chat-setup__steps {
+  margin: 4px 0 8px;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+  font-size: var(--fs-callout);
+  color: var(--mac-label-2);
+}
+.chat-setup__pair {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 10px 12px;
+  border-radius: var(--box-radius);
+  background: color-mix(in srgb, var(--sys-blue) 10%, transparent);
+}
+.chat-setup__code {
+  padding: 6px 12px;
+  border-radius: var(--ctl-radius);
+  background: var(--mac-box);
+  font-family: var(--font-mono);
+  font-size: var(--fs-title2);
+  font-weight: 600;
+  user-select: all;
+}
+.chat-setup__ok {
+  color: color-mix(in srgb, var(--sys-green) 80%, var(--mac-label));
 }

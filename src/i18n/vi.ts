@@ -1648,6 +1648,9 @@ export const vi: Messages = {
       gemini: "Gemini (Google)",
       deepseek: "DeepSeek",
       connector: "Euler Stream (nguồn bình luận)",
+      telegram: "Token bot Telegram",
+      whatsapp: "Access token WhatsApp (Meta)",
+      "whatsapp-relay": "Mã bí mật của trạm chuyển tin",
     },
     apiConnectorHelp:
       "Khóa API bạn nhận được sau khi đăng ký Euler Stream, dùng cho “Kết nối tự động”. Gói miễn phí có giới hạn số yêu cầu và số kết nối, xem các gói của Euler Stream.",
@@ -1816,6 +1819,21 @@ export const vi: Messages = {
     errors: {
       INTERRUPTED: "App đã đóng khi đang làm. Bấm Làm lại.",
     },
+    chat: {
+      help: "Nhắn việc bằng lời thường, Trưởng nhóm sẽ chia việc cho nhân viên. Lệnh:\n/viec – việc đang chờ duyệt\n/xem 12 – xem lại việc số 12\n/duyet 12 – duyệt việc số 12\n/bo 12 – bỏ việc số 12",
+      paired: "Đã kết nối LIVE STUDIO với Telegram này.",
+      planned: "Trưởng nhóm đã giao {n} việc. Xong việc nào sẽ gửi về đây.",
+      empty: "Trưởng nhóm chưa hiểu việc này. Viết rõ hơn giúp mình nhé.",
+      noAi: "Chưa chọn dịch vụ AI trong app (Cài đặt → Dịch vụ AI).",
+      report: "Trả lời /duyet {no} để duyệt hoặc /bo {no} để bỏ.",
+      failed: "Không làm được (lỗi AI hoặc mạng). Mở app để làm lại.",
+      approved: "Đã duyệt việc #{no}.",
+      discarded: "Đã bỏ việc #{no}.",
+      notFound: "Không tìm thấy việc #{no}.",
+      list: "Việc đang chờ duyệt:",
+      none: "Không có việc nào chờ duyệt.",
+      roles: { cskh: "CSKH", marketing: "Marketing", kho: "Kho", ketoan: "Kế toán" },
+    },
   },
   labelCalib: {
     title: "Căn chỉnh giấy tem (Nhập Kho)",
@@ -1853,7 +1871,7 @@ export const vi: Messages = {
     },
     catHelp: {
       all: "Tất cả kết nối và cài đặt của app.",
-      in: "Nơi thông tin đi vào: bình luận TikTok Live và điện thoại của bạn.",
+      in: "Nơi thông tin đi vào: bình luận TikTok Live, Telegram, WhatsApp và điện thoại của bạn.",
       devices: "Máy in đơn, máy in tem và máy quét mã.",
       services: "Dịch vụ AI và các hãng vận chuyển.",
       general: "Ngôn ngữ, giao diện sáng/tối và cách mở trang web.",
@@ -1861,6 +1879,8 @@ export const vi: Messages = {
     states: { on: "Sẵn sàng", busy: "Đang chạy", off: "Chưa cài" },
     names: {
       tiktok: "TikTok Live",
+      telegram: "Telegram",
+      whatsapp: "WhatsApp",
       phone: "Điện thoại",
       scanner: "Máy quét",
       ai: "Dịch vụ AI",
@@ -1871,6 +1891,8 @@ export const vi: Messages = {
     },
     desc: {
       tiktok: "Nhận bình luận của phiên live vào app",
+      telegram: "Giao việc cho Nhân viên AI và nhận báo cáo qua bot Telegram",
+      whatsapp: "Giao việc và nhận báo cáo qua WhatsApp (Meta Cloud API)",
       phone: "Link chia sẻ: quét mã, tạo đơn, in qua máy tính",
       scanner: "Máy quét USB/Bluetooth hoặc camera điện thoại",
       ai: "Chọn dịch vụ AI và nhập khóa API",
@@ -1885,5 +1907,50 @@ export const vi: Messages = {
     openSetup: "Mở Thiết lập Live",
     carriersBody: "Tài khoản và cách gửi của từng hãng nằm ở trang Hãng vận chuyển.",
     openCarriers: "Mở Hãng vận chuyển",
+  },
+  chatSetup: {
+    telegramTitle: "Bot Telegram cho Nhân viên AI",
+    tgStep1: "Trong Telegram, tìm @BotFather, gửi /newbot, đặt tên cho bot và nhận token.",
+    tgStep2: "Dán token vào ô dưới rồi bấm Lưu, sau đó bấm Bật kết nối.",
+    tgStep3:
+      "Mở bot của bạn và gửi đúng dòng /start kèm mã app hiện ra. Chỉ chat đó được giao việc.",
+    turnOn: "Bật kết nối",
+    turnOff: "Tắt",
+    test: "Gửi thử",
+    testText: "LIVE STUDIO: kết nối hoạt động tốt.",
+    testOk: "Đã gửi tin thử.",
+    unlink: "Đổi chat khác",
+    pairHelp: "Mở bot của bạn trên Telegram và gửi:",
+    linked: "Đã liên kết với chat {id}. Nhắn việc vào bot, báo cáo sẽ gửi về đó.",
+    commands:
+      "Trong chat: nhắn việc bằng lời thường; /viec xem việc chờ duyệt; /duyet 12 duyệt; /bo 12 bỏ; /xem 12 xem lại. Chỉ chạy khi app đang mở (kể cả khi ẩn cửa sổ).",
+    whatsappTitle: "WhatsApp cho Nhân viên AI",
+    waIntro:
+      "Dùng WhatsApp Business Cloud API của Meta. Gửi báo cáo đi là gọi thẳng Meta; còn nhận tin bạn nhắn cần một trạm chuyển tin nhỏ trên mạng (mã có sẵn trong thư mục relay/whatsapp, đưa lên Vercel).",
+    waStep1:
+      "Trên developers.facebook.com tạo app WhatsApp, lấy Phone number ID và access token lâu dài.",
+    waStep2:
+      "Đưa trạm chuyển tin lên Vercel, đặt webhook của WhatsApp về trạm đó, nhập địa chỉ trạm và mã bí mật ở dưới.",
+    waStep3: "Nhập số WhatsApp của bạn (có mã nước, vd 886…), bấm Bật kết nối rồi Gửi thử.",
+    waOwner: "Số WhatsApp của bạn",
+    waPhoneId: "Phone number ID (số doanh nghiệp)",
+    waRelay: "Địa chỉ trạm chuyển tin",
+    waWindow:
+      "Quy định của WhatsApp: doanh nghiệp chỉ gửi tin tự do trong 24 giờ sau tin cuối bạn nhắn tới. Nếu báo lỗi “ngoài 24 giờ”, hãy nhắn một tin bất kỳ vào số doanh nghiệp trước.",
+    errors: {
+      NO_KEY: "Chưa nhập token. Dán token rồi bấm Lưu.",
+      KEYCHAIN: "Không đọc được token trong kho khóa của máy.",
+      AUTH: "Token sai hoặc đã hết hạn.",
+      NETWORK: "Không kết nối được mạng, app sẽ tự thử lại.",
+      BLOCKED: "Bot bị chặn trong chat này.",
+      NOT_PAIRED: "Chưa liên kết chat. Gửi /start kèm mã vào bot trước.",
+      BAD_PHONE: "Số WhatsApp chưa đúng (cần có mã nước, 8–15 chữ số).",
+      BAD_PHONE_ID: "Chưa nhập Phone number ID.",
+      BAD_URL: "Địa chỉ trạm chuyển tin phải bắt đầu bằng https://",
+      OUTSIDE_WINDOW: "Ngoài 24 giờ: hãy nhắn một tin vào số doanh nghiệp trước rồi gửi lại.",
+      RATE_LIMIT: "Gửi quá nhanh, thử lại sau ít phút.",
+      BAD_REQUEST: "Meta từ chối yêu cầu. Kiểm tra Phone number ID và quyền của token.",
+      SETUP: "Cần nhập số WhatsApp và địa chỉ trạm chuyển tin.",
+    },
   },
 };

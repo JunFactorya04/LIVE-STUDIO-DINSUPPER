@@ -18,6 +18,7 @@ import { OrdersPage } from "./pages/OrdersPage";
 import { OverlayPage } from "./pages/OverlayPage";
 import { PlaceholderPage } from "./pages/PlaceholderPage";
 import { ReportPage } from "./pages/ReportPage";
+import { ChatBridge } from "./chat/ChatBridge";
 import { StaffPage } from "./pages/StaffPage";
 import { RepliesPage } from "./pages/RepliesPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -125,6 +126,7 @@ export function App({ initialPage = isRemote() ? "home" : "setup" }: { initialPa
       <ShareSync />
       <ToastHost closeLabel={t.common.close} />
       {!isRemote() && <AutoPrint />}
+      {!isRemote() && <ChatBridge />}
     </div>
   );
 }

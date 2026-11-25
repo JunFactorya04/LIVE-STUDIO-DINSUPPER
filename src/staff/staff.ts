@@ -19,6 +19,8 @@ export type TaskStatus = "working" | "review" | "approved" | "discarded" | "fail
 
 export interface StaffTask {
   id: string;
+  /** Short number for chat commands (/duyet 12). Older tasks may not have one. */
+  no?: number;
   role: RoleId;
   title: string;
   /** What the staff member was asked, in the seller's (or the lead's) words. */

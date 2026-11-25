@@ -3,6 +3,7 @@ import { useI18n } from "../i18n";
 import {
   SECRET_SLOTS,
   createSecretsClient,
+  CHAT_SLOTS,
   type FixedSecretSlot,
   type SecretsClient,
 } from "../secrets/client";
@@ -10,7 +11,7 @@ import {
 // The seller registers their own API keys here. A key is written to the OS keychain and never
 // shown again: this UI only knows "set" or "not set".
 
-function KeyRow({ slot, client }: { slot: FixedSecretSlot; client: SecretsClient }) {
+export function KeyRow({ slot, client }: { slot: FixedSecretSlot; client: SecretsClient }) {
   const { t } = useI18n();
   const [isSet, setIsSet] = useState<boolean>();
   const [value, setValue] = useState("");
@@ -88,7 +89,9 @@ export function ApiKeysSection({ client }: { client?: SecretsClient }) {
       <h2 className="section-title">{t.settings.apiTitle}</h2>
       <p className="caption">{t.settings.apiHelp}</p>
       {resolved.available ? (
-        SECRET_SLOTS.map((slot) => <KeyRow key={slot} slot={slot} client={resolved} />)
+        SECRET_SLOTS.filter((slot) => !CHAT_SLOTS.includes(slot)).map((slot) => (
+          <KeyRow key={slot} slot={slot} client={resolved} />
+        ))
       ) : (
         <p className="note">{t.settings.apiBrowser}</p>
       )}

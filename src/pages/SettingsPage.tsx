@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { chatStore, type ChatRunState } from "../chat/chat";
 import { loadAiConfig } from "../ai/config";
 import { isRemote } from "../platform/backend";
 import { LOCALES, useI18n, type Locale } from "../i18n";
@@ -18,6 +19,7 @@ import {
   type ConnId,
   type ConnState,
 } from "./ConnectionsHub";
+import { TelegramSection, WhatsAppSection } from "./ChatSections";
 import { InvoiceSection } from "./InvoiceSection";
 import { LabelCalibSection } from "./LabelCalibSection";
 import { PrinterSection } from "./PrinterSection";
@@ -34,6 +36,8 @@ type Cat = "all" | "in" | "devices" | "services" | "general";
 const CATS: Cat[] = ["all", "in", "devices", "services", "general"];
 const CAT_OF: Record<ConnId, Exclude<Cat, "all">> = {
   tiktok: "in",
+  telegram: "in",
+  whatsapp: "in",
   phone: "in",
   scanner: "devices",
   printer: "devices",
@@ -42,6 +46,9 @@ const CAT_OF: Record<ConnId, Exclude<Cat, "all">> = {
   carriers: "services",
   web: "general",
 };
+
+const chatState = (enabled: boolean, run: ChatRunState): ConnState =>
+  !enabled || run === "error" || run === "off" ? "off" : run === "running" ? "busy" : "on";
 
 export function SettingsPage({ onNavigate }: { onNavigate?: (page: PageId) => void }) {
   const remote = isRemote();
@@ -110,6 +117,7 @@ function ConnectedSettings({ onNavigate }: { onNavigate?: (page: PageId) => void
   const receipt = usePrintStatus(getPrintService());
   const label = usePrintStatus(getLabelService());
   const [sharing, setSharing] = useState(false);
+  const chat = useSyncExternalStore(chatStore.subscribe, chatStore.getSnapshot);
   const [cat, setCat] = useState<Cat>("all");
   const [open, setOpen] = useState<ReadonlySet<ConnId | "general">>(new Set());
 
@@ -134,6 +142,8 @@ function ConnectedSettings({ onNavigate }: { onNavigate?: (page: PageId) => void
     !configured || st.error ? "off" : st.printing ? "busy" : "on";
   const states: Record<ConnId, ConnState> = {
     tiktok: s.status === "CONNECTED" || s.status === "DEMO" ? "busy" : "off",
+    telegram: chatState(chat.settings.telegram.enabled, chat.live.telegram.state),
+    whatsapp: chatState(chat.settings.whatsapp.enabled, chat.live.whatsapp.state),
     phone: sharing ? "busy" : "off",
     scanner: "on",
     ai: loadAiConfig().provider ? "on" : "off",
@@ -172,6 +182,8 @@ function ConnectedSettings({ onNavigate }: { onNavigate?: (page: PageId) => void
         )}
       </div>
     ),
+    telegram: <TelegramSection />,
+    whatsapp: <WhatsAppSection />,
     phone: <ShareSection />,
     scanner: <ScannerSection />,
     ai: (

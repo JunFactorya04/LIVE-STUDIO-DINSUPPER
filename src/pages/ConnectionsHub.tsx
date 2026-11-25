@@ -6,12 +6,24 @@ import { NavIcon } from "../components/Icons";
 // it goes (printers, carriers). Not set up: a dashed grey line. Each node opens its card below.
 
 export type ConnId =
-  "tiktok" | "phone" | "scanner" | "ai" | "printer" | "label" | "carriers" | "web";
+  | "tiktok"
+  | "telegram"
+  | "whatsapp"
+  | "phone"
+  | "scanner"
+  | "ai"
+  | "printer"
+  | "label"
+  | "carriers"
+  | "web";
 
 export type ConnState = "on" | "busy" | "off";
 
 export const CONN_ICON: Record<ConnId, string> = {
   tiktok: "M14 4v10.5a3.5 3.5 0 1 1-3-3.46M14 4c.5 2.5 2.5 4 5 4",
+  telegram: "M21 4L3 11.2l6 2.3 2.3 6.5 3.4-4.2 5.3 4.2zM9 13.5L21 4",
+  whatsapp:
+    "M4 20l1.3-3.9A8 8 0 1 1 8 18.7zM9.2 8.5c0 3.4 2.9 6.3 6.3 6.3l.9-1.6-2-1-1 .8a4 4 0 0 1-1.9-1.9l.8-1-1-2z",
   phone: "M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2",
   scanner:
     "M4 8V5a1 1 0 0 1 1-1h3M20 8V5a1 1 0 0 0-1-1h-3M4 16v3a1 1 0 0 0 1 1h3M20 16v3a1 1 0 0 1-1 1h-3M7 12h10",
@@ -25,20 +37,24 @@ export const CONN_ICON: Record<ConnId, string> = {
 
 /** Where each node sits (viewBox 400 × 300) and which way its information flows. */
 const LAYOUT: Record<ConnId, { x: number; y: number; dir: "in" | "out" }> = {
-  tiktok: { x: 56, y: 62, dir: "in" },
-  phone: { x: 40, y: 152, dir: "in" },
-  scanner: { x: 64, y: 240, dir: "in" },
-  ai: { x: 200, y: 34, dir: "out" },
-  printer: { x: 344, y: 62, dir: "out" },
-  label: { x: 360, y: 152, dir: "out" },
-  carriers: { x: 336, y: 240, dir: "out" },
-  web: { x: 200, y: 272, dir: "out" },
+  tiktok: { x: 72, y: 46, dir: "in" },
+  telegram: { x: 36, y: 120, dir: "in" },
+  whatsapp: { x: 36, y: 196, dir: "in" },
+  phone: { x: 84, y: 266, dir: "in" },
+  scanner: { x: 200, y: 280, dir: "in" },
+  ai: { x: 200, y: 28, dir: "out" },
+  printer: { x: 328, y: 46, dir: "out" },
+  label: { x: 364, y: 120, dir: "out" },
+  carriers: { x: 364, y: 196, dir: "out" },
+  web: { x: 316, y: 266, dir: "out" },
 };
 
 const HUB = { x: 200, y: 152 };
 
 export const CONN_ORDER: readonly ConnId[] = [
   "tiktok",
+  "telegram",
+  "whatsapp",
   "phone",
   "scanner",
   "ai",

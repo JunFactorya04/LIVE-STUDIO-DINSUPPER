@@ -1,0 +1,9 @@
+{
+  "name": "live-studio-whatsapp-relay",
+  "private": true,
+  "type": "module",
+  "description": "Receives the owner's WhatsApp messages (Meta webhook) and keeps them until LIVE STUDIO pulls them.",
+  "engines": {
+    "node": ">=20"
+  }
+}

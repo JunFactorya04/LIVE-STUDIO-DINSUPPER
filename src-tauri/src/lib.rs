@@ -13,6 +13,7 @@ mod ecpay;
 mod euler;
 mod images;
 mod live;
+mod messaging;
 mod orders;
 mod overlay;
 mod pos;
@@ -61,6 +62,7 @@ pub fn run() {
             app.manage(share::ShareState::default());
             app.manage(webview_tab::BrowserTabState::default());
             app.manage(webview_tab::LastExport::default());
+            app.manage(messaging::ChatState::default());
             app.manage(commands::UiLabels::default());
             app.manage(tray::TrayItems::default());
             app.manage(tray::HiddenNoticeShown::default());
@@ -78,6 +80,11 @@ pub fn run() {
             webview_tab::browser_set_bounds,
             webview_tab::browser_reload,
             webview_tab::browser_zoom,
+            messaging::chat_telegram_start,
+            messaging::chat_telegram_stop,
+            messaging::chat_whatsapp_start,
+            messaging::chat_whatsapp_stop,
+            messaging::chat_send,
             webview_tab::browser_run_script,
             webview_tab::browser_last_export,
             webview_tab::browser_back,

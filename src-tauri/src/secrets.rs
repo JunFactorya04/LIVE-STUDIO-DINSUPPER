@@ -11,7 +11,16 @@ const SERVICE: &str = "vn.livestudio.app";
 
 /// Slots the user may fill. The AI slots are named like the provider ids in `ai.rs`;
 /// `connector` is the key of the comment-source provider.
-pub const SLOTS: &[&str] = &["claude", "openai", "gemini", "deepseek", "connector"];
+pub const SLOTS: &[&str] = &[
+    "claude",
+    "openai",
+    "gemini",
+    "deepseek",
+    "connector",
+    "telegram",
+    "whatsapp",
+    "whatsapp-relay",
+];
 
 fn valid_dynamic_rest(rest: &str) -> bool {
     (3..=48).contains(&rest.len())

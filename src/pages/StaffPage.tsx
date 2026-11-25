@@ -1,28 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { createAiClient, type AiClient } from "../ai/client";
-import { loadAiConfig } from "../ai/config";
 import { createBizClient, type BizClient } from "../biz/client";
 import { Sheet } from "../components/Sheet";
 import { toast } from "../components/Toast";
 import { useI18n } from "../i18n";
 import { useLiveSession } from "../live/useLiveSession";
 import type { PageId } from "../navigation";
-import { loadPolicy } from "../replies/suggest";
 import { createShipClient, type ShipClient } from "../ship/client";
-import { planWithLead, runTask, type AiChoice, type StaffData } from "../staff/run";
+import { getTeam } from "../staff/sharedTeam";
 import {
   CHANNELS,
   QUICK,
   ROLES,
-  loadNotes,
-  loadTasks,
-  saveNotes,
-  saveTasks,
   type Channel,
   type Period,
   type RoleId,
   type StaffTask,
 } from "../staff/staff";
+import { Team, type NewTask } from "../staff/team";
 import { createWarehouseClient, type WarehouseClient } from "../warehouse/client";
 
 // "Nhân viên AI": the team as one picture. The team lead sits in the middle; the four staff sit
@@ -58,9 +53,6 @@ function StaffGlyph({ id, size = 22 }: { id: RoleId | "lead"; size?: number }) {
   );
 }
 
-let seq = 0;
-const newId = () => `${Date.now().toString(36)}-${(++seq).toString(36)}`;
-
 export function StaffPage({
   onNavigate,
   ai,
@@ -77,108 +69,46 @@ export function StaffPage({
   const { t, fmt, locale } = useI18n();
   const st = t.staff;
   const s = useLiveSession();
+  // Tests hand in their own clients; the app shares one team with the chat bridge.
+  const [team] = useState(() =>
+    ai || ship || warehouse || biz
+      ? new Team({
+          ai: ai ?? createAiClient(),
+          ship: ship ?? createShipClient(),
+          warehouse: warehouse ?? createWarehouseClient(),
+          biz: biz ?? createBizClient(),
+          catalog: () => [],
+          lang: () => "vi",
+        })
+      : getTeam(),
+  );
   const [aiApi] = useState(() => ai ?? createAiClient());
-  const [shipApi] = useState(() => ship ?? createShipClient());
-  const [whApi] = useState(() => warehouse ?? createWarehouseClient());
-  const [bizApi] = useState(() => biz ?? createBizClient());
-  const [tasks, setTasks] = useState<StaffTask[]>(loadTasks);
-  const [notes, setNotes] = useState(loadNotes);
+  useEffect(() => {
+    team.configure({ catalog: () => s.catalog, lang: () => locale });
+  }, [team, s.catalog, locale]);
+  const { tasks, notes, planning } = useSyncExternalStore(team.subscribe, team.getSnapshot);
   const [open, setOpen] = useState<RoleId>();
   const [ask, setAsk] = useState("");
-  const [planning, setPlanning] = useState(false);
   const [leadNote, setLeadNote] = useState<{ text: string; error: boolean }>();
-
-  const config = loadAiConfig();
-  const choice: AiChoice | undefined = config.provider
-    ? { provider: config.provider, model: config.models[config.provider] }
-    : undefined;
-
-  // Tasks live in a ref too, so a long run never writes back an old list.
-  const tasksRef = useRef(tasks);
-  const commit = useCallback((next: StaffTask[]) => {
-    tasksRef.current = next;
-    setTasks(next);
-    saveTasks(next);
-  }, []);
-  const patch = useCallback(
-    (id: string, p: Partial<StaffTask>) =>
-      commit(tasksRef.current.map((x) => (x.id === id ? { ...x, ...p } : x))),
-    [commit],
-  );
-
-  const loadData = useCallback(async (): Promise<StaffData> => {
-    const safe = <T,>(p: Promise<T[]>) => p.catch(() => [] as T[]);
-    const [orders, customers, units, expenses] = await Promise.all([
-      shipApi.available ? safe(shipApi.orders()) : [],
-      shipApi.available ? safe(shipApi.customers()) : [],
-      whApi.available ? safe(whApi.units("IN_STOCK")) : [],
-      bizApi.available ? safe(bizApi.expenses()) : [],
-    ]);
-    return { catalog: s.catalog, units, orders, customers, expenses, policy: loadPolicy() };
-  }, [shipApi, whApi, bizApi, s.catalog]);
-
-  const run = useCallback(
-    async (task: StaffTask, data?: StaffData) => {
-      if (!choice) return;
-      patch(task.id, { status: "working", error: undefined });
-      try {
-        const draft = await runTask(
-          aiApi,
-          choice,
-          task,
-          data ?? (await loadData()),
-          locale,
-          notes[task.role] ?? "",
-        );
-        patch(task.id, { status: "review", draft });
-      } catch (e) {
-        patch(task.id, { status: "failed", error: e instanceof Error ? e.message : String(e) });
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [aiApi, choice?.provider, choice?.model, loadData, locale, notes, patch],
-  );
-
-  const give = (p: Omit<StaffTask, "id" | "status" | "draft" | "createdAt">) => {
-    const task: StaffTask = {
-      ...p,
-      id: newId(),
-      status: "working",
-      draft: "",
-      createdAt: new Date().toISOString(),
-    };
-    commit([task, ...tasksRef.current]);
-    void run(task);
-  };
+  const choice = team.choice();
+  const patch = useCallback((id: string, p: Partial<StaffTask>) => team.patch(id, p), [team]);
+  const run = (task: StaffTask) => team.run(task);
+  const give = (p: NewTask) => team.give(p);
 
   const askLead = async () => {
     const text = ask.trim();
     if (!text || !choice) return;
-    setPlanning(true);
     setLeadNote({ text: st.leadPlanning, error: false });
     try {
-      const plan = await planWithLead(aiApi, choice, text);
-      if (plan.length === 0) {
+      const n = await team.askLead(text);
+      if (n === 0) {
         setLeadNote({ text: st.leadEmpty, error: true });
         return;
       }
-      const made = plan.map<StaffTask>((p) => ({
-        ...p,
-        id: newId(),
-        status: "working",
-        draft: "",
-        fromLead: true,
-        createdAt: new Date().toISOString(),
-      }));
-      commit([...made, ...tasksRef.current]);
       setAsk("");
-      setLeadNote({ text: fmt(st.leadDone, { n: made.length }), error: false });
-      const data = await loadData();
-      for (const task of made) await run(task, data);
+      setLeadNote({ text: fmt(st.leadDone, { n }), error: false });
     } catch (e) {
       setLeadNote({ text: aiError(e), error: true });
-    } finally {
-      setPlanning(false);
     }
   };
 
@@ -318,11 +248,7 @@ export function StaffPage({
             tasks={tasks.filter((x) => x.role === open)}
             canRun={Boolean(choice)}
             note={notes[open] ?? ""}
-            onNote={(v) => {
-              const next = { ...notes, [open]: v };
-              setNotes(next);
-              saveNotes(next);
-            }}
+            onNote={(v) => team.setNote(open, v)}
             onGive={give}
             onPatch={patch}
             onRedo={(x) => void run(x)}
@@ -352,7 +278,7 @@ function MemberPanel({
   canRun: boolean;
   note: string;
   onNote: (v: string) => void;
-  onGive: (p: Omit<StaffTask, "id" | "status" | "draft" | "createdAt">) => void;
+  onGive: (p: NewTask) => void;
   onPatch: (id: string, p: Partial<StaffTask>) => void;
   onRedo: (task: StaffTask) => void;
   aiError: (e: unknown) => string;

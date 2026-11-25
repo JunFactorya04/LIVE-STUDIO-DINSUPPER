@@ -57,6 +57,7 @@ pub fn parse_target(host: &str, port: u16) -> Result<SocketAddr, PrintError> {
 
 /// Build the ESC/POS job: init, raster bands, feed, partial cut.
 /// `bits` is `ceil(width/8)` bytes per row, 1 = black, most significant bit first.
+#[cfg(test)]
 pub fn build_job(width: usize, height: usize, bits: &[u8]) -> Result<Vec<u8>, PrintError> {
     build_job_with(width, height, bits, 4, true)
 }
